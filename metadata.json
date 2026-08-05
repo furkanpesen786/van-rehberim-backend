@@ -1,0 +1,6 @@
+{
+  "name": "Van Rehberim",
+  "description": "Van Şehir Rehberi - Nöbetçi Eczaneler, Ulaşım, Gezilecek Yerler, Haberler, İndirimler ve Canlı Şehir Bilgileri",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

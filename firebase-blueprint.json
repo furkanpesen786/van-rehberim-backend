@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "users": {
+      "title": "Users",
+      "description": "Registered app users and their email profile info",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" },
+        "loginMethod": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "jobListings": {
+      "title": "Job Listings",
+      "description": "User created job and service listings in Van",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "providerName": { "type": "string" },
+        "category": { "type": "string" },
+        "district": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "description": { "type": "string" },
+        "photo": { "type": "string" },
+        "durationDays": { "type": "number" },
+        "pricePaid": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "isFeatured": { "type": "boolean" },
+        "experienceYears": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["title", "providerName", "phone"]
+    },
+    "deals": {
+      "title": "Deals",
+      "description": "Store deals and discount offers in Van",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "category": { "type": "string" },
+        "dealTitle": { "type": "string" },
+        "discountRate": { "type": "string" },
+        "image": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "locationName": { "type": "string" },
+        "address": { "type": "string" },
+        "description": { "type": "string" },
+        "isFeatured": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["storeName", "dealTitle"]
+    }
+  }
+}
