@@ -11,15 +11,21 @@ export interface LiveNewsResponse {
 
 export async function fetchLiveVanNews(): Promise<LiveNewsResponse> {
   try {
-    const response = await fetch('https://van-rehberim-api.onrender.com/api/news?limit=30');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const response = await fetch('https://van-rehberim-backend.onrender.com/api/news?limit=30', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (response.ok) {
       const data = await response.json();
       if (data && data.success && Array.isArray(data.news)) {
         return data;
       }
+    } else {
+      const errText = await response.text().catch(() => 'No Body');
+      console.error(`[newsService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err) {
-    console.warn('Live news fetch error from backend API:', err);
+  } catch (err: any) {
+    console.error(`[newsService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
   return {

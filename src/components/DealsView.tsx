@@ -80,7 +80,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Tümü');
-  
+
   // LocalStorage Array Koruması
   const [savedDeals, setSavedDeals] = useState<string[]>(() => {
     try {
@@ -171,15 +171,15 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   // Arama & Filtreleme Kalkanı (toLowerCase hataları giderildi)
   const filteredDeals = Array.isArray(dealsList) ? dealsList.filter(deal => {
     if (!deal) return false;
-    
+
     const sName = String(deal.storeName || '');
     const dTitle = String(deal.dealTitle || '');
     const searchVal = String(searchQuery || '').toLowerCase();
-    
+
     const matchesCat = selectedCategory === 'Tümü' || deal.category === selectedCategory;
     const matchesSearch = sName.toLowerCase().includes(searchVal) || dTitle.toLowerCase().includes(searchVal);
     const matchesSaved = showSavedOnly ? (Array.isArray(savedDeals) && savedDeals.includes(deal.id)) : true;
-    
+
     return matchesCat && matchesSearch && matchesSaved;
   }) : [];
 
@@ -199,12 +199,12 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     }
 
     const defaultImage = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80';
-    
+
     // Saf String Koruması
     const safeStoreName = String(storeName || '').trim() || 'Yeni Van Esnafı';
     const safeDealTitle = String(dealTitle || '').trim() || 'İndirim Fırsatı';
     const safeDiscountAmount = String(discountAmount || '');
-    
+
     const dealPayload = {
       isletmeAdi: safeStoreName,
       kategori: String(category || 'Diğer'),
@@ -275,19 +275,19 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 />
               </div>
             </div>
-            
+
             <div className={`p-4 rounded-3xl border space-y-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
-               <label className="font-bold block mb-1">İndirim Değeri / Miktarı</label>
-               <div className={`flex items-center gap-2 border rounded-2xl p-3 ${isDark ? 'bg-[#24262c] border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                 <span className="text-slate-400 font-bold">%</span>
-                 <input
-                   type="text"
-                   value={String(discountAmount || '').replace('%', '').trim()}
-                   onChange={(e) => setDiscountAmount(`% ${e.target.value}`)}
-                   placeholder="20"
-                   className={`w-full bg-transparent font-bold text-sm focus:outline-none ${isDark ? 'text-white' : 'text-slate-900'}`}
-                 />
-               </div>
+              <label className="font-bold block mb-1">İndirim Değeri / Miktarı</label>
+              <div className={`flex items-center gap-2 border rounded-2xl p-3 ${isDark ? 'bg-[#24262c] border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-slate-400 font-bold">%</span>
+                <input
+                  type="text"
+                  value={String(discountAmount || '').replace('%', '').trim()}
+                  onChange={(e) => setDiscountAmount(`% ${e.target.value}`)}
+                  placeholder="20"
+                  className={`w-full bg-transparent font-bold text-sm focus:outline-none ${isDark ? 'text-white' : 'text-slate-900'}`}
+                />
+              </div>
             </div>
 
             <div className={`p-4 rounded-3xl border space-y-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -353,11 +353,27 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       ) : (
         <div className="max-w-md mx-auto px-4 pt-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-black">VAN REHBERİM</h1>
-            <button onClick={() => setShowSavedOnly(!showSavedOnly)} className={`p-2 rounded-full border ${showSavedOnly ? 'bg-emerald-600 text-white' : ''}`}>
+            <span className="flex items-center gap-1.5 text-emerald-700">
+              <div className="w-1.5 h-6 bg-emerald-600 rounded-full"></div>
+              <h1 className="text-xl font-black text-slate-800">VAN REHBERİM</h1>
+            </span>
+            <button onClick={() => setShowSavedOnly(!showSavedOnly)} className={`p-2 rounded-full border ${showSavedOnly ? 'bg-emerald-600 text-white' : 'bg-white border-slate-200'}`}>
               <Bookmark className="w-5 h-5" />
             </button>
           </div>
+
+          <div className="mb-4">
+            <h2 className="text-[28px] font-black leading-none mb-2 text-slate-800">İndirimler & Esnaf</h2>
+            <p className="text-sm text-slate-500 leading-snug">Bu uygulama ile mahallenizdeki tüm güncel indirim ve fırsatlardan anında haberdar olun.</p>
+          </div>
+
+          <button
+            onClick={() => setShowSavedOnly(!showSavedOnly)}
+            className={`w-full py-4 mb-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-base transition-colors ${showSavedOnly ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}
+          >
+            <Bookmark className={`w-5 h-5 ${showSavedOnly ? 'fill-white' : 'fill-emerald-700'}`} />
+            Kaydettiklerim
+          </button>
 
           <div className="relative mb-4">
             <input

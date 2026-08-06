@@ -11,15 +11,21 @@ export interface LiveBusResponse {
 
 export async function fetchLiveBusSchedules(): Promise<LiveBusResponse> {
   try {
-    const response = await fetch('https://van-rehberim-api.onrender.com/api/bus-schedules');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const response = await fetch('https://van-rehberim-backend.onrender.com/api/bus-schedules', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (response.ok) {
       const data = await response.json();
       if (data && data.success && Array.isArray(data.routes) && data.routes.length > 0) {
         return data;
       }
+    } else {
+      const errText = await response.text().catch(() => 'No Body');
+      console.error(`[busService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err) {
-    // Silently fall back to standard BELVAN route schedule dataset
+  } catch (err: any) {
+    console.error(`[busService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
   return {

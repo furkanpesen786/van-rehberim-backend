@@ -29,15 +29,21 @@ export interface LiveCurrencyResponse {
 
 export async function fetchLiveCurrencies(): Promise<LiveCurrencyResponse> {
   try {
-    const response = await fetch('https://van-rehberim-api.onrender.com/api/currencies');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const response = await fetch('https://van-rehberim-backend.onrender.com/api/currencies', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (response.ok) {
       const data = await response.json();
       if (data && data.success && data.heroRates) {
         return data;
       }
+    } else {
+      const errText = await response.text().catch(() => 'No Body');
+      console.error(`[currencyService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err) {
-    console.warn('Live currencies fetch error, using fallback:', err);
+  } catch (err: any) {
+    console.error(`[currencyService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
   // Fallback map

@@ -7,7 +7,12 @@ const app = express();
 const PORT = 3000;
 
 // CORS Security Configuration
-const allowedOrigins = ['http://localhost:3000', 'capacitor://localhost', 'http://localhost'];
+const allowedOrigins = [
+  'http://localhost:3000',
+  'capacitor://localhost',
+  'http://localhost',
+  'https://van-rehberim-backend.onrender.com'
+];
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -17,6 +22,7 @@ const corsOptions = {
     }
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 };
 app.use(cors(corsOptions));
 app.use(express.json());

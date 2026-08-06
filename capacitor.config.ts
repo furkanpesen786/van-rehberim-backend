@@ -5,9 +5,6 @@ const config: CapacitorConfig = {
   appName: 'Van Rehberim',
   webDir: 'dist',
   plugins: {
-    CapacitorHttp: {
-      enabled: true,
-    },
     FirebaseAuthentication: {
       skipNativeAuth: false,
       providers: ["google.com"],

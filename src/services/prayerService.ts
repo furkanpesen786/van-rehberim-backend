@@ -102,7 +102,10 @@ export function calculatePrayerStatus(times: {
 
 export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
   try {
-    const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Van&country=Turkey&method=13');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Van&country=Turkey&method=13', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (response.ok) {
       const json = await response.json();
       if (json && json.code === 200 && json.data && json.data.timings) {
@@ -135,9 +138,12 @@ export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
           isLive: true,
         };
       }
+    } else {
+      const errText = await response.text().catch(() => 'No Body');
+      console.error(`[prayerService] API Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err) {
-    console.warn('Live prayer times fetch error (Aladhan fallback failed), using local static fallback:', err);
+  } catch (err: any) {
+    console.error(`[prayerService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
   // Fallback

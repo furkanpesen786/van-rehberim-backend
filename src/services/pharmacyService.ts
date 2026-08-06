@@ -13,15 +13,21 @@ export interface DutyPharmaciesResponse {
 
 export async function fetchLivePharmacies(): Promise<DutyPharmaciesResponse> {
   try {
-    const response = await fetch('https://van-rehberim-api.onrender.com/api/pharmacies');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const response = await fetch('https://van-rehberim-backend.onrender.com/api/pharmacies', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (response.ok) {
       const data = await response.json();
       if (data && data.success && Array.isArray(data.pharmacies)) {
         return data;
       }
+    } else {
+      const errText = await response.text().catch(() => 'No Body');
+      console.error(`[pharmacyService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err) {
-    console.warn('Live pharmacies fetch error from server API, using fallback:', err);
+  } catch (err: any) {
+    console.error(`[pharmacyService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
   // Fallback

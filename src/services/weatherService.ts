@@ -7,10 +7,13 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
     const openMeteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude=38.5012&longitude=43.3730&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=Europe%2FIstanbul';
     const aqiUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5012&longitude=43.3730&current=us_aqi';
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     const [omRes, aqiRes] = await Promise.all([
-      fetch(openMeteoUrl),
-      fetch(aqiUrl).catch(() => null)
+      fetch(openMeteoUrl, { signal: controller.signal }),
+      fetch(aqiUrl, { signal: controller.signal }).catch(() => null)
     ]);
+    clearTimeout(timeoutId);
 
     if (omRes.ok) {
       const omData = await omRes.json();
@@ -89,9 +92,12 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
         lastUpdated: `Bugün ${nowStr} (Canlı Canlı API)`,
         forecast7Days,
       };
+    } else {
+      const errText = await omRes.text().catch(() => 'No Body');
+      console.error(`[weatherService] API Hatası - Status: ${omRes.status}`, errText);
     }
-  } catch (err) {
-    console.error('Client live weather fetch error:', err);
+  } catch (err: any) {
+    console.error(`[weatherService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
   // Fallback to initial baseline
