@@ -24,26 +24,6 @@ allprojects {
     }
 }
 
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
-            }
-        }
-    }
-    tasks.configureEach { task ->
-        if (task.name.startsWith("compile") && task.name.endsWith("Kotlin")) {
-            task.kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
-    }
-}
-
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
