@@ -1096,19 +1096,16 @@ app.get('/api/taziyeler', async (req, res) => {
   let debugPayload = '';
 
   try {
-    const scraperApiKey = process.env.SCRAPERAPI_KEY || '';
-    if (!scraperApiKey) {
-      debugPayload = 'ScraperAPI Key missing. ';
-      console.warn('ScraperAPI Key is missing! Request will fail safely at the proxy level.');
-    }
-
     const httpsAgent = new https.Agent({ rejectUnauthorized: false, keepAlive: true });
-    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}&premium=true`;
 
-    // Switch to professional ScraperAPI due to aggressive WAF block on open proxies
-    let vanBelRes = await axios.get(proxyUrl, {
-      timeout: 90000,
-      httpsAgent
+    // ScraperAPI's premium proxies failed against this WAF. Attempting direct native fetch bypassing proxies, using a cURL signature to prevent tarpitting.
+    let vanBelRes = await axios.get(targetUrl, {
+      timeout: 30000,
+      httpsAgent,
+      headers: {
+        'User-Agent': 'curl/7.81.0',
+        'Accept': '*/* '
+      }
     });
 
     if (vanBelRes && vanBelRes.status === 200) {
