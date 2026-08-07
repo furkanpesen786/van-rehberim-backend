@@ -1093,9 +1093,12 @@ app.get('/api/taziyeler', async (req, res) => {
     });
   }
 
+  let debugPayload = '';
+
   try {
     const scraperApiKey = process.env.SCRAPERAPI_KEY || '';
     if (!scraperApiKey) {
+      debugPayload = 'ScraperAPI Key missing. ';
       console.warn('ScraperAPI Key is missing! Request will fail safely at the proxy level.');
     }
 
@@ -1113,6 +1116,7 @@ app.get('/api/taziyeler', async (req, res) => {
         throw new Error('Received non-string data from van.bel.tr');
       }
       const html = vanBelRes.data;
+      debugPayload += 'HTML_LENGTH: ' + html.length + ' | PREVIEW: ' + html.substring(0, 500);
       console.log('--- VAN BEL RAW HTML SNIPPET ---');
       console.log(html.substring(0, 1000));
       console.log('--------------------------------');
@@ -1172,9 +1176,10 @@ app.get('/api/taziyeler', async (req, res) => {
   } catch (err: any) {
     if (err && err.response) {
       console.warn('van.bel.tr axios error:', err.response?.status, err.message);
-      console.warn('ScraperAPI Response Data (Error Body):', JSON.stringify(err.response?.data).substring(0, 500));
+      debugPayload += `AXIOS_ERROR: ${err.response?.status} - ${JSON.stringify(err.response?.data).substring(0, 300)}`;
     } else {
       console.warn('van.bel.tr fetch error:', err?.message || err);
+      debugPayload += `FETCH_ERROR: ${err?.message || err}`;
     }
   }
 
@@ -1186,7 +1191,8 @@ app.get('/api/taziyeler', async (req, res) => {
     source: 'van.bel.tr (Veri bulunamadı veya site erişilemez)',
     sourceUrl: targetUrl,
     isLive: false,
-    notices: [], // Boş liste!
+    debug_info: debugPayload.substring(0, 500),
+    notices: []
   });
 });
 
