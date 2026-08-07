@@ -2,7 +2,8 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import cors from 'cors';
-
+import axios from 'axios';
+import https from 'https';
 const app = express();
 const PORT = 3000;
 
@@ -1093,22 +1094,21 @@ app.get('/api/taziyeler', async (req, res) => {
   }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4500);
-
-    const vanBelRes = await fetch(targetUrl, {
-      signal: controller.signal,
+    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    const vanBelRes = await axios.get(targetUrl, {
+      timeout: 10000, // 10 seconds timeout
+      httpsAgent,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
       },
-    }).catch(() => null);
+    });
 
-    clearTimeout(timeoutId);
-
-    if (vanBelRes && vanBelRes.ok) {
-      const html = await vanBelRes.text();
+    if (vanBelRes && vanBelRes.status === 200) {
+      const html = vanBelRes.data;
       const qaBoxMatches = html.match(/<div class=["']qa-box["'][\s\S]*?<\/ul>/gi) || [];
       const parsedNotices: any[] = [];
 
@@ -1154,8 +1154,12 @@ app.get('/api/taziyeler', async (req, res) => {
         });
       }
     }
-  } catch (err) {
-    console.warn('van.bel.tr fetch error:', err);
+  } catch (err: any) {
+    if (axios.isAxiosError(err)) {
+      console.warn('van.bel.tr axios error:', err.response?.status, err.message);
+    } else {
+      console.warn('van.bel.tr fetch error:', err.message || err);
+    }
   }
 
   // Sitede ilan bulunamazsa veya site yanıt vermezse SAHTE İLAN (fallbackTaziyeler) yerine BOŞ DİZİ döndürün.
