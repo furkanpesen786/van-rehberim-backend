@@ -1109,25 +1109,30 @@ app.get('/api/taziyeler', async (req, res) => {
 
     if (vanBelRes && vanBelRes.ok) {
       const html = await vanBelRes.text();
-      const trMatches = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+      const qaBoxMatches = html.match(/<div class=["']qa-box["'][\s\S]*?<\/ul>/gi) || [];
       const parsedNotices: any[] = [];
 
-      trMatches.forEach((tr, idx) => {
-        const text = tr.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        if (text.length > 15 && !text.includes('Vefat Eden') && !text.includes('Adı Soyadı')) {
-          const phoneMatch = text.match(/0\s?5\d{2}\s?\d{3}\s?\d{2}\s?\d{2}/) || text.match(/05\d{9}/);
-          parsedNotices.push({
-            id: `vanbel-taziye-${idx}`,
-            fullName: text.substring(0, 40),
-            age: 'Vefat İlanı',
-            family: text.substring(0, 60),
-            funeralPlace: 'Van Büyükşehir Belediyesi Kayıtlı Camii',
-            condolenceAddress: text,
-            date: todayStr,
-            contactPhone: phoneMatch ? phoneMatch[0] : '0432 216 00 00',
-            sourceUrl: targetUrl,
-          });
-        }
+      qaBoxMatches.forEach((box, idx) => {
+        const nameMatch = box.match(/<h2[^>]*qa-title[^>]*>([^<]+)<\/h2>/i);
+        const dateMatch = box.match(/<li[^>]*>\s*<span[^>]*>Vefat Tarihi.*?<\/span>\s*(.*?)<\/li>/i);
+        const placeMatch = box.match(/<li[^>]*>\s*<span[^>]*>Taziye Yeri.*?<\/span>\s*(.*?)<\/li>/i);
+        const contactMatch = box.match(/<li[^>]*>\s*<span[^>]*>İletişim.*?<\/span>\s*(.*?)<\/li>/i);
+        const districtMatch = box.match(/<li[^>]*>\s*<span[^>]*>İlçe.*?<\/span>\s*(.*?)<\/li>/i);
+
+        const fullName = nameMatch ? nameMatch[1].trim() : 'Bilinmiyor';
+        if (fullName === 'Bilinmiyor') return;
+
+        parsedNotices.push({
+          id: `vanbel-taziye-${idx}`,
+          fullName: fullName,
+          age: 'Vefat İlanı',
+          family: districtMatch ? districtMatch[1].trim() : 'Van',
+          funeralPlace: placeMatch ? placeMatch[1].trim() : 'Bilinmiyor',
+          condolenceAddress: placeMatch ? placeMatch[1].trim() : 'Bilinmiyor',
+          date: dateMatch ? dateMatch[1].trim() : todayStr,
+          contactPhone: contactMatch ? contactMatch[1].trim() : 'Bilinmiyor',
+          sourceUrl: targetUrl,
+        });
       });
 
       if (parsedNotices.length > 0) {
