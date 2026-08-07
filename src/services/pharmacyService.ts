@@ -34,10 +34,10 @@ export async function fetchLivePharmacies(): Promise<DutyPharmaciesResponse> {
   return {
     success: false,
     dutyDate: 'Bugün',
-    count: PHARMACIES.length,
-    vanCount: PHARMACIES.length,
+    count: 0,
+    vanCount: 0,
     lastUpdated: 'Yerel',
     source: 'Van Eczacı Odası',
-    pharmacies: PHARMACIES,
+    pharmacies: [],
   };
 }

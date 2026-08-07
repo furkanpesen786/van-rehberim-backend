@@ -46,20 +46,9 @@ export async function fetchLiveCurrencies(): Promise<LiveCurrencyResponse> {
     console.error(`[currencyService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
-  // Fallback map
-  const fallbackHeroRates: CurrencyItem[] = CURRENCY_RATES.map((c, i) => ({
-    code: c.code,
-    name: c.name,
-    value: c.value,
-    change: c.change,
-    isUp: c.isUp,
-    status: c.isUp ? 'up' : 'down',
-    key: `fallback-${i}`,
-  }));
-
   return {
     success: false,
-    heroRates: fallbackHeroRates,
+    heroRates: [],
     tableItems: [],
     lastUpdated: 'Varsayılan',
     source: 'doviz.com (Yedek)',

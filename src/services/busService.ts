@@ -30,8 +30,8 @@ export async function fetchLiveBusSchedules(): Promise<LiveBusResponse> {
 
   return {
     success: false,
-    routes: BUS_ROUTES,
-    lastUpdated: 'Van Bel.tr Standart',
+    routes: [],
+    lastUpdated: 'Van Bel.tr Standart Hat Saatleri',
     source: 'van.bel.tr (VAN BELVAN Ulaşım Dairesi)',
     isLive: false,
   };

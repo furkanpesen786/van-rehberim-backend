@@ -96,20 +96,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [pharmacyDutyDate, setPharmacyDutyDate] = useState<string>('Bugün');
   const [pharmacyLastUpdated, setPharmacyLastUpdated] = useState<string>('');
-  const [isPharmaciesLoading, setIsPharmaciesLoading] = useState<boolean>(false);
+  const [isPharmaciesLoading, setIsPharmaciesLoading] = useState<boolean>(true);
   const [selectedPharmacyCityFilter, setSelectedPharmacyCityFilter] = useState<'Tümü' | 'Van' | 'Diğer'>('Van');
 
   // Live Diyanet Prayer Times State (Fetched from namazvakitleri.diyanet.gov.tr)
   const [prayerData, setPrayerData] = useState<LivePrayerTimesResponse | null>(null);
-  const [isPrayerLoading, setIsPrayerLoading] = useState<boolean>(false);
+  const [isPrayerLoading, setIsPrayerLoading] = useState<boolean>(true);
 
   // Live doviz.com Exchange & Gold Rates State
   const [currencyData, setCurrencyData] = useState<LiveCurrencyResponse | null>(null);
-  const [isCurrencyLoading, setIsCurrencyLoading] = useState<boolean>(false);
+  const [isCurrencyLoading, setIsCurrencyLoading] = useState<boolean>(true);
 
   // Live van.bel.tr Bus Schedules & Stops State
-  const [busRoutes, setBusRoutes] = useState<BusRoute[]>(BUS_ROUTES);
-  const [isBusLoading, setIsBusLoading] = useState<boolean>(false);
+  const [busRoutes, setBusRoutes] = useState<BusRoute[]>([]);
+  const [isBusLoading, setIsBusLoading] = useState<boolean>(true);
   const [busSource, setBusSource] = useState<string>('van.bel.tr (VAN BELVAN Ulaşım)');
   const [busLastUpdated, setBusLastUpdated] = useState<string>('');
   const [busIsLive, setBusIsLive] = useState<boolean>(false);
