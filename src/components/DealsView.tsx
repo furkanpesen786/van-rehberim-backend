@@ -154,10 +154,14 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     setUploadedPhotos((prev) => [...prev, nextSample]);
   };
 
-  const [selectedPublishPkg] = useState<PackageOption | null>(PUBLISH_PACKAGES[3]);
-  const [selectedHighlightPkg] = useState<PackageOption | null>(HIGHLIGHT_PACKAGES[4]);
+  const [selectedPublishPkg, setSelectedPublishPkg] = useState<PackageOption | null>(PUBLISH_PACKAGES[3]);
+  const [selectedHighlightPkg, setSelectedHighlightPkg] = useState<PackageOption | null>(HIGHLIGHT_PACKAGES[4]);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // New UI states needed for the complex form
+  const [discountType, setDiscountType] = useState('Yüzde (%) İndirim');
+  const [contactNumber, setContactNumber] = useState('');
 
   const isDark = theme === 'dark';
   const categories = ['Tümü', 'Kafe & Restoran', 'Giyim', 'Hizmet', 'Gıda & Fırın', 'Market', 'Yemek', 'Diğer'];
@@ -252,75 +256,207 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             <h1 className="text-xl font-bold">İndirim İlanı Ver</h1>
           </div>
 
-          <div className="px-4 pt-4 space-y-4 text-xs">
-            <div className={`p-4 rounded-3xl border space-y-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className="px-4 pt-4 pb-32 space-y-4 text-xs font-medium">
+            {/* 1. Temel Bilgiler */}
+            <div className={`p-5 rounded-3xl space-y-4 shadow-sm ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
               <div>
-                <label className="font-bold block mb-1">Mağaza / İşletme Adı</label>
+                <label className="font-bold block mb-2 text-sm">Mağaza / İşletme Adı</label>
                 <input
                   type="text"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
                   placeholder="Örn: Van Kahve Dükkanı"
-                  className={`w-full border rounded-2xl p-3 focus:outline-none ${isDark ? 'bg-[#24262c] border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
+                  className={`w-full rounded-2xl p-4 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${isDark ? 'bg-[#24262c] text-white' : 'bg-slate-50 text-slate-900 border border-slate-100'}`}
                 />
               </div>
               <div>
-                <label className="font-bold block mb-1">İlan Başlığı</label>
+                <label className="font-bold block mb-2 text-sm">İlan Başlığı</label>
                 <input
                   type="text"
                   value={dealTitle}
                   onChange={(e) => setDealTitle(e.target.value)}
-                  placeholder="Örn: %20 İndirim"
-                  className={`w-full border rounded-2xl p-3 focus:outline-none ${isDark ? 'bg-[#24262c] border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
+                  placeholder="Örn: Tüm Kahve Çeşitlerinde %20 İndirim"
+                  className={`w-full rounded-2xl p-4 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${isDark ? 'bg-[#24262c] text-white' : 'bg-slate-50 text-slate-900 border border-slate-100'}`}
                 />
               </div>
             </div>
 
-            <div className={`p-4 rounded-3xl border space-y-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
-              <label className="font-bold block mb-1">İndirim Değeri / Miktarı</label>
-              <div className={`flex items-center gap-2 border rounded-2xl p-3 ${isDark ? 'bg-[#24262c] border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-slate-400 font-bold">%</span>
-                <input
-                  type="text"
-                  value={String(discountAmount || '').replace('%', '').trim()}
-                  onChange={(e) => setDiscountAmount(`% ${e.target.value}`)}
-                  placeholder="20"
-                  className={`w-full bg-transparent font-bold text-sm focus:outline-none ${isDark ? 'text-white' : 'text-slate-900'}`}
-                />
-              </div>
-            </div>
-
-            <div className={`p-4 rounded-3xl border space-y-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
+            {/* 2. Fotoğraflar */}
+            <div className={`p-5 rounded-3xl space-y-4 shadow-sm ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
               <div className="flex items-center justify-between">
-                <span className="font-bold">Fotoğraflar ({uploadedPhotos.length}/5)</span>
+                <span className="font-bold text-sm flex items-center gap-2"><Camera className="w-5 h-5 text-emerald-600" /> İşletme / İlan Fotoğrafları</span>
+                <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">{uploadedPhotos.length} / 5 Fotoğraf</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <p className="text-xs text-slate-400">İşletmenizi veya kampanya ürünlerinizi temsil eden en fazla 5 adet fotoğraf ekleyebilirsiniz.</p>
+
+              <div className="grid grid-cols-3 gap-3">
+                {uploadedPhotos.length < 5 && (
+                  <label className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${isDark ? 'border-slate-700 bg-[#24262c] hover:border-emerald-500' : 'border-slate-300 bg-slate-50 hover:border-emerald-500'}`}>
+                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                    <ImagePlus className="w-6 h-6 text-slate-400 mb-2" />
+                    <span className="text-[10px] font-bold text-slate-400">Fotoğraf Ekle</span>
+                  </label>
+                )}
                 {uploadedPhotos.map((photo, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-black">
+                  <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden bg-black shadow-md">
                     <img src={photo} alt="" className="w-full h-full object-cover" />
-                    <button onClick={() => handleRemovePhoto(idx)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full">
-                      <X className="w-3 h-3" />
+                    <button onClick={() => handleRemovePhoto(idx)} className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white p-1.5 rounded-full z-10 shadow-lg">
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
-                {uploadedPhotos.length < 5 && (
-                  <label className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer ${isDark ? 'border-slate-700 bg-[#24262c]' : 'border-slate-300 bg-slate-50'}`}>
-                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
-                    <ImagePlus className="w-5 h-5 text-slate-400" />
-                  </label>
-                )}
               </div>
               {uploadedPhotos.length < 5 && (
-                <button type="button" onClick={handleAddSamplePhoto} className="w-full py-2 font-bold text-[11px] rounded-xl border bg-emerald-50 text-emerald-700">
-                  + Örnek Görsel Ekle
+                <button type="button" onClick={handleAddSamplePhoto} className="w-full py-3 font-bold text-xs rounded-2xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
+                  + Örnek Görsel Ekle (+1)
                 </button>
               )}
             </div>
+
+            {/* 3. Tarih */}
+            <div className={`p-5 rounded-3xl flex items-center gap-4 shadow-sm ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
+              <div className="flex-1">
+                <label className="font-bold block mb-2 text-sm text-slate-500">Başlangıç</label>
+                <div className={`flex items-center gap-2 p-3.5 rounded-2xl ${isDark ? 'bg-[#24262c]' : 'bg-slate-50 border border-slate-100'}`}>
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <input type="text" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent w-full font-bold text-sm outline-none" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="font-bold block mb-2 text-sm text-slate-500">Bitiş</label>
+                <div className={`flex items-center gap-2 p-3.5 rounded-2xl ${isDark ? 'bg-[#24262c]' : 'bg-slate-50 border border-slate-100'}`}>
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <input type="text" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent w-full font-bold text-sm outline-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Kategori */}
+            <div className={`p-5 rounded-3xl shadow-sm ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
+              <label className="font-bold block mb-3 text-sm">Kategori</label>
+              <div className="flex flex-wrap gap-2">
+                {categories.filter(c => c !== 'Tümü').map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategory(cat)}
+                    className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all ${category === cat ? 'bg-[#0A1128] text-white shadow-md' : isDark ? 'bg-[#24262c] text-white' : 'bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. İndirim Detayları */}
+            <div className={`p-5 rounded-3xl space-y-5 shadow-sm ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
+              <div>
+                <label className="font-bold block mb-3 text-sm">İndirim Türü</label>
+                <div className="flex gap-2">
+                  <button onClick={() => setDiscountType('Yüzde (%) İndirim')} className={`flex-1 py-3 px-2 rounded-2xl font-bold text-sm transition-colors border ${discountType === 'Yüzde (%) İndirim' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : isDark ? 'bg-[#24262c] border-transparent' : 'bg-slate-50 text-slate-600 border-slate-100'}`}>Yüzde (%) İndirim</button>
+                  <button onClick={() => setDiscountType('Özel Kampanya')} className={`flex-1 py-3 px-2 rounded-2xl font-bold text-sm transition-colors border ${discountType === 'Özel Kampanya' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : isDark ? 'bg-[#24262c] border-transparent' : 'bg-slate-50 text-slate-600 border-slate-100'}`}>Özel Kampanya</button>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold block mb-2 text-sm text-slate-500">İndirim Değeri / Miktarı</label>
+                <div className={`flex items-center gap-2 rounded-2xl p-4 ${isDark ? 'bg-[#24262c]' : 'bg-slate-50 border border-slate-100'}`}>
+                  <span className="text-slate-400 font-bold">%</span>
+                  <input
+                    type="text"
+                    value={String(discountAmount || '').replace('%', '').trim()}
+                    onChange={(e) => setDiscountAmount(`% ${e.target.value}`)}
+                    placeholder="20"
+                    className={`w-full bg-transparent font-bold text-sm focus:outline-none ${isDark ? 'text-white' : 'text-slate-900'}`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold block mb-2 text-sm text-slate-300">İndirim Kodu / Metni</label>
+                <div className={`flex items-center gap-2 rounded-2xl p-4 bg-[#392518] text-[#D8B498]`}>
+                  <span className="font-bold">#</span>
+                  <input
+                    type="text"
+                    value={discountText}
+                    onChange={(e) => setDiscountText(e.target.value)}
+                    placeholder="Örn: REHBERİM20 veya Kış Fırsatı"
+                    className="w-full bg-transparent font-bold text-sm focus:outline-none placeholder:text-[#8D6F59]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 6. Konum ve İletişim */}
+            <div className={`p-5 rounded-3xl space-y-4 shadow-sm ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
+              <div>
+                <label className="font-bold block mb-2 text-sm text-slate-500">Konum</label>
+                <div className={`flex items-center gap-3 p-4 rounded-2xl ${isDark ? 'bg-[#24262c]' : 'bg-slate-50 border border-slate-100'}`}>
+                  <MapPin className="w-5 h-5 text-slate-400" />
+                  <input type="text" value={location} onChange={e => setLocation(e.target.value)} className="bg-transparent w-full font-bold text-sm outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="font-bold block mb-2 text-sm text-slate-500">İletişim Numarası</label>
+                <div className={`flex items-center gap-3 p-4 rounded-2xl ${isDark ? 'bg-[#24262c]' : 'bg-slate-50 border border-slate-100'}`}>
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                  <input type="text" value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="0532 123 45 67" className="bg-transparent w-full font-bold text-sm outline-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* 7. Publish Packages */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {PUBLISH_PACKAGES.map((pkg) => (
+                <div
+                  key={pkg.days}
+                  onClick={() => setSelectedPublishPkg(pkg)}
+                  className={`p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedPublishPkg?.days === pkg.days ? 'border-[#0A1128] bg-[#0A1128] text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#1b1c21] hover:border-slate-700' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                  <div className="text-sm font-semibold opacity-90">{pkg.label}</div>
+                  <div className="text-lg font-black mt-1">₺{pkg.price.toFixed(2).replace('.', ',')}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 8. Highlight Packages */}
+            <div className={`p-5 rounded-3xl shadow-sm border ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-yellow-400'}`}>
+              <div className="flex items-center gap-3 mb-1">
+                <Star className="w-6 h-6 fill-orange-400 text-orange-400" />
+                <h3 className="font-bold text-lg text-slate-800 dark:text-white">İlanınızı Öne Çıkarın</h3>
+              </div>
+              <p className="text-[11px] text-slate-500 mb-4 pl-9">İlanınızın daha fazla kişiye ulaşması için bir paket seçin.</p>
+
+              <div className={`p-3.5 rounded-xl flex items-center justify-between mb-4 border ${isDark ? 'bg-[#24262c] border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="font-bold text-sm text-slate-700 dark:text-slate-300">Seçilen: {selectedHighlightPkg ? `${selectedHighlightPkg.label} (₺${selectedHighlightPkg.price.toFixed(2).replace('.', ',')})` : 'Yok'}</span>
+                <ChevronLeft className="w-4 h-4 text-slate-400 rotate-90" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {HIGHLIGHT_PACKAGES.slice(0, 4).map((pkg) => (
+                  <div
+                    key={pkg.days}
+                    onClick={() => setSelectedHighlightPkg(pkg)}
+                    className={`p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedHighlightPkg?.days === pkg.days ? 'border-orange-500 bg-orange-500 text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#24262c]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}
+                  >
+                    <div className="text-sm font-semibold opacity-90">{pkg.label}</div>
+                    <div className="text-lg font-black mt-1">₺{pkg.price.toFixed(2).replace('.', ',')}</div>
+                  </div>
+                ))}
+                {/* 30 Gün Special Full Width */}
+                <div
+                  onClick={() => setSelectedHighlightPkg(HIGHLIGHT_PACKAGES[4])}
+                  className={`col-span-2 p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedHighlightPkg?.days === 30 ? 'border-orange-500 bg-orange-500 text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#24262c]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}
+                >
+                  <div className="text-sm font-semibold opacity-90">30 Gün</div>
+                  <div className="text-lg font-black mt-1">₺169,99</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md p-4 border-t bg-emerald-900 z-40">
-            <button onClick={() => { if (!storeName) alert('Mağaza adı giriniz'); else setShowPlayModal(true); }} className="w-full bg-emerald-600 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
-              <Megaphone className="w-5 h-5" /> Yayınla (₺{totalPrice.toFixed(2)})
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md p-4 bg-white dark:bg-[#121316] z-40">
+            <button onClick={() => { if (!storeName) alert('Mağaza adı giriniz'); else setShowPlayModal(true); }} className="w-full bg-[#108A56] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-700 transition-colors">
+              <Megaphone className="w-5 h-5 fill-white" /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
             </button>
           </div>
         </div>
@@ -430,11 +566,45 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       )}
 
       {showPlayModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#2D1B15] border border-[#5D4037] rounded-3xl p-6 text-white space-y-4">
-            <h3 className="text-base font-bold text-[#F5E6D3]">Ödeme Onayı</h3>
-            <button onClick={handleFinalPurchase} disabled={isProcessing} className="w-full bg-[#D4AF37] text-black font-black py-3.5 rounded-full">
-              {isProcessing ? 'İşleniyor...' : 'Ödemeyi Tamamla'}
+        <div className="fixed inset-0 z-50 bg-[#3c2a21]/90 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+          <div className="w-full h-auto max-w-md bg-[#3F2B20] border-t-2 sm:border-2 border-[#584033] sm:rounded-[40px] rounded-t-[40px] p-8 text-white space-y-6 shadow-2xl relative pt-10">
+            <button onClick={() => setShowPlayModal(false)} className="absolute top-6 right-6 p-2 bg-[#4D372A] rounded-full text-[#B58A6C] hover:text-white transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#E5B667] flex items-center justify-center shadow-lg">
+                <Star className="w-4 h-4 fill-white text-white" />
+              </div>
+              <h3 className="text-base font-black tracking-wider text-[#FFFFFF] mt-1">GÜVENLİ ÖDEME</h3>
+            </div>
+
+            <div className="bg-[#4D372A] p-5 rounded-[24px] flex items-center gap-4 border border-[#584033] shadow-inner mt-4">
+              <div className="w-14 h-14 bg-[#E5B667] rounded-[18px] flex items-center justify-center shrink-0">
+                <Megaphone className="w-6 h-6 text-[#4D372A] -rotate-6" />
+              </div>
+              <div>
+                <p className="font-bold text-[15px] leading-tight text-white mb-1.5">{selectedPublishPkg?.label} İndirim İlanı{selectedHighlightPkg ? ' + Öne Çıkarma' : ''} <span className="text-[#E5B667]">₺{totalPrice.toFixed(2).replace('.', ',')}</span></p>
+                <div className="text-[10px] uppercase font-black text-[#E5B667] tracking-widest">VAN REHBERİM PREMIUM</div>
+              </div>
+            </div>
+
+            <div className="space-y-4 px-2 pt-2 text-[13px] font-medium text-[#B58A6C]">
+              <div className="flex justify-between items-center border-b border-[#584033] pb-3">
+                <span>Hesap:</span>
+                <span className="font-bold text-white tracking-wide">{currentUser?.displayName || 'Anonim Kullanıcı'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Ödeme Yöntemi:</span>
+                <span className="font-bold text-[#E5B667] flex items-center gap-1 cursor-pointer">Google Play <ChevronLeft className="w-4 h-4 rotate-180" /></span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-center text-[#9c755c] pt-2 pb-2 leading-relaxed px-4">
+              Google Play In-App Purchase aracılığıyla ödeme yapılmaktadır. İlanınız ödeme onayından hemen sonra yayınlanacaktır.
+            </p>
+
+            <button onClick={handleFinalPurchase} disabled={isProcessing} className="w-full bg-gradient-to-r from-[#D7A75C] to-[#C18C44] text-[#3F2B20] font-black tracking-wide py-4.5 rounded-[24px] flex justify-center items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 text-[15px] h-[60px]">
+              {isProcessing ? 'İşleniyor...' : <>ÖDEMEYİ TAMAMLA <ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
         </div>
