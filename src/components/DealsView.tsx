@@ -454,7 +454,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             </div>
           </div>
 
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md p-4 bg-white dark:bg-[#121316] z-40">
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 py-3 bg-white dark:bg-[#121316] z-40 border-t border-slate-100 dark:border-slate-800">
             <button onClick={() => { if (!storeName) alert('Mağaza adı giriniz'); else setShowPlayModal(true); }} className="w-full bg-[#108A56] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-700 transition-colors">
               <Megaphone className="w-5 h-5 fill-white" /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
             </button>
