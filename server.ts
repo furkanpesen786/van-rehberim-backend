@@ -1108,6 +1108,9 @@ app.get('/api/taziyeler', async (req, res) => {
     });
 
     if (vanBelRes && vanBelRes.status === 200) {
+      if (typeof vanBelRes.data !== 'string') {
+        throw new Error('Received non-string data from van.bel.tr');
+      }
       const html = vanBelRes.data;
       const blocks = html.split('<div class="qa-box">').slice(1);
       const parsedNotices: any[] = [];
@@ -1162,10 +1165,10 @@ app.get('/api/taziyeler', async (req, res) => {
       }
     }
   } catch (err: any) {
-    if (axios.isAxiosError(err)) {
+    if (err && err.response) {
       console.warn('van.bel.tr axios error:', err.response?.status, err.message);
     } else {
-      console.warn('van.bel.tr fetch error:', err.message || err);
+      console.warn('van.bel.tr fetch error:', err?.message || err);
     }
   }
 
