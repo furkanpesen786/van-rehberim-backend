@@ -1069,28 +1069,28 @@ app.get('/api/news', async (req, res) => {
   });
 });
 
+let taziyeCache: any[] = [];
+let taziyeLastFetchTime: number = 0;
+
 // API ROUTE: Live Vefat & Taziye İlanları directly from https://van.bel.tr/Taziyeler.html
 app.get('/api/taziyeler', async (req, res) => {
   const targetUrl = 'https://van.bel.tr/Taziyeler.html';
   const todayStr = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const cacheDurationMs = 15 * 60 * 1000; // 15 dakika
 
-  const fallbackNames = [
-    'Hacı Kerem Akdağ', 'Gülseren Çevik', 'Mehmet Salih Öztürk', 'Zeliha Aslan', 'Mustafa Yılmaz',
-    'Ayşe Demir', 'Fatma Kaya', 'Ali Çelik', 'Hasan Yıldız', 'Hüseyin Doğan', 'İbrahim Can',
-    'Hatice Arslan', 'Zeynep Şahin', 'Meryem Yılmaz', 'Abdullah Koç', 'Emin Özdemir'
-  ];
-
-  const fallbackTaziyeler = Array.from({ length: 30 }).map((_, i) => ({
-    id: `taziye-${i + 1}`,
-    fullName: fallbackNames[i % fallbackNames.length],
-    age: 65 + (i % 20),
-    family: 'Vanlı Aileler',
-    funeralPlace: 'Van Kayıtlı Camii (Öğle Namazını Müteakip)',
-    condolenceAddress: 'Van Merkezi Taziye Evi, İpekyolu / Van',
-    date: todayStr,
-    contactPhone: '0533 222 11 00',
-    sourceUrl: targetUrl,
-  }));
+  // 1. Önbellek kontrolü (Cache Mekanizması)
+  const nowMs = Date.now();
+  if (taziyeCache.length > 0 && (nowMs - taziyeLastFetchTime) < cacheDurationMs) {
+    return res.json({
+      success: true,
+      count: taziyeCache.length,
+      lastUpdated: `(Cache) ${new Date(taziyeLastFetchTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
+      source: 'van.bel.tr (Van Büyükşehir Belediyesi Taziye Portalı)',
+      sourceUrl: targetUrl,
+      isLive: true,
+      notices: taziyeCache,
+    });
+  }
 
   try {
     const controller = new AbortController();
@@ -1131,6 +1131,13 @@ app.get('/api/taziyeler', async (req, res) => {
       });
 
       if (parsedNotices.length > 0) {
+        // En Yeniden En Eskiye (DESC) sıralama (Tablonun üstündeki veri en yeni kabul edilir, ancak garanti olsun diye tersine çevirebiliriz)
+        parsedNotices.reverse();
+
+        // Cache'i güncelle
+        taziyeCache = parsedNotices;
+        taziyeLastFetchTime = nowMs;
+
         return res.json({
           success: true,
           count: parsedNotices.length,
@@ -1143,17 +1150,18 @@ app.get('/api/taziyeler', async (req, res) => {
       }
     }
   } catch (err) {
-    console.warn('van.bel.tr fetch error, serving structured live dataset:', err);
+    console.warn('van.bel.tr fetch error:', err);
   }
 
+  // Sitede ilan bulunamazsa veya site yanıt vermezse SAHTE İLAN (fallbackTaziyeler) yerine BOŞ DİZİ döndürün.
   res.json({
     success: true,
-    count: fallbackTaziyeler.length,
+    count: 0,
     lastUpdated: `Güncel ${todayStr}`,
-    source: 'van.bel.tr (Van Büyükşehir Belediyesi Taziye Portalı)',
+    source: 'van.bel.tr (Veri bulunamadı veya site erişilemez)',
     sourceUrl: targetUrl,
     isLive: false,
-    notices: fallbackTaziyeler,
+    notices: [], // Boş liste!
   });
 });
 
