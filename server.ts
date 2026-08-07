@@ -1092,20 +1092,16 @@ app.get('/api/taziyeler', async (req, res) => {
       notices: taziyeCache,
     });
   }
-
   let debugPayload = '';
 
   try {
     const httpsAgent = new https.Agent({ rejectUnauthorized: false, keepAlive: true });
 
-    // ScraperAPI's premium proxies failed against this WAF. Attempting direct native fetch bypassing proxies, using a cURL signature to prevent tarpitting.
+    // Attempting direct native fetch bypassing proxies. 
+    // IMPORTANT: Removing ALL spoofed headers (No Chrome, No cURL). If we spoof an agent, Cloudflare detects a JA3 TLS mismatch against Node.js sockets and indefinitely tarpits the connection!
     let vanBelRes = await axios.get(targetUrl, {
       timeout: 30000,
-      httpsAgent,
-      headers: {
-        'User-Agent': 'curl/7.81.0',
-        'Accept': '*/* '
-      }
+      httpsAgent
     });
 
     if (vanBelRes && vanBelRes.status === 200) {
