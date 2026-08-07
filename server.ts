@@ -1105,12 +1105,7 @@ app.get('/api/taziyeler', async (req, res) => {
     // Switch to professional ScraperAPI due to aggressive WAF block on open proxies
     let vanBelRes = await axios.get(proxyUrl, {
       timeout: 90000,
-      httpsAgent,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Connection': 'keep-alive'
-      },
+      httpsAgent
     });
 
     if (vanBelRes && vanBelRes.status === 200) {
