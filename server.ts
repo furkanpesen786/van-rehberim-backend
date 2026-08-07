@@ -1100,7 +1100,7 @@ app.get('/api/taziyeler', async (req, res) => {
     }
 
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}`;
+    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}&premium=true`;
 
     // Switch to professional ScraperAPI due to aggressive WAF block on open proxies
     let vanBelRes = await axios.get(proxyUrl, {
