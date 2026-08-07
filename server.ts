@@ -1109,30 +1109,37 @@ app.get('/api/taziyeler', async (req, res) => {
 
     if (vanBelRes && vanBelRes.status === 200) {
       const html = vanBelRes.data;
-      const qaBoxMatches = html.match(/<div class=["']qa-box["'][\s\S]*?<\/ul>/gi) || [];
+      const blocks = html.split('<div class="qa-box">').slice(1);
       const parsedNotices: any[] = [];
 
-      qaBoxMatches.forEach((box, idx) => {
-        const nameMatch = box.match(/<h2[^>]*qa-title[^>]*>([^<]+)<\/h2>/i);
-        const dateMatch = box.match(/<li[^>]*>\s*<span[^>]*>Vefat Tarihi.*?<\/span>\s*(.*?)<\/li>/i);
-        const placeMatch = box.match(/<li[^>]*>\s*<span[^>]*>Taziye Yeri.*?<\/span>\s*(.*?)<\/li>/i);
-        const contactMatch = box.match(/<li[^>]*>\s*<span[^>]*>İletişim.*?<\/span>\s*(.*?)<\/li>/i);
-        const districtMatch = box.match(/<li[^>]*>\s*<span[^>]*>İlçe.*?<\/span>\s*(.*?)<\/li>/i);
+      blocks.forEach((box, idx) => {
+        const extract = (regex: RegExp) => {
+          const match = box.match(regex);
+          if (match && match[1]) {
+            return match[1].replace(/<[^>]+>/g, '').trim();
+          }
+          return 'Bilinmiyor';
+        };
 
-        const fullName = nameMatch ? nameMatch[1].trim() : 'Bilinmiyor';
-        if (fullName === 'Bilinmiyor') return;
+        const name = extract(/class="qa-title">\s*([^<\n]+)/i);
+        const date = extract(/<span>Vefat Tarihi<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
+        const place = extract(/<span>Taziye Yeri<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
+        const contact = extract(/<span>İletişim<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
+        const district = extract(/<span>İlçe<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
 
-        parsedNotices.push({
-          id: `vanbel-taziye-${idx}`,
-          fullName: fullName,
-          age: 'Vefat İlanı',
-          family: districtMatch ? districtMatch[1].trim() : 'Van',
-          funeralPlace: placeMatch ? placeMatch[1].trim() : 'Bilinmiyor',
-          condolenceAddress: placeMatch ? placeMatch[1].trim() : 'Bilinmiyor',
-          date: dateMatch ? dateMatch[1].trim() : todayStr,
-          contactPhone: contactMatch ? contactMatch[1].trim() : 'Bilinmiyor',
-          sourceUrl: targetUrl,
-        });
+        if (name && name !== 'Bilinmiyor') {
+          parsedNotices.push({
+            id: `vanbel-taziye-${idx}`,
+            fullName: name,
+            age: 'Vefat İlanı',
+            family: district === 'Bilinmiyor' ? 'Van' : district,
+            funeralPlace: place,
+            condolenceAddress: place,
+            date: date === 'Bilinmiyor' ? todayStr : date,
+            contactPhone: contact,
+            sourceUrl: targetUrl,
+          });
+        }
       });
 
       if (parsedNotices.length > 0) {
