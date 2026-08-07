@@ -1094,9 +1094,9 @@ app.get('/api/taziyeler', async (req, res) => {
   }
 
   try {
-    const scraperApiKey = process.env.SCRAPERAPI_KEY;
+    const scraperApiKey = process.env.SCRAPERAPI_KEY || '';
     if (!scraperApiKey) {
-      throw new Error('SCRAPERAPI_KEY not found in environment variables. Van Municipality Cloudflare bypass requires this key.');
+      console.warn('ScraperAPI Key is missing! Request will fail safely at the proxy level.');
     }
 
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
@@ -1104,7 +1104,7 @@ app.get('/api/taziyeler', async (req, res) => {
 
     // Switch to professional ScraperAPI due to aggressive WAF block on open proxies
     let vanBelRes = await axios.get(proxyUrl, {
-      timeout: 10000,
+      timeout: 60000,
       httpsAgent,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
