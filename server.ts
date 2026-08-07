@@ -1094,10 +1094,15 @@ app.get('/api/taziyeler', async (req, res) => {
   }
 
   try {
-    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+    const scraperApiKey = process.env.SCRAPERAPI_KEY;
+    if (!scraperApiKey) {
+      throw new Error('SCRAPERAPI_KEY not found in environment variables. Van Municipality Cloudflare bypass requires this key.');
+    }
 
-    // Switch to corsproxy.io due to aggressive WAF block on AllOrigins
+    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}`;
+
+    // Switch to professional ScraperAPI due to aggressive WAF block on open proxies
     let vanBelRes = await axios.get(proxyUrl, {
       timeout: 10000,
       httpsAgent,
