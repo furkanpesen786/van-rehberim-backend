@@ -1100,7 +1100,7 @@ app.get('/api/taziyeler', async (req, res) => {
     }
 
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}&render=true`;
+    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}`;
 
     // Switch to professional ScraperAPI due to aggressive WAF block on open proxies
     let vanBelRes = await axios.get(proxyUrl, {
@@ -1113,9 +1113,12 @@ app.get('/api/taziyeler', async (req, res) => {
     });
 
     if (vanBelRes && vanBelRes.status === 200) {
-      const html = String(vanBelRes.data);
+      if (typeof vanBelRes.data !== 'string') {
+        throw new Error('Received non-string data from van.bel.tr');
+      }
+      const html = vanBelRes.data;
       console.log('--- VAN BEL RAW HTML SNIPPET ---');
-      console.log(html.substring(0, 300));
+      console.log(html.substring(0, 1000));
       console.log('--------------------------------');
 
       const blocks = html.split('<div class="qa-box">').slice(1);
