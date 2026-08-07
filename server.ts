@@ -866,19 +866,24 @@ app.get('/api/bus-schedules', async (req, res) => {
   });
 });
 
-// API ROUTE: Live Van News from Top 7 Van News Channels
+// API ROUTE: Live Van News from Top 6 Van News Channels
+let newsCache = { data: null, lastFetch: 0 };
 app.get('/api/news', async (req, res) => {
   const top7Channels = [
-    { name: 'Şehrivan Gazetesi', domain: 'sehrivan.com', baseUrl: 'https://www.sehrivan.com', rssUrl: 'https://www.sehrivan.com/rss' },
+    { name: 'Şehrivan Gazetesi', domain: 'sehrivan.com', baseUrl: 'https://www.sehrivangazetesi.com', rssUrl: 'https://www.sehrivangazetesi.com/rss' },
     { name: 'Wan Haber', domain: 'wanhaber.com', baseUrl: 'https://www.wanhaber.com', rssUrl: 'https://www.wanhaber.com/rss' },
     { name: 'Van Olay', domain: 'vanolay.com', baseUrl: 'https://www.vanolay.com', rssUrl: 'https://www.vanolay.com/rss' },
-    { name: 'Van Postası', domain: 'vanpostasigazetesi.com', baseUrl: 'https://www.vanpostasigazetesi.com', rssUrl: 'https://www.vanpostasigazetesi.com/rss' },
+    { name: 'Van Postası', domain: 'vanpostasigazetesi.com', baseUrl: 'https://www.vanpostasigazetesi.com', rssUrl: 'https://www.vanpostasigazetesi.com/rss.xml' },
     { name: 'Van Havadis', domain: 'vanhavadis.com', baseUrl: 'https://www.vanhavadis.com', rssUrl: 'https://www.vanhavadis.com/rss' },
-    { name: 'Gazete Van', domain: 'gazetevan.com', baseUrl: 'https://www.gazetevan.com', rssUrl: 'https://www.gazetevan.com/rss' },
-    { name: 'Van Ekspres', domain: 'vanekspres.com', baseUrl: 'https://www.vanekspres.com', rssUrl: 'https://www.vanekspres.com/rss' },
+    { name: 'Van Ekspres', domain: 'vanekspres.com.tr', baseUrl: 'https://www.vanekspres.com.tr', rssUrl: 'https://www.vanekspres.com.tr/rss' },
   ];
 
   const todayStr = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // 60-second server cache to protect against aggressive frontend 5-second polling
+  if (newsCache.data && Date.now() - newsCache.lastFetch < 60000) {
+    return res.json(newsCache.data);
+  }
 
   try {
     // Attempt fetching RSS / News feeds from top Van channels simultaneously
@@ -900,8 +905,8 @@ app.get('/api/news', async (req, res) => {
           const itemMatches = xmlText.match(/<item>[\s\S]*?<\/item>/gi) || [];
           const items = [];
 
-          // STRICT LIMIT: Exactly 5 items per source
-          for (let i = 0; i < Math.min(itemMatches.length, 5); i++) {
+          // STRICT LIMIT: Exactly 6 items per source (yields 36 total)
+          for (let i = 0; i < Math.min(itemMatches.length, 6); i++) {
             const itemXml = itemMatches[i];
             const titleMatch = itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
             const linkMatch = itemXml.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
@@ -962,18 +967,21 @@ app.get('/api/news', async (req, res) => {
     if (!isNaN(limitParam) && limitParam > 0) {
       finalNews = finalNews.slice(0, limitParam);
     } else {
-      // Return the max possible dynamically (7 sources * 5 = 35 default, but we'll slice to 35)
-      finalNews = finalNews.slice(0, 35);
+      // Return the max possible dynamically (6 sources * 6 = 36 default, but we'll slice to 36)
+      finalNews = finalNews.slice(0, 36);
     }
 
-    return res.json({
+    const outputData = {
       success: true,
       count: finalNews.length,
-      lastUpdated: `Güncel ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
-      source: 'Van 7 Büyük Haber Portalı (Canlı RSS)',
+      lastUpdated: `Güncel ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
+      source: 'Van 6 Büyük Haber Portalı (Canlı RSS)',
       channelsCount: top7Channels.length,
       news: finalNews,
-    });
+    };
+
+    newsCache = { data: outputData, lastFetch: Date.now() };
+    return res.json(outputData);
   } catch (err) {
     console.error('Error fetching RSS news:', err);
     return res.status(500).json({ success: false, message: 'Haberler getirilemedi.' });

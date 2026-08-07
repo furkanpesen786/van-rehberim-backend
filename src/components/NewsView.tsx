@@ -37,8 +37,8 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
 
   const isDark = theme === 'dark';
 
-  const loadNewsData = async () => {
-    setIsNewsLoading(true);
+  const loadNewsData = async (silent = false) => {
+    if (!silent) setIsNewsLoading(true);
     try {
       const res = await fetchLiveVanNews();
       setNewsList(res.news || []);
@@ -46,12 +46,19 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
     } catch (e) {
       console.error('Error fetching live Van news:', e);
     } finally {
-      setIsNewsLoading(false);
+      if (!silent) setIsNewsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadNewsData();
+    loadNewsData(false); // Initial load with spinner
+
+    // 5-second silent auto-refresh interval
+    const interval = setInterval(() => {
+      loadNewsData(true); // Silent refresh
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const filteredNews = selectedChannel === 'Tümü'
@@ -129,10 +136,10 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
                 key={ch.name}
                 onClick={() => setSelectedChannel(ch.name)}
                 className={`px-4 py-2 rounded-xl shrink-0 transition-all border ${selectedChannel === ch.name
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-500 font-black shadow-sm scale-[1.02]'
-                    : isDark
-                      ? 'bg-slate-800/80 text-slate-300 border-slate-700/80 hover:border-slate-500 hover:bg-slate-700'
-                      : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-800'
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-500 font-black shadow-sm scale-[1.02]'
+                  : isDark
+                    ? 'bg-slate-800/80 text-slate-300 border-slate-700/80 hover:border-slate-500 hover:bg-slate-700'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-800'
                   }`}
               >
                 {ch.name}
@@ -200,8 +207,8 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
                   <button
                     onClick={() => setSelectedNews(item)}
                     className={`flex-1 font-extrabold text-xs py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm border active:scale-95 ${isDark
-                        ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
                       }`}
                   >
                     <Info className="w-4 h-4 text-emerald-500" />
