@@ -155,7 +155,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   };
 
   const [selectedPublishPkg, setSelectedPublishPkg] = useState<PackageOption | null>(PUBLISH_PACKAGES[3]);
-  const [selectedHighlightPkg, setSelectedHighlightPkg] = useState<PackageOption | null>(HIGHLIGHT_PACKAGES[4]);
+  const [selectedHighlightPkg, setSelectedHighlightPkg] = useState<PackageOption | null>(null); // Made optional, defaults to none
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -435,7 +435,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 {HIGHLIGHT_PACKAGES.slice(0, 4).map((pkg) => (
                   <div
                     key={pkg.days}
-                    onClick={() => setSelectedHighlightPkg(pkg)}
+                    onClick={() => setSelectedHighlightPkg(prev => prev?.days === pkg.days ? null : pkg)}
                     className={`p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedHighlightPkg?.days === pkg.days ? 'border-orange-500 bg-orange-500 text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#24262c]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}
                   >
                     <div className="text-sm font-semibold opacity-90">{pkg.label}</div>
@@ -444,7 +444,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 ))}
                 {/* 30 Gün Special Full Width */}
                 <div
-                  onClick={() => setSelectedHighlightPkg(HIGHLIGHT_PACKAGES[4])}
+                  onClick={() => setSelectedHighlightPkg(prev => prev?.days === 30 ? null : HIGHLIGHT_PACKAGES[4])}
                   className={`col-span-2 p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedHighlightPkg?.days === 30 ? 'border-orange-500 bg-orange-500 text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#24262c]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}
                 >
                   <div className="text-sm font-semibold opacity-90">30 Gün</div>
