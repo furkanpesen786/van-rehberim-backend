@@ -872,7 +872,7 @@ app.get('/api/news', async (req, res) => {
     { name: 'Şehrivan Gazetesi', domain: 'sehrivan.com', baseUrl: 'https://www.sehrivan.com', rssUrl: 'https://www.sehrivan.com/rss' },
     { name: 'Wan Haber', domain: 'wanhaber.com', baseUrl: 'https://www.wanhaber.com', rssUrl: 'https://www.wanhaber.com/rss' },
     { name: 'Van Olay', domain: 'vanolay.com', baseUrl: 'https://www.vanolay.com', rssUrl: 'https://www.vanolay.com/rss' },
-    { name: 'Van Postası', domain: 'vanpostasi.com', baseUrl: 'https://www.vanpostasi.com', rssUrl: 'https://www.vanpostasi.com/rss' },
+    { name: 'Van Postası', domain: 'vanpostasigazetesi.com', baseUrl: 'https://www.vanpostasigazetesi.com', rssUrl: 'https://www.vanpostasigazetesi.com/rss' },
     { name: 'Van Havadis', domain: 'vanhavadis.com', baseUrl: 'https://www.vanhavadis.com', rssUrl: 'https://www.vanhavadis.com/rss' },
     { name: 'Gazete Van', domain: 'gazetevan.com', baseUrl: 'https://www.gazetevan.com', rssUrl: 'https://www.gazetevan.com/rss' },
     { name: 'Van Ekspres', domain: 'vanekspres.com', baseUrl: 'https://www.vanekspres.com', rssUrl: 'https://www.vanekspres.com/rss' },
@@ -880,120 +880,28 @@ app.get('/api/news', async (req, res) => {
 
   const todayStr = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // Initial authentic live daily dataset from the 7 top news channels
-  const defaultTop7News = [
-    {
-      id: 'news-sh-1',
-      title: 'Van Göğüs Hastalıkları Hastanesinde Yeni Hizmet Binası Müjdesi',
-      category: 'Sağlık & Van Gündem',
-      image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80',
-      summary: 'Van İl Sağlık Müdürlüğü ve Büyükşehir Belediyesi koordinasyonunda Van Göğüs Hastalıkları Hastanesi kapasitesi 2 katına çıkarılıyor.',
-      content: 'Van Şehrivan Gazetesi haberine göre; bölge halkına hizmet veren hastanede modern tıbbi donanımlar ve ek poliklinik binası projesi onaylandı.',
-      date: todayStr,
-      time: '14:20',
-      source: 'Şehrivan Gazetesi',
-      sourceUrl: 'https://www.sehrivan.com',
-      readCount: 2150,
-    },
-    {
-      id: 'news-wh-1',
-      title: 'Van Gölü Çevresinde Tarihi Yürüyüş Yolları ve Kamp Alanları Açıldı',
-      category: 'Turizm & Yaşam',
-      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-      summary: 'Edremit ve Gevaş sahillerinde doğaseverler için ücretsiz çadır ve eko-turizm yürüyüş parkurları tamamlandı.',
-      content: 'Wan Haber kaynaklarından edinilen bilgiye göre, Van Gölü sahil şeridinde doğa ve macera tutkunları için hazırlanan rotalar hizmete açıldı.',
-      date: todayStr,
-      time: '13:45',
-      source: 'Wan Haber',
-      sourceUrl: 'https://www.wanhaber.com',
-      readCount: 3410,
-    },
-    {
-      id: 'news-vo-1',
-      title: 'Van Çevre Yolu İnşaatında Son Aşamaya Gelindi: Trafik Rahatlayacak',
-      category: 'Ulaşım & Şehir',
-      image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=800&q=80',
-      summary: 'İpekyolu ve Tuşba bağlantı kavşaklarındaki son asfaltlama çalışmaları hız kazandı.',
-      content: 'Van Olay Gazetesi\'nin bildirdiğine göre Van Çevre Yolu Projesi kapsamındaki viyadük ve kavşaklar tamamlanarak trafiğe açılmaya hazırlanıyor.',
-      date: todayStr,
-      time: '12:10',
-      source: 'Van Olay',
-      sourceUrl: 'https://www.vanolay.com',
-      readCount: 1890,
-    },
-    {
-      id: 'news-vp-1',
-      title: 'Van Teknokent\'te Genç Girişimcilere %100 Hibe Desteği Başlatıldı',
-      category: 'Teknoloji & Ekonomi',
-      image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
-      summary: 'Yüzüncü Yıl Üniversitesi Teknokent bünyesinde yazılım ve bilişim start-up projeleri için başvuru dönemi başladı.',
-      content: 'Van Postası haberine göre genç yazılımcılara ve girişimcilere mentörlük ile birlikte ofis desteği sağlanacak.',
-      date: todayStr,
-      time: '11:30',
-      source: 'Van Postası',
-      sourceUrl: 'https://www.vanpostasi.com',
-      readCount: 1640,
-    },
-    {
-      id: 'news-vh-1',
-      title: 'İnci Kefalı Festivalinde Rekor Katılımcı Sayısına Ulaşıldı',
-      category: 'Kültür & Doğa',
-      image: 'https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?auto=format&fit=crop&w=800&q=80',
-      summary: 'Muradiye Şelalesi ve Deli Çay çevresinde balık göçü şenliklerine binlerce yerli ve yabancı turist katıldı.',
-      content: 'Van Havadis Gazetesi haberine göre; dünyada tek Van Gölü\'nde yaşayan İnci Kefalı\'nın kutsal göçü coşkuyla izlendi.',
-      date: todayStr,
-      time: '10:50',
-      source: 'Van Havadis',
-      sourceUrl: 'https://www.vanhavadis.com',
-      readCount: 2980,
-    },
-    {
-      id: 'news-gv-1',
-      title: 'Van Kedisi Villası\'nda Bu Yıl 120 Yavru Kedi Dünyaya Geldi',
-      category: 'Doğa & Hayvan Dostlarımız',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80',
-      summary: 'Farklı göz renkleri ve pamuk beyaz tüyleriyle bilinen Van Kedileri koruma altında çoğalmaya devam ediyor.',
-      content: 'Gazete Van haberine göre YYÜ Van Kedisi Araştırma Merkezi müdürlüğü yavru bakımlarının titizlikle yapıldığını bildirdi.',
-      date: todayStr,
-      time: '09:40',
-      source: 'Gazete Van',
-      sourceUrl: 'https://www.gazetevan.com',
-      readCount: 4120,
-    },
-    {
-      id: 'news-ve-1',
-      title: 'Van Esnaf Odalarından Yerel Alışveriş Destek Kampanyası',
-      category: 'Ekonomi & Esnaf',
-      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-      summary: 'Yerel çarşı ve mahalle esnafından alışveriş yapılmasını teşvik eden indirim günleri başladı.',
-      content: 'Van Ekspres haber servisine göre Cumhuriyet ve Maraş caddelerindeki esnaflar ortak indirim ve hediye çekleri sunuyor.',
-      date: todayStr,
-      time: '08:50',
-      source: 'Van Ekspres',
-      sourceUrl: 'https://www.vanekspres.com',
-      readCount: 1530,
-    },
-  ];
-
   try {
-    // Attempt fetching RSS / News feeds from top Van channels
+    // Attempt fetching RSS / News feeds from top Van channels simultaneously
     const rssPromises = top7Channels.map(async (channel) => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 seconds timeout per channel
       try {
-        const res = await fetch(channel.rssUrl, {
+        const fetchRes = await fetch(channel.rssUrl, {
           signal: controller.signal,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/rss+xml, application/xml, text/xml',
           },
         });
         clearTimeout(timeoutId);
-        if (res.ok) {
-          const xmlText = await res.text();
+
+        if (fetchRes.ok) {
+          const xmlText = await fetchRes.text();
           const itemMatches = xmlText.match(/<item>[\s\S]*?<\/item>/gi) || [];
           const items = [];
-          for (let i = 0; i < Math.min(itemMatches.length, 15); i++) {
+
+          // STRICT LIMIT: Exactly 5 items per source
+          for (let i = 0; i < Math.min(itemMatches.length, 5); i++) {
             const itemXml = itemMatches[i];
             const titleMatch = itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
             const linkMatch = itemXml.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
@@ -1003,7 +911,17 @@ app.get('/api/news', async (req, res) => {
             const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
             const link = linkMatch ? linkMatch[1].trim() : channel.baseUrl;
             const desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 150) : title;
-            const image = imgMatch ? imgMatch[1] : 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
+            let image = imgMatch ? imgMatch[1] : null;
+
+            // Try resolving alternative image tags if standard ones fail
+            if (!image) {
+              const enclosureMatch = itemXml.match(/<enclosure[^>]*url="([^"]+)"/i);
+              if (enclosureMatch) image = enclosureMatch[1];
+            }
+            if (!image) {
+              // Fallback elegant city placeholders
+              image = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
+            }
 
             if (title && title.length > 5) {
               items.push({
@@ -1023,8 +941,8 @@ app.get('/api/news', async (req, res) => {
           }
           return items;
         }
-      } catch {
-        // Safe timeout or network catch
+      } catch (err) {
+        console.warn(`Channel failed: ${channel.name}`, err);
       }
       return [];
     });
@@ -1037,157 +955,31 @@ app.get('/api/news', async (req, res) => {
       }
     });
 
-    // Respect limit
+    // Shuffle perfectly to mix sources or keep sequential
+    // We'll keep them sequential, grouped by news source for a balanced read.
     let finalNews = fetchedNews;
     const limitParam = Number(req.query.limit);
     if (!isNaN(limitParam) && limitParam > 0) {
       finalNews = finalNews.slice(0, limitParam);
     } else {
-      finalNews = finalNews.slice(0, 30);
+      // Return the max possible dynamically (7 sources * 5 = 35 default, but we'll slice to 35)
+      finalNews = finalNews.slice(0, 35);
     }
 
-    if (finalNews.length > 0) {
-      return res.json({
-        success: true,
-        count: finalNews.length,
-        lastUpdated: `Güncel ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
-        source: 'Van 7 Büyük Haber Portalı (Canlı RSS)',
-        channelsCount: top7Channels.length,
-        news: finalNews,
-      });
-    }
-  } catch (err) {
-    console.warn('Error fetching RSS news, relying on structured dataset:', err);
-  }
-
-  res.json({
-    success: true,
-    count: defaultTop7News.length,
-    lastUpdated: `Güncel ${todayStr}`,
-    source: 'Van Top 7 Haber Portalı (Şehrivan, Wan Haber, Van Olay, Van Postası, Van Havadis, Gazete Van, Van Ekspres)',
-    channelsCount: top7Channels.length,
-    news: defaultTop7News,
-  });
-});
-
-let taziyeCache: any[] = [];
-let taziyeLastFetchTime: number = 0;
-
-// API ROUTE: Live Vefat & Taziye İlanları directly from https://van.bel.tr/Taziyeler.html
-app.get('/api/taziyeler', async (req, res) => {
-  const targetUrl = 'https://van.bel.tr/Taziyeler.html';
-  const todayStr = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const cacheDurationMs = 15 * 60 * 1000; // 15 dakika
-
-  // 1. Önbellek kontrolü (Cache Mekanizması)
-  const nowMs = Date.now();
-  if (taziyeCache.length > 0 && (nowMs - taziyeLastFetchTime) < cacheDurationMs) {
     return res.json({
       success: true,
-      count: taziyeCache.length,
-      lastUpdated: `(Cache) ${new Date(taziyeLastFetchTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
-      source: 'van.bel.tr (Van Büyükşehir Belediyesi Taziye Portalı)',
-      sourceUrl: targetUrl,
-      isLive: true,
-      notices: taziyeCache,
+      count: finalNews.length,
+      lastUpdated: `Güncel ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
+      source: 'Van 7 Büyük Haber Portalı (Canlı RSS)',
+      channelsCount: top7Channels.length,
+      news: finalNews,
     });
+  } catch (err) {
+    console.error('Error fetching RSS news:', err);
+    return res.status(500).json({ success: false, message: 'Haberler getirilemedi.' });
   }
-  let debugPayload = '';
-
-  try {
-    const httpsAgent = new https.Agent({ rejectUnauthorized: false, keepAlive: true });
-
-    // Attempting direct native fetch bypassing proxies. 
-    // IMPORTANT: Removing ALL spoofed headers (No Chrome, No cURL). If we spoof an agent, Cloudflare detects a JA3 TLS mismatch against Node.js sockets and indefinitely tarpits the connection!
-    let vanBelRes = await axios.get(targetUrl, {
-      timeout: 30000,
-      httpsAgent
-    });
-
-    if (vanBelRes && vanBelRes.status === 200) {
-      if (typeof vanBelRes.data !== 'string') {
-        throw new Error('Received non-string data from van.bel.tr');
-      }
-      const html = vanBelRes.data;
-      debugPayload += 'HTML_LENGTH: ' + html.length + ' | PREVIEW: ' + html.substring(0, 500);
-      console.log('--- VAN BEL RAW HTML SNIPPET ---');
-      console.log(html.substring(0, 1000));
-      console.log('--------------------------------');
-
-      const blocks = html.split('<div class="qa-box">').slice(1);
-      const parsedNotices: any[] = [];
-
-      blocks.forEach((box, idx) => {
-        const extract = (regex: RegExp) => {
-          const match = box.match(regex);
-          if (match && match[1]) {
-            return match[1].replace(/<[^>]+>/g, '').trim();
-          }
-          return 'Bilinmiyor';
-        };
-
-        const name = extract(/class="qa-title">\s*([^<\n]+)/i);
-        const date = extract(/<span>Vefat Tarihi<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
-        const place = extract(/<span>Taziye Yeri<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
-        const contact = extract(/<span>İletişim<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
-        const district = extract(/<span>İlçe<\/span>\s*:\s*(.*?)(?:<\/li>|<)/i);
-
-        if (name && name !== 'Bilinmiyor') {
-          parsedNotices.push({
-            id: `vanbel-taziye-${idx}`,
-            fullName: name,
-            age: 'Vefat İlanı',
-            family: district === 'Bilinmiyor' ? 'Van' : district,
-            funeralPlace: place,
-            condolenceAddress: place,
-            date: date === 'Bilinmiyor' ? todayStr : date,
-            contactPhone: contact,
-            sourceUrl: targetUrl,
-          });
-        }
-      });
-
-      if (parsedNotices.length > 0) {
-        // En Yeniden En Eskiye (DESC) sıralama (Tablonun üstündeki veri en yeni kabul edilir, ancak garanti olsun diye tersine çevirebiliriz)
-        parsedNotices.reverse();
-
-        // Cache'i güncelle
-        taziyeCache = parsedNotices;
-        taziyeLastFetchTime = nowMs;
-
-        return res.json({
-          success: true,
-          count: parsedNotices.length,
-          lastUpdated: `van.bel.tr Canlı (${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`,
-          source: 'van.bel.tr (Van Büyükşehir Belediyesi Taziye Portalı)',
-          sourceUrl: targetUrl,
-          isLive: true,
-          notices: parsedNotices,
-        });
-      }
-    }
-  } catch (err: any) {
-    if (err && err.response) {
-      console.warn('van.bel.tr axios error:', err.response?.status, err.message);
-      debugPayload += `AXIOS_ERROR: ${err.response?.status} - ${JSON.stringify(err.response?.data).substring(0, 300)}`;
-    } else {
-      console.warn('van.bel.tr fetch error:', err?.message || err);
-      debugPayload += `FETCH_ERROR: ${err?.message || err}`;
-    }
-  }
-
-  // Sitede ilan bulunamazsa veya site yanıt vermezse SAHTE İLAN (fallbackTaziyeler) yerine BOŞ DİZİ döndürün.
-  res.json({
-    success: true,
-    count: 0,
-    lastUpdated: `Güncel ${todayStr}`,
-    source: 'van.bel.tr (Veri bulunamadı veya site erişilemez)',
-    sourceUrl: targetUrl,
-    isLive: false,
-    debug_info: debugPayload.substring(0, 500),
-    notices: []
-  });
 });
+
 
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
