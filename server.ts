@@ -1095,23 +1095,23 @@ app.get('/api/taziyeler', async (req, res) => {
 
   try {
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    const vanBelRes = await axios.get(targetUrl, {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+    // First try allorigins
+    let vanBelRes = await axios.get(proxyUrl, {
       timeout: 10000, // 10 seconds timeout
       httpsAgent,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
+        'Accept': 'application/json',
       },
     });
 
     if (vanBelRes && vanBelRes.status === 200) {
-      if (typeof vanBelRes.data !== 'string') {
-        throw new Error('Received non-string data from van.bel.tr');
+      if (!vanBelRes.data || !vanBelRes.data.contents) {
+        throw new Error('Received invalid data structure from AllOrigins proxy');
       }
-      const html = vanBelRes.data;
+      const html = String(vanBelRes.data.contents);
       const blocks = html.split('<div class="qa-box">').slice(1);
       const parsedNotices: any[] = [];
 
