@@ -1100,7 +1100,7 @@ app.get('/api/taziyeler', async (req, res) => {
     }
 
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}`;
+    const proxyUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}&render=true`;
 
     // Switch to professional ScraperAPI due to aggressive WAF block on open proxies
     let vanBelRes = await axios.get(proxyUrl, {
@@ -1173,6 +1173,7 @@ app.get('/api/taziyeler', async (req, res) => {
   } catch (err: any) {
     if (err && err.response) {
       console.warn('van.bel.tr axios error:', err.response?.status, err.message);
+      console.warn('ScraperAPI Response Data (Error Body):', JSON.stringify(err.response?.data).substring(0, 500));
     } else {
       console.warn('van.bel.tr fetch error:', err?.message || err);
     }
