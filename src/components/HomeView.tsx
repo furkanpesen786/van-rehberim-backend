@@ -1656,6 +1656,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </label>
                 <input
                   type="text"
+                  maxLength={50}
                   value={newTaxiDriverName}
                   onChange={(e) => setNewTaxiDriverName(e.target.value)}
                   placeholder="Örn: Mehmet Yılmaz / Beşyol Meydan Taksi"
@@ -1674,6 +1675,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   <input
                     type="tel"
                     required
+                    maxLength={15}
                     value={newTaxiPhone}
                     onChange={(e) => setNewTaxiPhone(e.target.value)}
                     placeholder="Örn: 0544 123 45 67"
@@ -1691,6 +1693,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 <input
                   type="text"
                   required
+                  maxLength={15}
                   value={newTaxiPlate}
                   onChange={(e) => setNewTaxiPlate(e.target.value)}
                   placeholder="Örn: 65 T 0845"
@@ -1706,6 +1709,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </label>
                 <textarea
                   required
+                  maxLength={200}
                   rows={2}
                   value={newTaxiOperatingRegions}
                   onChange={(e) => setNewTaxiOperatingRegions(e.target.value)}

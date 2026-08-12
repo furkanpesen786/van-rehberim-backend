@@ -109,6 +109,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const [selectedDeal, setSelectedDeal] = useState<any | null>(null);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [startDate, setStartDate] = useState('01.08.2026');
@@ -258,12 +259,20 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
           </div>
 
           <div className="px-4 pt-4 pb-32 space-y-4 text-xs font-medium">
+            {formError && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2">
+                <span className="text-xl leading-none">!</span>
+                <span>{formError}</span>
+              </div>
+            )}
+
             {/* 1. Temel Bilgiler */}
             <div className={`p-5 rounded-3xl space-y-4 shadow-sm ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
               <div>
                 <label className="font-bold block mb-2 text-sm">Mağaza / İşletme Adı</label>
                 <input
                   type="text"
+                  maxLength={50}
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
                   placeholder="Örn: Van Kahve Dükkanı"
@@ -274,6 +283,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 <label className="font-bold block mb-2 text-sm">İlan Başlığı</label>
                 <input
                   type="text"
+                  maxLength={50}
                   value={dealTitle}
                   onChange={(e) => setDealTitle(e.target.value)}
                   placeholder="Örn: Tüm Kahve Çeşitlerinde %20 İndirim"
@@ -456,7 +466,16 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
           </div>
 
           <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 py-3 z-40 border-t ${isDark ? 'bg-[#141518] border-slate-800' : 'bg-white border-slate-100'}`}>
-            <button onClick={() => { if (!storeName) alert('Mağaza adı giriniz'); else setShowPlayModal(true); }} className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-colors ${isDark ? 'bg-emerald-500 hover:bg-emerald-400 text-[#141518]' : 'bg-[#108A56] hover:bg-emerald-700 text-white'}`}>
+            <button onClick={() => {
+              if (!storeName.trim() || !dealTitle.trim() || !location.trim() || !contactNumber.trim()) {
+                setFormError('Lütfen zorunlu alanları (Mağaza Adı, İlan Başlığı, Konum, İletişim Numarası) eksiksiz doldurunuz.');
+                // Scroll to top to see the error
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                setFormError(null);
+                setShowPlayModal(true);
+              }
+            }} className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-colors ${isDark ? 'bg-emerald-500 hover:bg-emerald-400 text-[#141518]' : 'bg-[#108A56] hover:bg-emerald-700 text-white'}`}>
               <Megaphone className={`w-5 h-5 ${isDark ? 'fill-[#141518]' : 'fill-white'}`} /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
             </button>
           </div>
@@ -536,8 +555,12 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
               <div className="text-center py-10 text-xs font-bold">Yükleniyor...</div>
             ) : filteredDeals.map((deal) => (
               <div key={deal.id} onClick={() => setSelectedDeal(deal)} className={`rounded-3xl p-4 border cursor-pointer flex gap-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className="relative w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-black">
-                  <img src={deal.image} alt="" className="w-full h-full object-cover" />
+                <div className="relative w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-slate-200">
+                  <img src={deal.image} alt="" onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80';
+                  }} className="w-full h-full object-cover" />
                   <div className="absolute bottom-1 left-1 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase">
                     {deal.discountRate}
                   </div>

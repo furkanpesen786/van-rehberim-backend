@@ -140,12 +140,15 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   // Calculate selected duration price
   const selectedDurationObj = JOB_DURATION_OPTIONS.find((opt) => opt.days === formData.durationDays) || JOB_DURATION_OPTIONS[2];
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   // Submit Job Listing
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
 
     if (!formData.title.trim() || !formData.providerName.trim() || !formData.phone.trim() || !formData.description.trim()) {
-      alert('Lütfen zorunlu alanları (Başlık, İsim, Telefon, Açıklama) doldurunuz.');
+      setFormError('Lütfen zorunlu alanları (Başlık, İsim, Telefon, Açıklama) eksiksiz doldurunuz.');
       return;
     }
 
@@ -441,6 +444,14 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                         <img
                           src={job.photo}
                           alt={job.title}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null; // prevents looping
+                            target.style.display = 'none';
+                            if (target.parentElement) {
+                              target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
+                            }
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
@@ -552,15 +563,23 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
             {/* Modal Form Scroll Content */}
             <form onSubmit={handlePostSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 text-xs sm:text-sm">
 
+              {formError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2">
+                  <span className="text-xl leading-none">!</span>
+                  <span>{formError}</span>
+                </div>
+              )}
+
               {/* 1. MESLEK / İLAN BAŞLIĞI */}
               <div className="space-y-1.5">
                 <label className="font-extrabold uppercase tracking-wide text-xs flex items-center justify-between">
                   <span>Meslek / İlan Başlığı <span className="text-rose-500">*</span></span>
-                  <span className="text-[10px] text-slate-400 font-normal">Örn: Elektrik & Uydu Tesisatçısı</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Max 50 kr.</span>
                 </label>
                 <input
                   type="text"
                   required
+                  maxLength={50}
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Yaptığınız iş veya mesleğinizi yazınız..."
@@ -577,6 +596,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                   <input
                     type="text"
                     required
+                    maxLength={50}
                     value={formData.providerName}
                     onChange={(e) => setFormData({ ...formData, providerName: e.target.value })}
                     placeholder="Örn: Mehmet Usta veya Güven Temizlik"

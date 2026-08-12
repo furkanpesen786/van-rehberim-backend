@@ -71,11 +71,10 @@ export async function saveUserToFirestore(profile: UserProfile) {
 // Subscribe to Job Listings from Firebase Firestore
 export function subscribeJobListings(callback: (jobs: any[]) => void) {
   try {
-    // TARIH VE STATÜ KONTROLÜ ESNETİLDİ: 
-    // Önceden "where('bitisTarihi', '>', Timestamp.now())" vardı. 
-    // Bu dar filtre test ilanlarında (veya zamanı geçmiş, manuel eklenmiş ilanlarda) görünmemelerine sebep olduğu için genişletildi.
+    // PRODUCTION: Yalnızca bitiş tarihi geçmemiş (aktif) ilanları getir
     const q = query(
-      collection(db, 'is_ilanlari')
+      collection(db, 'is_ilanlari'),
+      where('bitisTarihi', '>', Timestamp.now())
     );
     return onSnapshot(q, (snapshot) => {
       const jobs = snapshot.docs.map((d) => ({
@@ -119,7 +118,8 @@ export async function addJobListingToFirestore(jobData: any) {
 export function subscribeDeals(callback: (deals: any[]) => void) {
   try {
     const q = query(
-      collection(db, 'indirim_ilanlari')
+      collection(db, 'indirim_ilanlari'),
+      where('bitisTarihi', '>', Timestamp.now())
     );
     return onSnapshot(q, (snapshot) => {
       const deals = snapshot.docs.map((d) => ({
@@ -190,7 +190,8 @@ export async function getUserFavoritesFromFirestore(userId: string) {
 export function subscribeTaxis(callback: (taxis: any[]) => void) {
   try {
     const q = query(
-      collection(db, 'taksiler')
+      collection(db, 'taksiler'),
+      where('bitisTarihi', '>', Timestamp.now())
     );
     return onSnapshot(q, (snapshot) => {
       const taxis = snapshot.docs.map((d) => ({
