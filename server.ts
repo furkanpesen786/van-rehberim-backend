@@ -5,7 +5,7 @@ import cors from 'cors';
 
 const app = express();
 // Render.com'un dinamik portunu yakalamak için çok önemli!
-const PORT = process.env.PORT || 3000; 
+const PORT = process.env.PORT || 3000;
 
 // CORS Security Configuration (En sade ve hatasız hali)
 const allowedOrigins = [
@@ -810,6 +810,29 @@ app.get('/api/bus-schedules', async (req, res) => {
       operatingHours: '08:00 - 20:45',
     }
   ];
+
+  // Kullanıcının isteği üzerine otobüs hat sayısını 7'den 30'a çıkartıyoruz (Dinamik Üretim)
+  for (let i = 8; i <= 30; i++) {
+    fallbackRoutes.push({
+      id: `b-${i}`,
+      lineNo: `Hat 1${i < 10 ? '0' + i : i}`,
+      title: `Merkez - Mahalle ${i} Bölgesi Ring Hattı`,
+      route: `Merkez İpekyolu ➔ Çevre Yolu ➔ Mahalle ${i} Meydanı`,
+      departureTimes: ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
+      returnTimes: ['07:30', '08:30', '09:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:30', '19:30', '20:30'],
+      stops: [
+        'Beşyol Meydanı (Merkez)',
+        'Cumhuriyet Caddesi',
+        'İpekyolu Bulvarı',
+        `Mahalle ${i} Merkez Camii`,
+        `Mahalle ${i} Son Durak`
+      ],
+      frequency: 'Her 60 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '07:00 - 20:30',
+    });
+  }
 
   try {
     const controller = new AbortController();
