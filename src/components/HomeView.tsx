@@ -123,7 +123,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   useEffect(() => {
     const unsub = subscribeTaxis((firestoreTaxis) => {
       if (firestoreTaxis) {
-        setTaxis(firestoreTaxis as TaxiStand[]);
+        const mappedTaxis = firestoreTaxis.map((t: any) => ({
+          ...t,
+          id: t.id,
+          name: t.name || t.isim || t.title || 'Taksi',
+          driverName: t.driverName || t.soforAdi || t.name || t.isim || 'Taksi Sürücüsü',
+          phone: t.phone || t.telefon || t.tel || '',
+          plate: t.plate || t.plaka || t.taxiPlate || '',
+          operatingRegions: t.operatingRegions || t.calismaBolgeleri || t.bolgeler || t.regions || 'Van İçi',
+          district: t.district || t.ilce || t.mahalle || 'İpekyolu',
+          monthlyFee: t.monthlyFee || t.aylikUcret || t.fee || '',
+        }));
+        setTaxis(mappedTaxis as TaxiStand[]);
       }
       setIsLoadingTaxis(false);
     });

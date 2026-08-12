@@ -64,12 +64,13 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
 
           return {
             ...safeData,
-            storeName: safeData?.isletmeAdi ?? safeData?.storeName ?? 'Van İşletmesi',
-            dealTitle: safeData?.indirimKodu ?? safeData?.dealTitle ?? safeData?.indirimDegeri ?? 'Özel Fırsat',
-            discountRate: safeData?.indirimDegeri ?? safeData?.discountRate ?? '%20',
+            storeName: safeData?.isletmeAdi ?? safeData?.storeName ?? safeData?.name ?? safeData?.title ?? 'Van İşletmesi',
+            dealTitle: safeData?.indirimKodu ?? safeData?.dealTitle ?? safeData?.baslik ?? safeData?.title ?? safeData?.indirimDegeri ?? 'Özel Fırsat',
+            discountRate: safeData?.indirimDegeri ?? safeData?.discountRate ?? safeData?.indirimMiktari ?? safeData?.oran ?? '%20',
             category: safeData?.kategori ?? safeData?.category ?? 'Kafe & Restoran',
-            image: safeData?.image ?? (safeData?.images && safeData?.images[0]) ?? 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80',
-            locationName: safeData?.locationName ?? safeData?.district ?? 'İpekyolu, Van',
+            image: safeData?.image ?? (safeData?.images && safeData?.images[0]) ?? safeData?.photoUrl ?? 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80',
+            locationName: safeData?.locationName ?? safeData?.district ?? safeData?.ilce ?? safeData?.konum ?? 'İpekyolu, Van',
+            description: safeData?.description ?? safeData?.aciklama ?? safeData?.detay ?? '',
           };
         });
         setDealsList(mappedDeals);

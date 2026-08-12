@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore,
+  initializeFirestore,
   collection,
   doc,
   setDoc,
@@ -23,7 +24,6 @@ import {
   Timestamp,
   where,
 } from 'firebase/firestore';
-import firebaseConfigJson from '../../firebase-applet-config.json';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCH3N-PpKQ92bjg9aCDQdwcL74r0Jkidzc",
@@ -40,7 +40,9 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true
+});
 
 // User Profile interface for App
 export interface UserProfile {
@@ -69,10 +71,11 @@ export async function saveUserToFirestore(profile: UserProfile) {
 // Subscribe to Job Listings from Firebase Firestore
 export function subscribeJobListings(callback: (jobs: any[]) => void) {
   try {
+    // TARIH VE STATÜ KONTROLÜ ESNETİLDİ: 
+    // Önceden "where('bitisTarihi', '>', Timestamp.now())" vardı. 
+    // Bu dar filtre test ilanlarında (veya zamanı geçmiş, manuel eklenmiş ilanlarda) görünmemelerine sebep olduğu için genişletildi.
     const q = query(
-      collection(db, 'is_ilanlari'),
-      // where('bitisTarihi', '>', Timestamp.now()), 
-      orderBy('bitisTarihi', 'desc')
+      collection(db, 'is_ilanlari')
     );
     return onSnapshot(q, (snapshot) => {
       const jobs = snapshot.docs.map((d) => ({
@@ -112,13 +115,11 @@ export async function addJobListingToFirestore(jobData: any) {
   }
 }
 
-// Subscribe to Deals from Firebase Firestore
+// Subscribe to Deals from Firebase Firestore (indirim_ilanlari koleksiyonu)
 export function subscribeDeals(callback: (deals: any[]) => void) {
   try {
     const q = query(
-      collection(db, 'indirim_ilanlari'),
-      where('bitisTarihi', '>', Timestamp.now()),
-      orderBy('bitisTarihi', 'desc')
+      collection(db, 'indirim_ilanlari')
     );
     return onSnapshot(q, (snapshot) => {
       const deals = snapshot.docs.map((d) => ({
@@ -128,16 +129,14 @@ export function subscribeDeals(callback: (deals: any[]) => void) {
       callback(deals);
     }, (error) => {
       console.warn('Firestore indirim_ilanlari snapshot warning:', error);
-      callback([]); // Unlocks the infinite loading state
     });
   } catch (err) {
     console.error('Error setting up deals listener:', err);
-    callback([]);
     return () => { };
   }
 }
 
-// Add Deal to Firebase Firestore
+// Add Deal to Firebase Firestore (indirim_ilanlari koleksiyonu)
 export async function addDealToFirestore(dealData: any) {
   try {
     const colRef = collection(db, 'indirim_ilanlari');
@@ -187,13 +186,11 @@ export async function getUserFavoritesFromFirestore(userId: string) {
   return null;
 }
 
-// Subscribe to Taxis from Firebase Firestore
+// Subscribe to Taxis from Firebase Firestore (taksiler koleksiyonu)
 export function subscribeTaxis(callback: (taxis: any[]) => void) {
   try {
     const q = query(
-      collection(db, 'taksi_duraklari'),
-      where('bitisTarihi', '>', Timestamp.now()),
-      orderBy('bitisTarihi', 'desc')
+      collection(db, 'taksiler')
     );
     return onSnapshot(q, (snapshot) => {
       const taxis = snapshot.docs.map((d) => ({
@@ -202,7 +199,7 @@ export function subscribeTaxis(callback: (taxis: any[]) => void) {
       }));
       callback(taxis);
     }, (error) => {
-      console.warn('Firestore taksi_duraklari snapshot warning:', error);
+      console.warn('Firestore taksiler snapshot warning:', error);
     });
   } catch (err) {
     console.error('Error setting up taxis listener:', err);
@@ -210,10 +207,10 @@ export function subscribeTaxis(callback: (taxis: any[]) => void) {
   }
 }
 
-// Add Taxi to Firebase Firestore
+// Add Taxi to Firebase Firestore (taksiler koleksiyonu)
 export async function addTaxiToFirestore(taxiData: any) {
   try {
-    const colRef = collection(db, 'taksi_duraklari');
+    const colRef = collection(db, 'taksiler');
 
     const durationDays = taxiData.durationDays || 30;
     const expirationDate = new Date();
