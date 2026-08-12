@@ -45,7 +45,7 @@ const HIGHLIGHT_PACKAGES: PackageOption[] = [
 ];
 
 export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, setShowAuthModal } = useAuth();
   const [dealsList, setDealsList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -582,7 +582,13 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
           </div>
 
           <div className="fixed bottom-20 right-6 z-30">
-            <button onClick={() => setIsPublishing(true)} className="w-14 h-14 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-xl">
+            <button onClick={() => {
+              if (currentUser) {
+                setIsPublishing(true);
+              } else {
+                setShowAuthModal(true);
+              }
+            }} className="w-14 h-14 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-xl">
               <Plus className="w-7 h-7 stroke-[2.5]" />
             </button>
           </div>

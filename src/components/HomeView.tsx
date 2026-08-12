@@ -384,39 +384,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
 
       <div className="relative z-10 max-w-md mx-auto px-4 pt-5">
 
-        {/* User Account Bar & Login Button */}
-        <div className="flex items-center justify-between mb-3 px-1">
-          {currentUser ? (
-            <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-emerald-500/40 shadow-lg text-xs">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <div className="flex flex-col">
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                  Firebase Bulut Oturumu
-                </span>
-                <span className="text-white font-black truncate max-w-[170px] sm:max-w-[220px]">
-                  {currentUser.email}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-1.5 transition-all active:scale-95 border border-emerald-400/40"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>E-posta / Google Girişi</span>
-            </button>
-          )}
 
-          {currentUser && (
-            <button
-              onClick={() => logout()}
-              className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-[11px] px-2.5 py-1.5 rounded-xl border border-rose-500/30 transition-all active:scale-95"
-            >
-              Çıkış
-            </button>
-          )}
-        </div>
 
         {/* App Title - Bold Banner Graphic Style */}
         <div className="text-center mb-4">
@@ -1408,7 +1376,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setIsAddTaxiModalOpen(true)}
+                  onClick={() => {
+                    if (currentUser) {
+                      setIsAddTaxiModalOpen(true);
+                    } else {
+                      setShowAuthModal(true);
+                    }
+                  }}
                   className="bg-slate-950 hover:bg-slate-900 text-amber-400 hover:text-amber-300 text-xs font-black py-2 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg active:scale-95 transition-all border border-amber-400/30"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
@@ -1493,7 +1467,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   </div>
 
                   <button
-                    onClick={() => setIsAddTaxiModalOpen(true)}
+                    onClick={() => {
+                      if (currentUser) {
+                        setIsAddTaxiModalOpen(true);
+                      } else {
+                        setShowAuthModal(true);
+                      }
+                    }}
                     className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-3 px-6 rounded-2xl shadow-lg active:scale-95 transition-all inline-flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4 stroke-[3]" />

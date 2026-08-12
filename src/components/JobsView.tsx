@@ -268,7 +268,13 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
 
           <button
             type="button"
-            onClick={() => setIsPostModalOpen(true)}
+            onClick={() => {
+              if (currentUser) {
+                setIsPostModalOpen(true);
+              } else {
+                setShowAuthModal(true);
+              }
+            }}
             className="w-full sm:w-auto shrink-0 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm py-3 px-5 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 border border-amber-300"
           >
             <PlusCircle className="w-5 h-5 stroke-[2.5]" />
@@ -415,7 +421,13 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
               Arama kriterlerinize uygun ilan bulunamadı. İlk ilanı siz yayınlamak ister misiniz?
             </p>
             <button
-              onClick={() => setIsPostModalOpen(true)}
+              onClick={() => {
+                if (currentUser) {
+                  setIsPostModalOpen(true);
+                } else {
+                  setShowAuthModal(true);
+                }
+              }}
               className="mt-2 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 px-4 rounded-full shadow-md transition-all active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
