@@ -4,7 +4,6 @@ import { fetchLivePrayerTimes } from './prayerService';
 // Settings interface
 export interface NotificationSettings {
     newsEnabled: boolean;
-    obituaryEnabled: boolean;
     prayerEnabled: boolean;
     vibrationEnabled: boolean;
 }
@@ -24,22 +23,11 @@ export class NotificationService {
 
     public static async initChannels(vibrationEnabled: boolean) {
         try {
-            // For Android 8.0+, create channels. We'll delete existing ones and recreate if needed
-            // Actually Capacitor provides no deleteChannel, we just register them and their properties apply.
             await LocalNotifications.createChannel({
                 id: 'default_channel',
                 name: 'Genel Bildirimler',
                 description: 'Genel uygulama bildirimleri (Haberler vb.)',
                 importance: 4,
-                visibility: 1,
-                vibration: vibrationEnabled,
-            });
-
-            await LocalNotifications.createChannel({
-                id: 'urgent_channel',
-                name: 'Vefat & Acil Durumlar',
-                description: 'Vefat ilanları ve acil durumlar',
-                importance: 5,
                 visibility: 1,
                 vibration: vibrationEnabled,
             });
@@ -66,7 +54,6 @@ export class NotificationService {
         }
         return {
             newsEnabled: false,
-            obituaryEnabled: false,
             prayerEnabled: false,
             vibrationEnabled: true,
         };
@@ -81,6 +68,11 @@ export class NotificationService {
         // 1. Re-init channels with the new vibration setup
         await this.initChannels(settings.vibrationEnabled);
 
+        // Cancel legacy obituary notification explicitly
+        try {
+            await LocalNotifications.cancel({ notifications: [{ id: 200 }] });
+        } catch (e) { }
+
         // 2. News (Bildirim Al - 5 times a day)
         if (settings.newsEnabled) {
             await this.scheduleNews();
@@ -88,14 +80,7 @@ export class NotificationService {
             await this.cancelNews();
         }
 
-        // 3. Obituary (Vefat İlanları - 1 time at 10:00 AM)
-        if (settings.obituaryEnabled) {
-            await this.scheduleObituary();
-        } else {
-            await this.cancelObituary();
-        }
-
-        // 4. Prayer times
+        // 3. Prayer times
         if (settings.prayerEnabled) {
             await this.schedulePrayerTimes();
         } else {
@@ -142,36 +127,6 @@ export class NotificationService {
     private static async cancelNews() {
         const ids = [101, 102, 103, 104, 105];
         await LocalNotifications.cancel({ notifications: ids.map(id => ({ id })) });
-    }
-
-    // --- OBITUARY ---
-    private static async scheduleObituary() {
-        await this.cancelObituary();
-
-        // Schedule for 10:00 AM
-        const scheduledDate = new Date();
-        scheduledDate.setHours(10, 0, 0, 0);
-
-        if (scheduledDate.getTime() <= new Date().getTime()) {
-            // If already past 10 AM, schedule for tomorrow
-            scheduledDate.setDate(scheduledDate.getDate() + 1);
-        }
-
-        await LocalNotifications.schedule({
-            notifications: [
-                {
-                    id: 200,
-                    title: 'Vefat İlanları',
-                    body: 'Bugünkü Van vefat ilanlarını görmek için tıklayın.',
-                    channelId: 'urgent_channel',
-                    schedule: { at: scheduledDate },
-                }
-            ]
-        });
-    }
-
-    private static async cancelObituary() {
-        await LocalNotifications.cancel({ notifications: [{ id: 200 }] });
     }
 
     // --- PRAYER TIMES ---
