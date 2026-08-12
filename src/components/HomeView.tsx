@@ -1068,20 +1068,31 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                     <span>{hosp.address}</span>
                   </p>
 
-                  <div className={`mt-3 pt-3 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'} flex items-center justify-between`}>
+                  <div className={`mt-3 pt-3 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'} flex flex-wrap items-center gap-2`}>
+                    {hosp.mapUrl && (
+                      <a
+                        href={hosp.mapUrl}
+                        target="_blank" rel="noopener noreferrer"
+                        className="bg-sky-50 text-sky-700 hover:bg-sky-100 text-[11px] font-bold py-1.5 px-3 rounded-full flex items-center gap-1 border border-sky-200 shadow-sm"
+                      >
+                        <Navigation className="w-3 h-3 text-sky-600" />
+                        <span>Konum</span>
+                      </a>
+                    )}
+
                     <a
                       href={`tel:112`}
-                      className="bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold py-1.5 px-3 rounded-full flex items-center gap-1 border border-red-200"
+                      className="bg-red-50 text-red-700 hover:bg-red-100 text-[11px] font-bold py-1.5 px-3 rounded-full flex items-center gap-1 border border-red-200 shadow-sm"
                     >
-                      <PhoneCall className="w-3.5 h-3.5 text-red-600" />
+                      <PhoneCall className="w-3 h-3 text-red-600" />
                       <span>Acil 112</span>
                     </a>
 
                     <a
                       href={`tel:${hosp.phone}`}
-                      className="bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold py-1.5 px-3 rounded-full flex items-center gap-1 shadow-sm"
+                      className="bg-cyan-700 hover:bg-cyan-800 text-white text-[11px] font-bold py-1.5 px-3 rounded-full flex items-center gap-1 shadow-sm ml-auto"
                     >
-                      <PhoneCall className="w-3.5 h-3.5" />
+                      <PhoneCall className="w-3 h-3" />
                       <span>{hosp.phone}</span>
                     </a>
                   </div>

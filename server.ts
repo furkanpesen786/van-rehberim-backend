@@ -811,28 +811,467 @@ app.get('/api/bus-schedules', async (req, res) => {
     }
   ];
 
-  // Kullanıcının isteği üzerine otobüs hat sayısını 7'den 30'a çıkartıyoruz (Dinamik Üretim)
-  for (let i = 8; i <= 30; i++) {
-    fallbackRoutes.push({
-      id: `b-${i}`,
-      lineNo: `Hat 1${i < 10 ? '0' + i : i}`,
-      title: `Merkez - Mahalle ${i} Bölgesi Ring Hattı`,
-      route: `Merkez İpekyolu ➔ Çevre Yolu ➔ Mahalle ${i} Meydanı`,
-      departureTimes: ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
-      returnTimes: ['07:30', '08:30', '09:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:30', '19:30', '20:30'],
+      fallbackRoutes.push({
+      id: `b-8`,
+      lineNo: `Hat 108`,
+      title: `Merkez - Yalım Erez Mahallesi Ring Hattı`,
+      route: `Hz. Ömer Camii Garajı ➔ İpekyolu Bulvarı ➔ Yalım Erez Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
       stops: [
-        'Beşyol Meydanı (Merkez)',
-        'Cumhuriyet Caddesi',
+        'Hz. Ömer Camii Garajı',
         'İpekyolu Bulvarı',
-        `Mahalle ${i} Merkez Camii`,
-        `Mahalle ${i} Son Durak`
+        'Yalım Erez Kavşağı',
+        'Yalım Erez Merkez Şifa Eczanesi',
+        'Yalım Erez İlkokulu Girişi',
+        'Yalım Erez Son Durak (Peron)'
       ],
-      frequency: 'Her 60 Dakikada Bir',
+      frequency: 'Her 40 Dakikada Bir',
       status: 'Aktif',
       tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
-      operatingHours: '07:00 - 20:30',
+      operatingHours: '06:40 - 20:30',
     });
-  }
+    fallbackRoutes.push({
+      id: `b-9`,
+      lineNo: `Hat 109`,
+      title: `Merkez - Karşıyaka Mahallesi Ring Hattı`,
+      route: `Beşyol Meydanı ➔ Cumhuriyet Caddesi ➔ Karşıyaka Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Beşyol Meydanı',
+        'Cumhuriyet Caddesi',
+        'Karşıyaka Kavşağı',
+        'Karşıyaka Merkez Şifa Eczanesi',
+        'Karşıyaka İlkokulu Girişi',
+        'Karşıyaka Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-10`,
+      lineNo: `Hat 110`,
+      title: `Merkez - Altıntepe Mahallesi Ring Hattı`,
+      route: `Maraş Caddesi ➔ Şişli Öğretmenevi ➔ Altıntepe Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Maraş Caddesi',
+        'Şişli Öğretmenevi',
+        'Altıntepe Kavşağı',
+        'Altıntepe Merkez Şifa Eczanesi',
+        'Altıntepe İlkokulu Girişi',
+        'Altıntepe Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-11`,
+      lineNo: `Hat 111`,
+      title: `Merkez - Serhat Mahallesi Ring Hattı`,
+      route: `İpekyolu Bulvarı ➔ Bölge Hastanesi ➔ Serhat Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'İpekyolu Bulvarı',
+        'Bölge Hastanesi',
+        'Serhat Kavşağı',
+        'Serhat Merkez Şifa Eczanesi',
+        'Serhat İlkokulu Girişi',
+        'Serhat Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-12`,
+      lineNo: `Hat 112`,
+      title: `Merkez - Şerefiye Mahallesi Ring Hattı`,
+      route: `Cumhuriyet Caddesi ➔ Semaver Kavşağı ➔ Şerefiye Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Cumhuriyet Caddesi',
+        'Semaver Kavşağı',
+        'Şerefiye Kavşağı',
+        'Şerefiye Merkez Şifa Eczanesi',
+        'Şerefiye İlkokulu Girişi',
+        'Şerefiye Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-13`,
+      lineNo: `Hat 113`,
+      title: `Merkez - Vali Mithat Bey Mahallesi Ring Hattı`,
+      route: `Şişli Öğretmenevi ➔ Hz. Ömer Camii Garajı ➔ Vali Mithat Bey Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Şişli Öğretmenevi',
+        'Hz. Ömer Camii Garajı',
+        'Vali Mithat Bey Kavşağı',
+        'Vali Mithat Bey Merkez Şifa Eczanesi',
+        'Vali Mithat Bey İlkokulu Girişi',
+        'Vali Mithat Bey Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-14`,
+      lineNo: `Hat 114`,
+      title: `Merkez - Alipaşa Mahallesi Ring Hattı`,
+      route: `Bölge Hastanesi ➔ Beşyol Meydanı ➔ Alipaşa Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Bölge Hastanesi',
+        'Beşyol Meydanı',
+        'Alipaşa Kavşağı',
+        'Alipaşa Merkez Şifa Eczanesi',
+        'Alipaşa İlkokulu Girişi',
+        'Alipaşa Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-15`,
+      lineNo: `Hat 115`,
+      title: `Merkez - Seyrantepe Mahallesi Ring Hattı`,
+      route: `Semaver Kavşağı ➔ Maraş Caddesi ➔ Seyrantepe Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Semaver Kavşağı',
+        'Maraş Caddesi',
+        'Seyrantepe Kavşağı',
+        'Seyrantepe Merkez Şifa Eczanesi',
+        'Seyrantepe İlkokulu Girişi',
+        'Seyrantepe Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-16`,
+      lineNo: `Hat 116`,
+      title: `Merkez - Kalecik Mahallesi Ring Hattı`,
+      route: `Hz. Ömer Camii Garajı ➔ İpekyolu Bulvarı ➔ Kalecik Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Hz. Ömer Camii Garajı',
+        'İpekyolu Bulvarı',
+        'Kalecik Kavşağı',
+        'Kalecik Merkez Şifa Eczanesi',
+        'Kalecik İlkokulu Girişi',
+        'Kalecik Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-17`,
+      lineNo: `Hat 117`,
+      title: `Merkez - Akköprü Mahallesi Ring Hattı`,
+      route: `Beşyol Meydanı ➔ Cumhuriyet Caddesi ➔ Akköprü Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Beşyol Meydanı',
+        'Cumhuriyet Caddesi',
+        'Akköprü Kavşağı',
+        'Akköprü Merkez Şifa Eczanesi',
+        'Akköprü İlkokulu Girişi',
+        'Akköprü Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-18`,
+      lineNo: `Hat 118`,
+      title: `Merkez - İskele Mahallesi Ring Hattı`,
+      route: `Maraş Caddesi ➔ Şişli Öğretmenevi ➔ İskele Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Maraş Caddesi',
+        'Şişli Öğretmenevi',
+        'İskele Kavşağı',
+        'İskele Merkez Şifa Eczanesi',
+        'İskele İlkokulu Girişi',
+        'İskele Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-19`,
+      lineNo: `Hat 119`,
+      title: `Merkez - Abdurrahman Gazi Mahallesi Ring Hattı`,
+      route: `İpekyolu Bulvarı ➔ Bölge Hastanesi ➔ Abdurrahman Gazi Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'İpekyolu Bulvarı',
+        'Bölge Hastanesi',
+        'Abdurrahman Gazi Kavşağı',
+        'Abdurrahman Gazi Merkez Şifa Eczanesi',
+        'Abdurrahman Gazi İlkokulu Girişi',
+        'Abdurrahman Gazi Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-20`,
+      lineNo: `Hat 120`,
+      title: `Merkez - Eminpaşa Mahallesi Ring Hattı`,
+      route: `Cumhuriyet Caddesi ➔ Semaver Kavşağı ➔ Eminpaşa Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Cumhuriyet Caddesi',
+        'Semaver Kavşağı',
+        'Eminpaşa Kavşağı',
+        'Eminpaşa Merkez Şifa Eczanesi',
+        'Eminpaşa İlkokulu Girişi',
+        'Eminpaşa Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-21`,
+      lineNo: `Hat 121`,
+      title: `Merkez - Buzhane Mahallesi Ring Hattı`,
+      route: `Şişli Öğretmenevi ➔ Hz. Ömer Camii Garajı ➔ Buzhane Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Şişli Öğretmenevi',
+        'Hz. Ömer Camii Garajı',
+        'Buzhane Kavşağı',
+        'Buzhane Merkez Şifa Eczanesi',
+        'Buzhane İlkokulu Girişi',
+        'Buzhane Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-22`,
+      lineNo: `Hat 122`,
+      title: `Merkez - Kevenli Mahallesi Ring Hattı`,
+      route: `Bölge Hastanesi ➔ Beşyol Meydanı ➔ Kevenli Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Bölge Hastanesi',
+        'Beşyol Meydanı',
+        'Kevenli Kavşağı',
+        'Kevenli Merkez Şifa Eczanesi',
+        'Kevenli İlkokulu Girişi',
+        'Kevenli Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-23`,
+      lineNo: `Hat 123`,
+      title: `Merkez - Halilağa Mahallesi Ring Hattı`,
+      route: `Semaver Kavşağı ➔ Maraş Caddesi ➔ Halilağa Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Semaver Kavşağı',
+        'Maraş Caddesi',
+        'Halilağa Kavşağı',
+        'Halilağa Merkez Şifa Eczanesi',
+        'Halilağa İlkokulu Girişi',
+        'Halilağa Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-24`,
+      lineNo: `Hat 124`,
+      title: `Merkez - Bostaniçi Mahallesi Ring Hattı`,
+      route: `Hz. Ömer Camii Garajı ➔ İpekyolu Bulvarı ➔ Bostaniçi Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Hz. Ömer Camii Garajı',
+        'İpekyolu Bulvarı',
+        'Bostaniçi Kavşağı',
+        'Bostaniçi Merkez Şifa Eczanesi',
+        'Bostaniçi İlkokulu Girişi',
+        'Bostaniçi Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-25`,
+      lineNo: `Hat 125`,
+      title: `Merkez - Hacıbekir Mahallesi Ring Hattı`,
+      route: `Beşyol Meydanı ➔ Cumhuriyet Caddesi ➔ Hacıbekir Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Beşyol Meydanı',
+        'Cumhuriyet Caddesi',
+        'Hacıbekir Kavşağı',
+        'Hacıbekir Merkez Şifa Eczanesi',
+        'Hacıbekir İlkokulu Girişi',
+        'Hacıbekir Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-26`,
+      lineNo: `Hat 126`,
+      title: `Merkez - Hatuniye Mahallesi Ring Hattı`,
+      route: `Maraş Caddesi ➔ Şişli Öğretmenevi ➔ Hatuniye Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Maraş Caddesi',
+        'Şişli Öğretmenevi',
+        'Hatuniye Kavşağı',
+        'Hatuniye Merkez Şifa Eczanesi',
+        'Hatuniye İlkokulu Girişi',
+        'Hatuniye Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-27`,
+      lineNo: `Hat 127`,
+      title: `Merkez - Şabaniye Mahallesi Ring Hattı`,
+      route: `İpekyolu Bulvarı ➔ Bölge Hastanesi ➔ Şabaniye Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'İpekyolu Bulvarı',
+        'Bölge Hastanesi',
+        'Şabaniye Kavşağı',
+        'Şabaniye Merkez Şifa Eczanesi',
+        'Şabaniye İlkokulu Girişi',
+        'Şabaniye Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-28`,
+      lineNo: `Hat 128`,
+      title: `Merkez - Cevdetpaşa Mahallesi Ring Hattı`,
+      route: `Cumhuriyet Caddesi ➔ Semaver Kavşağı ➔ Cevdetpaşa Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Cumhuriyet Caddesi',
+        'Semaver Kavşağı',
+        'Cevdetpaşa Kavşağı',
+        'Cevdetpaşa Merkez Şifa Eczanesi',
+        'Cevdetpaşa İlkokulu Girişi',
+        'Cevdetpaşa Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-29`,
+      lineNo: `Hat 129`,
+      title: `Merkez - Hafıziye Mahallesi Ring Hattı`,
+      route: `Şişli Öğretmenevi ➔ Hz. Ömer Camii Garajı ➔ Hafıziye Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Şişli Öğretmenevi',
+        'Hz. Ömer Camii Garajı',
+        'Hafıziye Kavşağı',
+        'Hafıziye Merkez Şifa Eczanesi',
+        'Hafıziye İlkokulu Girişi',
+        'Hafıziye Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+    fallbackRoutes.push({
+      id: `b-30`,
+      lineNo: `Hat 130`,
+      title: `Merkez - Esenler Mahallesi Ring Hattı`,
+      route: `Bölge Hastanesi ➔ Beşyol Meydanı ➔ Esenler Son Durak`,
+      departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      returnTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '19:40', '20:30'],
+      stops: [
+        'Bölge Hastanesi',
+        'Beşyol Meydanı',
+        'Esenler Kavşağı',
+        'Esenler Merkez Şifa Eczanesi',
+        'Esenler İlkokulu Girişi',
+        'Esenler Son Durak (Peron)'
+      ],
+      frequency: 'Her 40 Dakikada Bir',
+      status: 'Aktif',
+      tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
+      operatingHours: '06:40 - 20:30',
+    });
+
 
   try {
     const controller = new AbortController();

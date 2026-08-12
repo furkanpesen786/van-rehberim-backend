@@ -48,6 +48,7 @@ export interface Hospital {
   emergencyPhone: string;
   hasEmergency: boolean;
   rating: number;
+  mapUrl?: string;
 }
 
 export interface BusRoute {
