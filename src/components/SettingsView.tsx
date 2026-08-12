@@ -436,28 +436,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </label>
           </div>
 
-          {/* Vefat İlanları Toggle */}
-          <div className={`${cardBg} rounded-3xl p-4 shadow-sm border flex items-center justify-between`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDark ? 'bg-indigo-950/60 text-indigo-400' : 'bg-indigo-50 text-indigo-700'}`}>
-                <Info className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className={`text-xs sm:text-sm font-bold ${textPrimary}`}>Vefat İlanları</h3>
-                <p className={`text-[11px] ${textSecondary}`}>Vefat ilanlarından haberdar oluyorsunuz</p>
-              </div>
-            </div>
 
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={deathNoticeAlerts}
-                onChange={() => setDeathNoticeAlerts(!deathNoticeAlerts)}
-                className="sr-only peer"
-              />
-              <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-900"></div>
-            </label>
-          </div>
 
           {/* Titreşimleri Kapat Toggle */}
           <div className={`${cardBg} rounded-3xl p-4 shadow-sm border flex items-center justify-between`}>
