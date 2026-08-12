@@ -1,0 +1,47 @@
+{
+    "project_info": {
+        "project_number": "209812036114",
+        "project_id": "vanrehberim-f181b",
+        "storage_bucket": "vanrehberim-f181b.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:209812036114:android:6bb9b05318c214abf456cb",
+                "android_client_info": {
+                    "package_name": "com.vanrehberim.app"
+                }
+            },
+            "oauth_client": [
+                {
+                    "client_id": "209812036114-u32d35k5drsevtsopa5k9osuhvisjk2t.apps.googleusercontent.com",
+                    "client_type": 1,
+                    "android_info": {
+                        "package_name": "com.vanrehberim.app",
+                        "certificate_hash": "df187a2a528d17d0281b4405c33cbff9fa08fe00"
+                    }
+                },
+                {
+                    "client_id": "209812036114-im85jgg6harpet2tncbnldp9lu1e2dgk.apps.googleusercontent.com",
+                    "client_type": 3
+                }
+            ],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyABFeWtgeiff6hxKiRwoi9yUhJJp9Kpf3g"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": [
+                        {
+                            "client_id": "209812036114-im85jgg6harpet2tncbnldp9lu1e2dgk.apps.googleusercontent.com",
+                            "client_type": 3
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}

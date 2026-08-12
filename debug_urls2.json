@@ -1,0 +1,33 @@
+[
+  {
+    "url": "https://www.sehrivangazetesi.com/rss",
+    "status": "OK"
+  },
+  {
+    "url": "https://www.vanpostasigazetesi.com/sitemap.xml",
+    "status": "OK"
+  },
+  {
+    "url": "https://www.vanpostasigazetesi.com/rss.xml",
+    "status": "OK"
+  },
+  {
+    "url": "https://www.gazetevan.com/rss.xml",
+    "status": "HTTP_FAIL",
+    "code": 404
+  },
+  {
+    "url": "https://www.vanpostasigazetesi.com/sondakika.rss",
+    "status": "HTTP_FAIL",
+    "code": 410
+  },
+  {
+    "url": "https://www.vanekspres.com.tr/rss",
+    "status": "OK"
+  },
+  {
+    "url": "https://www.vanekspres.com.tr/rss.xml",
+    "status": "HTTP_FAIL",
+    "code": 404
+  }
+]

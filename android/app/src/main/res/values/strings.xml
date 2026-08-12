@@ -4,4 +4,5 @@
     <string name="title_activity_main">Van Rehberim</string>
     <string name="package_name">com.vanrehberim.app</string>
     <string name="custom_url_scheme">com.vanrehberim.app</string>
+    <string name="default_web_client_id">209812036114-im85jgg6harpet2tncbnldp9lu1e2dgk.apps.googleusercontent.com</string>
 </resources>

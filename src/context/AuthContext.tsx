@@ -7,6 +7,7 @@ import {
 } from '../lib/firebase';
 import { signInWithPopup, signOut as fbSignOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -104,20 +105,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async () => {
     try {
-      // Use Capacitor Native @capacitor-firebase/authentication
-      const nativeResult = await FirebaseAuthentication.signInWithGoogle();
-
       let fbUser;
-      if (nativeResult.credential?.idToken) {
-        // Authenticate with Firebase JS SDK using the native credential
-        const credential = GoogleAuthProvider.credential(nativeResult.credential.idToken);
-        const userCredential = await signInWithCredential(auth, credential);
-        fbUser = userCredential.user;
-      } else if (nativeResult.user) {
-        // Fallback for some environments
-        fbUser = nativeResult.user;
+
+      if (Capacitor.isNativePlatform()) {
+        // Use Capacitor Native @capacitor-firebase/authentication for Android/iOS
+        const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+
+        if (nativeResult.credential?.idToken) {
+          // Authenticate with Firebase JS SDK using the native credential
+          const credential = GoogleAuthProvider.credential(nativeResult.credential.idToken);
+          const userCredential = await signInWithCredential(auth, credential);
+          fbUser = userCredential.user;
+        } else if (nativeResult.user) {
+          // Fallback for some environments
+          fbUser = nativeResult.user;
+        } else {
+          throw new Error("Google girişi başarılı ancak bilgiler alınamadı.");
+        }
       } else {
-        throw new Error("Google girişi başarılı ancak bilgiler alınamadı.");
+        // Fallback for Web browser
+        const userCredential = await signInWithPopup(auth, googleProvider);
+        fbUser = userCredential.user;
       }
 
       if (fbUser && fbUser.email) {

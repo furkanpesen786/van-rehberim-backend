@@ -1,0 +1,34 @@
+[
+  {
+    "url": "https://www.sehrivan.com/rss",
+    "status": "NETWORK_ERR",
+    "msg": "request to https://www.sehrivan.com/rss failed, reason: getaddrinfo ENOTFOUND www.sehrivan.com"
+  },
+  {
+    "url": "https://www.wanhaber.com/rss",
+    "status": "OK"
+  },
+  {
+    "url": "https://www.vanolay.com/rss",
+    "status": "OK"
+  },
+  {
+    "url": "https://www.vanpostasigazetesi.com/rss",
+    "status": "HTTP_FAIL",
+    "code": 410
+  },
+  {
+    "url": "https://www.vanhavadis.com/rss",
+    "status": "OK"
+  },
+  {
+    "url": "https://www.gazetevan.com/rss",
+    "status": "HTTP_FAIL",
+    "code": 404
+  },
+  {
+    "url": "https://www.vanekspres.com/rss",
+    "status": "NETWORK_ERR",
+    "msg": "request to https://www.vanekspres.com/rss failed, reason: socket hang up"
+  }
+]
