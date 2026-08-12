@@ -455,9 +455,9 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             </div>
           </div>
 
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 py-3 bg-white dark:bg-[#121316] z-40 border-t border-slate-100 dark:border-slate-800">
-            <button onClick={() => { if (!storeName) alert('Mağaza adı giriniz'); else setShowPlayModal(true); }} className="w-full bg-[#108A56] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-700 transition-colors">
-              <Megaphone className="w-5 h-5 fill-white" /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
+          <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 py-3 z-40 border-t ${isDark ? 'bg-[#141518] border-slate-800' : 'bg-white border-slate-100'}`}>
+            <button onClick={() => { if (!storeName) alert('Mağaza adı giriniz'); else setShowPlayModal(true); }} className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-colors ${isDark ? 'bg-emerald-500 hover:bg-emerald-400 text-[#141518]' : 'bg-[#108A56] hover:bg-emerald-700 text-white'}`}>
+              <Megaphone className={`w-5 h-5 ${isDark ? 'fill-[#141518]' : 'fill-white'}`} /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
             </button>
           </div>
         </div>
