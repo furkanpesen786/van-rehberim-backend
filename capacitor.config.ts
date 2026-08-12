@@ -1,14 +1,17 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.senin.uygulaman', 
-  appName: 'Van Rehberim',     
-  webDir: 'dist',               
-  bundledWebRuntime: false,
+  appId: 'com.vanrehberim.app',
+  appName: 'Van Rehberim',
+  webDir: 'dist',
   plugins: {
     CapacitorHttp: {
-      enabled: false,           
+      enabled: true,
     },
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ["google.com"],
+    }
   },
 };
 
