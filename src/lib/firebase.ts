@@ -50,7 +50,7 @@ export interface UserProfile {
   email: string;
   displayName?: string;
   photoURL?: string;
-  loginMethod: 'email' | 'google';
+  loginMethod: 'email' | 'google' | 'apple';
   createdAt: string;
   lastLoginAt: string;
 }

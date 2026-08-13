@@ -5,7 +5,7 @@ import {
   saveUserToFirestore,
   UserProfile,
 } from '../lib/firebase';
-import { signInWithPopup, signOut as fbSignOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { signInWithPopup, signOut as fbSignOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, OAuthProvider } from 'firebase/auth';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
 
@@ -14,6 +14,7 @@ interface AuthContextType {
   loading: boolean;
   loginWithEmail: (email: string, displayName?: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
   logout: () => Promise<void>;
   showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: fontLoading(),
   loginWithEmail: async () => { },
   loginWithGoogle: async () => { },
+  loginWithApple: async () => { },
   logout: async () => { },
   showAuthModal: false,
   setShowAuthModal: () => { },
@@ -158,6 +160,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithApple = async () => {
+    try {
+      let fbUser;
+
+      if (Capacitor.isNativePlatform()) {
+        const nativeResult = await FirebaseAuthentication.signInWithApple();
+
+        if (nativeResult.credential?.idToken) {
+          const appleProvider = new OAuthProvider('apple.com');
+          const credential = appleProvider.credential({
+            idToken: nativeResult.credential.idToken,
+            rawNonce: nativeResult.credential.nonce,
+          });
+          const userCredential = await signInWithCredential(auth, credential);
+          fbUser = userCredential.user;
+        } else if (nativeResult.user) {
+          fbUser = nativeResult.user;
+        } else {
+          throw new Error("Apple girişi başarılı ancak bilgiler alınamadı.");
+        }
+      } else {
+        const appleProvider = new OAuthProvider('apple.com');
+        appleProvider.addScope('email');
+        appleProvider.addScope('name');
+        const userCredential = await signInWithPopup(auth, appleProvider);
+        fbUser = userCredential.user;
+      }
+
+      if (fbUser) {
+        // If Apple didn't provide email via OAuth directly (sometimes happens on subsequent logins), 
+        // fall back to provider Data or placeholder if totally unavailable (unlikely for Apple if properly configured).
+        const email = fbUser.email || (fbUser.providerData[0]?.email) || `${fbUser.uid}@apple.com`;
+
+        const profile: UserProfile = {
+          uid: fbUser.uid,
+          email: email,
+          displayName: fbUser.displayName || email.split('@')[0],
+          photoURL: fbUser.photoURL || undefined,
+          loginMethod: 'apple',
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        };
+        setCurrentUser(profile);
+        localStorage.setItem('van_user_profile', JSON.stringify(profile));
+        setShowAuthModal(false);
+
+        try {
+          await saveUserToFirestore(profile);
+        } catch (e) {
+          console.warn("Firestore sync failed, but user is logged in locally.");
+        }
+      }
+    } catch (err: any) {
+      console.error('Apple Sign-In Error:', err);
+      if (err.code !== 'auth/popup-closed-by-user' && err.message !== 'signInWithApple canceled.') {
+        throw new Error('Apple ile giriş yapılamadı: ' + (err.message || 'Lütfen tekrar deneyiniz.'));
+      }
+    }
+  };
+
+
   const logout = async () => {
     try {
       await fbSignOut(auth);
@@ -174,6 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         loginWithEmail,
         loginWithGoogle,
+        loginWithApple,
         logout,
         showAuthModal,
         setShowAuthModal,

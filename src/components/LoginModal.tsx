@@ -22,7 +22,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   theme = 'light',
 }) => {
-  const { loginWithEmail, loginWithGoogle, currentUser, setShowAuthModal } = useAuth();
+  const { loginWithEmail, loginWithGoogle, loginWithApple, currentUser, setShowAuthModal } = useAuth();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +69,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setIsSubmitting(false); // KESİNLİKLE spinner'ı kapat
     }
   };
+
+  const handleAppleSubmit = async () => {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await loginWithApple();
+      setTimeout(() => {
+        setShowAuthModal(false);
+        if (onClose) onClose();
+      }, 50);
+    } catch (err: any) {
+      setError(err.message || 'Apple girişi sırasında hata oluştu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
@@ -132,6 +149,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </svg>
             <span>Google Hesabı ile Giriş Yap</span>
           </button>
+
+          {/* Quick Apple Sign In */}
+          <button
+            type="button"
+            onClick={handleAppleSubmit}
+            disabled={isSubmitting}
+            className={`w-full py-3.5 px-4 rounded-2xl border font-black text-xs flex items-center justify-center gap-3 transition-all shadow-md active:scale-98 ${isDark ? 'bg-white text-slate-900 border-white hover:bg-slate-100' : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'}`}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill={isDark ? '#000000' : '#ffffff'}>
+              <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM13.88 7.37C14.73 7.37 15.65 6.49 15.65 5.56C15.65 4.67 14.88 3.86 14.1 3.86C13.2 3.86 12.28 4.79 12.28 5.62C12.28 6.55 13.1 7.37 13.88 7.37ZM14.97 18.06C14.36 18.06 13.9 17.7 12.98 17.7C12.06 17.7 11.45 18.06 10.94 18.06C9.28 17.95 5.76 13.8 6.06 10.74C6.16 9.87 6.64 9.1 7.28 8.64C7.79 8.23 8.35 8.05 8.93 8.05C9.69 8.05 10.38 8.44 10.96 8.5C11.64 8.58 12.59 8.1 13.43 8.1C13.93 8.1 14.49 8.23 15.02 8.5C15.65 8.84 16.32 9.53 16.7 10.51C15 11.53 15.22 13.97 16.89 15C16.48 16.14 15.7 18.06 14.97 18.06Z" />
+            </svg>
+            <span>Apple ile Giriş Yap</span>
+          </button>
+
 
           <div className="flex items-center gap-3 my-2">
             <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />

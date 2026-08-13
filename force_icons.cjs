@@ -2,7 +2,8 @@ const Jimp = require('jimp');
 const fs = require('fs');
 
 async function run() {
-    const iconImg = await Jimp.read('C:/Users/FURKAN/.gemini/antigravity/brain/a2401070-70ab-4b2d-88f9-c508a5374938/uploaded_image_1785789190657.png');
+    const iconImg = await Jimp.read('C:/Users/FURKAN/.gemini/antigravity/brain/fc7da6b4-be6a-401b-918a-999e50e41c26/uploaded_image_1786612662694.png');
+
 
     const mipmaps = [
         { dir: 'mipmap-mdpi', size: 48 },
