@@ -84,7 +84,6 @@ const renderWeatherIcon = (iconName: string, className = "w-5 h-5") => {
 
 export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateToPlaces, onNavigateToDeals, onNavigateToJobs }) => {
   const { currentUser, setShowAuthModal, logout } = useAuth();
-  const [slidePage, setSlidePage] = useState<0 | 1>(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeModal, setActiveModal] = useState<'pharmacy' | 'hospital' | 'bus' | 'taxi' | 'pray' | 'weather' | 'finance' | null>(null);
 
@@ -370,6 +369,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   });
   const filteredHospitals = HOSPITALS.filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  const q = searchQuery.toLowerCase().trim();
+  const showCard = (keywords) => {
+    if (!q) return true;
+    return keywords.some(k => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()));
+  };
+
   return (
     <div className={`relative min-h-screen pb-28 font-sans selection:bg-cyan-500 selection:text-white ${isDark ? 'text-white' : 'text-slate-800'}`}>
       {/* Background Graphic matching screenshot */}
@@ -429,12 +434,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
           </button>
         </div>
 
-        {/* Content Slider Pages based on Screenshots */}
-        {slidePage === 0 ? (
-          /* ================= PAGE 1 ================= */
-          <div className="space-y-4 animate-fadeIn">
+        {/* Content Pages */}
 
-            {/* 0. Van Hava Durumu Card */}
+        <div className="space-y-4 animate-fadeIn">
+
+          {/* 0. Van Hava Durumu Card */}
+          {showCard(['hava', 'durum', 'sıcak', 'mgm', 'derece', 'güneş']) && (
             <div className={`${cardBg} rounded-3xl p-4 shadow-xl border relative overflow-hidden flex flex-col gap-3 transition-transform duration-200`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -507,8 +512,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
+          )}
 
-            {/* NEW: Van İş İlanları & Usta Rehberi Promo Card */}
+          {/* NEW: Van İş İlanları & Usta Rehberi Promo Card */}
+          {showCard(['iş', 'ilan', 'usta', 'temizlik', 'nakliye', 'özel']) && (
             <div className={`rounded-3xl p-4 shadow-xl flex items-center gap-3 border transition-all ${isDark
               ? 'bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 border-indigo-900/70'
               : 'bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-200'
@@ -541,8 +548,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 )}
               </div>
             </div>
+          )}
 
-            {/* 1. Nöbetçi Eczaneler Card */}
+          {/* 1. Nöbetçi Eczaneler Card */}
+          {showCard(['eczane', 'nöbet', 'sağlık', 'ilaç']) && (
             <div className={`${cardBg} rounded-3xl p-4 shadow-xl flex items-center gap-3 border`}>
               {/* Heart Canva Icon */}
               <div className={`w-20 h-20 shrink-0 flex items-center justify-center rounded-2xl ${isDark ? 'bg-red-950/60 border-red-900/50' : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-100'} border relative overflow-hidden`}>
@@ -567,8 +576,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </button>
               </div>
             </div>
+          )}
 
-            {/* 2. Ezan Vakitleri Card */}
+          {/* 2. Ezan Vakitleri Card */}
+          {showCard(['ezan', 'vakit', 'namaz', 'diyanet', 'imsak', 'sabah', 'öğle', 'ikindi', 'akşam', 'yatsı']) && (
             <div className={`${cardBg} rounded-3xl p-4 shadow-xl border text-center relative overflow-hidden`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
@@ -659,8 +670,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 })}
               </div>
             </div>
+          )}
 
-            {/* 3. Döviz Kuru Card (doviz.com Canlı) */}
+          {/* 3. Döviz Kuru Card (doviz.com Canlı) */}
+          {showCard(['döviz', 'kur', 'altın', 'dolar', 'euro', 'finans', 'para']) && (
             <div className={`${cardBg} rounded-3xl p-4 shadow-xl border text-center relative overflow-hidden`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-1.5">
@@ -733,13 +746,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </div>
               )}
             </div>
+          )}
 
-          </div>
-        ) : (
-          /* ================= PAGE 2 ================= */
-          <div className="space-y-4 animate-fadeIn">
+        </div>
 
-            {/* 1. Vanda Bulunan Hastaneler Card */}
+        <div className="space-y-4 animate-fadeIn mt-4">
+
+          {/* 1. Vanda Bulunan Hastaneler Card */}
+          {showCard(['hastane', 'sağlık', 'randevu', 'doktor', 'acil']) && (
             <div className={`${cardBg} rounded-3xl p-4 shadow-xl flex items-center gap-3 border`}>
               <div className={`w-20 h-20 shrink-0 flex items-center justify-center rounded-2xl ${isDark ? 'bg-cyan-950/60 border-cyan-900/50' : 'bg-cyan-50 border-cyan-100'} border`}>
                 <div className="w-14 h-14 bg-black rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md border-2 border-white">
@@ -762,8 +776,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </button>
               </div>
             </div>
+          )}
 
-            {/* 2. Otobüs Saatleri ve Durakları Card */}
+          {/* 2. Otobüs Saatleri ve Durakları Card */}
+          {showCard(['otobüs', 'saat', 'durak', 'ulaşım', 'belvan', 'hat']) && (
             <div className={`${cardBg} rounded-3xl p-4 shadow-xl flex items-center gap-3 border relative overflow-hidden`}>
               <div className={`w-20 h-20 shrink-0 flex items-center justify-center rounded-2xl ${isDark ? 'bg-amber-950/40 border-amber-900/50' : 'bg-amber-50 border-amber-200'} border`}>
                 <div className="w-14 h-14 rounded-full border-2 border-black flex items-center justify-center bg-amber-400 text-slate-950 shadow-sm">
@@ -792,8 +808,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </button>
               </div>
             </div>
+          )}
 
-            {/* 3. Acil Taksi Card */}
+          {/* 3. Acil Taksi Card */}
+          {showCard(['taksi', 'acil', 'ulaşım', 'şoför']) && (
             <div className={`${cardBg} rounded-3xl p-4 shadow-xl flex items-center gap-3 border relative overflow-hidden`}>
               <div className={`w-20 h-20 shrink-0 flex items-center justify-center rounded-2xl ${isDark ? 'bg-amber-950/60 border-amber-900/50' : 'bg-amber-50 border-amber-200'} border`}>
                 <div className="w-14 h-14 rounded-full bg-amber-400 border-2 border-black flex flex-col items-center justify-center text-black font-black text-[10px] shadow-sm">
@@ -834,34 +852,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </div>
               </div>
             </div>
+          )}
 
-          </div>
-        )}
-
-        {/* Carousel Pagination Controls matching Screenshot */}
-        <div className="flex items-center justify-between mt-6 px-2">
-          {/* Custom Pill Dots Indicator */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setSlidePage(0)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${slidePage === 0 ? 'w-8 bg-red-600 shadow' : 'w-2.5 bg-slate-300/70'
-                }`}
-            />
-            <button
-              onClick={() => setSlidePage(1)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${slidePage === 1 ? 'w-8 bg-red-600 shadow' : 'w-2.5 bg-slate-300/70'
-                }`}
-            />
-          </div>
-
-          {/* DAHA FAZLA / DAHA AZ Button */}
-          <button
-            onClick={() => setSlidePage(slidePage === 0 ? 1 : 0)}
-            className="text-xs font-extrabold text-red-600 uppercase tracking-wider flex items-center gap-1 hover:underline"
-          >
-            <span>{slidePage === 0 ? 'DAHA FAZLA' : 'DAHA AZ'}</span>
-            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${slidePage === 1 ? 'rotate-180' : ''}`} />
-          </button>
         </div>
 
       </div>

@@ -8,7 +8,6 @@ interface PlacesViewProps {
 }
 
 export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
-  const [currentPage, setCurrentPage] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceToVisit | null>(null);
 
@@ -56,9 +55,6 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
 
   const isDark = theme === 'dark';
 
-  const ITEMS_PER_PAGE = 5;
-  const TOTAL_PAGES = Math.ceil(PLACES_TO_VISIT.length / ITEMS_PER_PAGE); // 4 pages for 20 places
-
   // Filter based on search query
   const filteredPlaces = PLACES_TO_VISIT.filter(p =>
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -66,10 +62,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
     p.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Get current page slice if not searching
-  const displayedPlaces = searchQuery
-    ? filteredPlaces
-    : PLACES_TO_VISIT.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
+  const displayedPlaces = searchQuery ? filteredPlaces : PLACES_TO_VISIT;
 
   return (
     <div className={`relative min-h-screen pb-28 font-sans ${isDark ? 'text-white' : 'text-slate-800'}`}>
@@ -100,8 +93,8 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="NEREYE GİTMEK İSTERSİN ?"
             className={`w-full rounded-full py-3.5 pl-6 pr-12 text-sm font-extrabold shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 uppercase tracking-wide ${isDark
-                ? 'bg-[#1c1e24] text-white placeholder-slate-400 border border-slate-700'
-                : 'bg-white text-slate-900 placeholder-slate-800'
+              ? 'bg-[#1c1e24] text-white placeholder-slate-400 border border-slate-700'
+              : 'bg-white text-slate-900 placeholder-slate-800'
               }`}
           />
           <button className={`absolute right-5 top-1/2 -translate-y-1/2 font-black ${isDark ? 'text-slate-300' : 'text-slate-900'}`}>
@@ -155,8 +148,8 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
                 <button
                   onClick={() => setSelectedPlace(place)}
                   className={`mt-3 w-full text-xs font-black py-2 px-3 rounded-full transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95 border uppercase ${isDark
-                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
-                      : 'bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 hover:from-slate-300 hover:to-slate-300 text-slate-800 border-slate-300/60'
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                    : 'bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 hover:from-slate-300 hover:to-slate-300 text-slate-800 border-slate-300/60'
                     }`}
                 >
                   DAHA FAZLA &rarr;
@@ -171,32 +164,6 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
             </div>
           )}
         </div>
-
-        {/* Pagination Dots and DAHA FAZLA / DAHA AZ Controls matching screenshot */}
-        {!searchQuery && (
-          <div className="flex items-center justify-between mt-6 px-2">
-            {/* Dots */}
-            <div className="flex items-center gap-1.5">
-              {Array.from({ length: TOTAL_PAGES }).map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentPage(idx)}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${currentPage === idx ? 'w-8 bg-red-600 shadow' : 'w-2.5 bg-slate-300/70'
-                    }`}
-                />
-              ))}
-            </div>
-
-            {/* Pagination Action */}
-            <button
-              onClick={() => setCurrentPage((prev) => (prev + 1) % TOTAL_PAGES)}
-              className="text-xs font-black text-red-600 uppercase tracking-wider flex items-center gap-1 hover:underline"
-            >
-              <span>{currentPage < TOTAL_PAGES - 1 ? 'DAHA FAZLA' : 'DAHA AZ'}</span>
-              <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${currentPage === TOTAL_PAGES - 1 ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-        )}
 
       </div>
 
