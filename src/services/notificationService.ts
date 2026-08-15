@@ -1,9 +1,9 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { fetchLivePrayerTimes } from './prayerService';
 
-// Settings interface
 export interface NotificationSettings {
     newsEnabled: boolean;
+    obituaryEnabled: boolean;
     prayerEnabled: boolean;
     vibrationEnabled: boolean;
 }
@@ -54,6 +54,7 @@ export class NotificationService {
         }
         return {
             newsEnabled: false,
+            obituaryEnabled: false,
             prayerEnabled: false,
             vibrationEnabled: true,
         };

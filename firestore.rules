@@ -2,17 +2,33 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Kullanıcıların kendi profillerini yönetmesi için
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
-    match /jobListings/{jobId} {
-      allow read, write: if true;
+    
+    // İş İlanları
+    match /is_ilanlari/{jobId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
-    match /deals/{dealId} {
-      allow read, write: if true;
+    
+    // İndirim İlanları (Fırsatlar)
+    match /indirim_ilanlari/{dealId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+    
+    // Taksiler
+    match /taksiler/{taxiId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Kullanıcı Favorileri (Sadece giriş yapmış kullanıcı kendi favorilerini okuyup yazabilir)
     match /userFavorites/{userId} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

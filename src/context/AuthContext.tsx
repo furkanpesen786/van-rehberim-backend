@@ -76,33 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loginWithEmail = async (email: string, displayName?: string) => {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      throw new Error('Lütfen geçerli bir e-posta adresi giriniz.');
-    }
-
-    const uid = 'usr_' + cleanEmail.replace(/[^a-z0-9]/g, '_');
-    const name = displayName?.trim() || cleanEmail.split('@')[0];
-
-    const profile: UserProfile = {
-      uid: uid,
-      email: cleanEmail,
-      displayName: name,
-      loginMethod: 'email',
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-    };
-
-    setCurrentUser(profile);
-    localStorage.setItem('van_user_profile', JSON.stringify(profile));
-    setShowAuthModal(false); // Close modal instantly before long network request
-
-    // Save to Firestore in the background
-    try {
-      await saveUserToFirestore(profile);
-    } catch (e) {
-      console.warn("Firestore sync failed, but user is logged in locally.");
-    }
+    throw new Error('E-posta ile giriş sistemi güvenlik güncellemeleri nedeniyle geçici olarak devre dışı bırakılmıştır. Lütfen Google veya Apple ile giriş yapınız.');
   };
 
   const loginWithGoogle = async () => {

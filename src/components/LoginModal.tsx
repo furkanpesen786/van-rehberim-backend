@@ -115,7 +115,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             VAN REHBERİM'E HOŞ GELDİNİZ
           </h2>
           <p className="text-xs font-bold text-slate-950/80 mt-1">
-            Şifresiz sadece e-posta adresinizle veya Google ile anında giriş yapın.
+            Google veya Apple hesabınızla güvenli bir şekilde anında giriş yapın.
           </p>
         </div>
 
@@ -164,61 +164,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
 
 
-          <div className="flex items-center gap-3 my-2">
-            <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-              VEYA E-POSTA İLE
-            </span>
-            <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
-          </div>
 
-          {/* Direct Email Form */}
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-extrabold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5" />
-                <span>E-posta Adresiniz (Şifresiz Giriş)</span>
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ornek@domain.com"
-                className={`w-full px-4 py-3 rounded-2xl text-xs font-bold border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 ${isDark
-                  ? 'bg-[#121316] border-slate-700 text-white placeholder-slate-500'
-                  : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
-                  }`}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5" />
-                <span>Adınız Soyadınız (İsteğe Bağlı)</span>
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Ahmet Yılmaz"
-                className={`w-full px-4 py-3 rounded-2xl text-xs font-bold border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 ${isDark
-                  ? 'bg-[#121316] border-slate-700 text-white placeholder-slate-500'
-                  : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
-                  }`}
-              />
-            </div>
-
-            <button
-              type="submit"
-              onClick={handleEmailSubmit}
-              disabled={isSubmitting}
-              className="w-full py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-98 border border-emerald-400/30"
-            >
-              <LogIn className="w-4 h-4 stroke-[2.5]" />
-              <span>E-posta ile Giriş Yap &rarr;</span>
-            </button>
-          </form>
 
           <div className={`p-3 rounded-2xl border text-[11px] font-medium leading-relaxed flex items-start gap-2 ${isDark ? 'bg-slate-900/60 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
             }`}>
