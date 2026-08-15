@@ -4,5 +4,8 @@
     ],
     "java.project.resourceFilters": [
         "node_modules"
-    ]
+    ],
+    "files.exclude": {
+        "**/node_modules": true
+    }
 }

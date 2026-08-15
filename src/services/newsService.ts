@@ -13,7 +13,7 @@ export async function fetchLiveVanNews(): Promise<LiveNewsResponse> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://van-rehberim-backend.onrender.com'}/api/news`, { signal: controller.signal });
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com'}/api/news`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (response.ok) {
       const data = await response.json();

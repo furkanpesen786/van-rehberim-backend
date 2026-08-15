@@ -3,6 +3,7 @@
     "target": "ES2022",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
+    "esModuleInterop": true,
     "module": "ESNext",
     "lib": [
       "ES2022",
@@ -25,5 +26,14 @@
     "types": [
       "vite/client"
     ]
-  }
+  },
+  "include": [
+    "src",
+    "server.ts",
+    "test_server_startup.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

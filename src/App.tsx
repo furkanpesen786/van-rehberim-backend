@@ -54,7 +54,7 @@ export default function App() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-white transition-opacity duration-500">
         <div className="flex flex-col items-center animate-[pulse_2s_ease-in-out_infinite]">
           <img
-            src="/van_kedisi.jpg"
+            src="/logo.png"
             alt="Van Rehberim Logo"
             className="w-48 h-48 sm:w-56 sm:h-56 object-contain drop-shadow-sm mb-4 transition-transform duration-700"
           />

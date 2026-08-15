@@ -13,7 +13,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'capacitor://localhost',
   'http://localhost',
-  process.env.VITE_API_URL || 'https://van-rehberim-backend.onrender.com'
+  process.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com'
 ];
 
 app.use(cors({
@@ -124,7 +124,7 @@ function getUvDetails(uvVal: number) {
 }
 
 // API ROUTE: Live Van Weather Data fetched directly from MGM + Open-Meteo
-app.get('/api/weather', async (req, res) => {
+app.get('/api/weather', async (_req, res) => {
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -280,7 +280,7 @@ app.get('/api/weather', async (req, res) => {
 });
 
 // API ROUTE: Live Duty Pharmacies fetched directly from Van Eczacı Odası (https://www.vaneczaciodasi.org.tr/nobetci-eczaneler)
-app.get('/api/pharmacies', async (req, res) => {
+app.get('/api/pharmacies', async (_req, res) => {
   try {
     const response = await fetch('https://www.vaneczaciodasi.org.tr/nobetci-eczaneler', {
       headers: {
@@ -386,7 +386,7 @@ app.get('/api/pharmacies', async (req, res) => {
 });
 
 // API ROUTE: Live Diyanet Prayer Times for Van (https://namazvakitleri.diyanet.gov.tr/tr-TR/9930/van-icin-namaz-vakti)
-app.get('/api/prayer-times', async (req, res) => {
+app.get('/api/prayer-times', async (_req, res) => {
   try {
     const diyanetUrl = 'https://namazvakitleri.diyanet.gov.tr/tr-TR/9930/van-icin-namaz-vakti';
     const response = await fetch(diyanetUrl, {
@@ -527,7 +527,7 @@ app.get('/api/prayer-times', async (req, res) => {
 });
 
 // API ROUTE: Live Currency & Gold Rates from doviz.com (https://www.doviz.com/)
-app.get('/api/currencies', async (req, res) => {
+app.get('/api/currencies', async (_req, res) => {
   try {
     const response = await fetch('https://www.doviz.com/', {
       headers: {
@@ -658,7 +658,7 @@ app.get('/api/currencies', async (req, res) => {
 });
 
 // API ROUTE: Live Bus Schedules & Stops from van.bel.tr (https://van.bel.tr/Syf/Otobus-Hareket-Saatleri.html)
-app.get('/api/bus-schedules', async (req, res) => {
+app.get('/api/bus-schedules', async (_req, res) => {
   const fallbackRoutes = [
     {
       id: 'b-1',
@@ -1342,7 +1342,7 @@ app.get('/api/bus-schedules', async (req, res) => {
 });
 
 // API ROUTE: Live Van News from Top 7 Van News Channels
-app.get('/api/news', async (req, res) => {
+app.get('/api/news', async (_req, res) => {
   const top7Channels = [
     { name: 'Şehrivan Gazetesi', domain: 'sehrivan.com', baseUrl: 'https://www.sehrivan.com', rssUrl: 'https://www.sehrivan.com/rss' },
     { name: 'Wan Haber', domain: 'wanhaber.com', baseUrl: 'https://www.wanhaber.com', rssUrl: 'https://www.wanhaber.com/rss' },
@@ -1514,7 +1514,7 @@ app.get('/api/news', async (req, res) => {
 
     // Respect limit
     let finalNews = fetchedNews;
-    const limitParam = Number(req.query.limit);
+    const limitParam = Number(_req.query.limit);
     if (!isNaN(limitParam) && limitParam > 0) {
       finalNews = finalNews.slice(0, limitParam);
     } else {
@@ -1546,7 +1546,7 @@ app.get('/api/news', async (req, res) => {
 });
 
 // API ROUTE: Live Vefat & Taziye İlanları directly from https://van.bel.tr/Taziyeler.html
-app.get('/api/taziyeler', async (req, res) => {
+app.get('/api/taziyeler', async (_req, res) => {
   const targetUrl = 'https://van.bel.tr/Taziyeler.html';
   const todayStr = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -1643,7 +1643,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

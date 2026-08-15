@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  Mail,
-  User,
-  LogIn,
   X,
-  Sparkles,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
@@ -22,37 +18,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   theme = 'light',
 }) => {
-  const { loginWithEmail, loginWithGoogle, loginWithApple, currentUser, setShowAuthModal } = useAuth();
-  const [email, setEmail] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const { loginWithGoogle, loginWithApple, setShowAuthModal } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
   const isDark = theme === 'dark';
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!email || !email.includes('@')) {
-      setError('Lütfen geçerli bir e-posta adresi giriniz.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await loginWithEmail(email, displayName);
-      setTimeout(() => {
-        setShowAuthModal(false);
-        if (onClose) onClose();
-      }, 50);
-    } catch (err: any) {
-      setError(err.message || 'Giriş yapılırken bir hata oluştu.');
-    } finally {
-      setIsSubmitting(false); // KESİNLİKLE spinner'ı kapat
-    }
-  };
 
   const handleGoogleSubmit = async () => {
     setError(null);
