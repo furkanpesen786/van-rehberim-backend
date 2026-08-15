@@ -114,7 +114,7 @@ export class NotificationService {
                     title: 'Yeni Haberler Var',
                     body: 'Van Rehberim\'de güncel haberleri ve içerikleri keşfetmek için dokunun.',
                     channelId: 'default_channel',
-                    schedule: { at: scheduleDate },
+                    schedule: { at: scheduleDate, allowWhileIdle: true },
                 });
             }
         }
@@ -174,7 +174,7 @@ export class NotificationService {
                         title: key,
                         body: prayerMap[key] || `${key} vakti geldi.`,
                         channelId: 'prayer_channel',
-                        schedule: { at: ptime },
+                        schedule: { at: ptime, allowWhileIdle: true },
                         sound: 'beep.caf', // Default available sound behavior
                     });
                 }
