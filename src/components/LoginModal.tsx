@@ -99,7 +99,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             type="button"
             onClick={handleGoogleSubmit}
             disabled={isSubmitting}
-            className="w-full py-3.5 px-4 rounded-2xl border font-black text-xs flex items-center justify-center gap-3 transition-all shadow-md active:scale-98 bg-white text-slate-900 border-slate-300 hover:bg-slate-50 hover:shadow-lg"
+            className={`w-full py-3.5 px-4 rounded-2xl border font-black text-xs flex items-center justify-center gap-3 transition-all shadow-md active:scale-98 ${isDark ? 'bg-slate-800 text-white border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-900 border-slate-300 hover:bg-slate-50 hover:shadow-lg'}`}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path

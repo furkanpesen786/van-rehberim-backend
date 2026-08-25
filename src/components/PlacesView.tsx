@@ -144,7 +144,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
                   </p>
                 </div>
 
-                {/* "DAHA FAZLA ->" Button */}
+                {/* "KEŞFET ->" Button */}
                 <button
                   onClick={() => setSelectedPlace(place)}
                   className={`mt-3 w-full text-xs font-black py-2 px-3 rounded-full transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95 border uppercase ${isDark
@@ -152,7 +152,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
                     : 'bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 hover:from-slate-300 hover:to-slate-300 text-slate-800 border-slate-300/60'
                     }`}
                 >
-                  DAHA FAZLA &rarr;
+                  KEŞFET &rarr;
                 </button>
               </div>
             </div>
