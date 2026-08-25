@@ -175,7 +175,7 @@ export class NotificationService {
                         title: key,
                         body: prayerMap[key] || `${key} vakti geldi.`,
                         channelId: 'prayer_channel',
-                        schedule: { at: ptime, allowWhileIdle: true },
+                        schedule: { on: { hour: ptime.getHours(), minute: ptime.getMinutes() }, allowWhileIdle: true },
                         sound: 'beep.caf', // Default available sound behavior
                     });
                 }

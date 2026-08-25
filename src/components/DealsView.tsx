@@ -463,21 +463,20 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 py-3 z-40 border-t ${isDark ? 'bg-[#141518] border-slate-800' : 'bg-white border-slate-100'}`}>
-            <button onClick={() => {
-              if (!storeName.trim() || !dealTitle.trim() || !location.trim() || !contactNumber.trim()) {
-                setFormError('Lütfen zorunlu alanları (Mağaza Adı, İlan Başlığı, Konum, İletişim Numarası) eksiksiz doldurunuz.');
-                // Scroll to top to see the error
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              } else {
-                setFormError(null);
-                setShowPlayModal(true);
-              }
-            }} className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-colors ${isDark ? 'bg-emerald-500 hover:bg-emerald-400 text-[#141518]' : 'bg-[#108A56] hover:bg-emerald-700 text-white'}`}>
-              <Megaphone className={`w-5 h-5 ${isDark ? 'fill-[#141518]' : 'fill-white'}`} /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
-            </button>
+            {/* 9. Yayınla Butonu - Sadece form dolduğunda görünür */}
+            {storeName.trim() && dealTitle.trim() && location.trim() && contactNumber.trim() ? (
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    setFormError(null);
+                    setShowPlayModal(true);
+                  }}
+                  className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-colors bg-emerald-600 hover:bg-emerald-500 text-white`}
+                >
+                  <Megaphone className="w-5 h-5 fill-white" /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : selectedDeal ? (
