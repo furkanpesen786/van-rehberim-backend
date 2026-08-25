@@ -11,6 +11,7 @@ import { useAuth } from './context/AuthContext';
 import { LoginModal } from './components/LoginModal';
 import { App as CapApp } from '@capacitor/app';
 import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
+import { NotificationService } from './services/notificationService';
 
 export default function App() {
   const { showAuthModal, setShowAuthModal } = useAuth();
@@ -36,6 +37,10 @@ export default function App() {
   useEffect(() => {
     // Hide the native splash screen to go directly to custom React view
     CapSplashScreen.hide().catch(() => { });
+
+    // Enforce notification refresh to fetch the latest prayer times
+    const settings = NotificationService.getSettings();
+    NotificationService.applySettings(settings);
 
     // Custom App-level Splash Screen timer (2s delay for visual impact)
     const timer = setTimeout(() => {
