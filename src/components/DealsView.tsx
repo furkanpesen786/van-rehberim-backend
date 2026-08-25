@@ -518,8 +518,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
           </div>
 
           <div className="mb-4">
-            <h2 className="text-[28px] font-black leading-none mb-2 text-slate-800">İndirimler & Esnaf</h2>
-            <p className="text-sm text-slate-500 leading-snug">Bu uygulama ile mahallenizdeki tüm güncel indirim ve fırsatlardan anında haberdar olun.</p>
+            <h2 className="text-[28px] font-black leading-none mb-2 text-slate-800">İşletmeler ve İndirimler</h2>
+            <p className="text-sm text-slate-500 leading-snug">Van Rehberim ile şehrinizdeki işletmeleri keşfedin ve tüm özel kampanya ile fırsatlardan anında haberdar olun.</p>
           </div>
 
           <button
