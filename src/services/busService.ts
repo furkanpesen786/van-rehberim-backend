@@ -29,10 +29,10 @@ export async function fetchLiveBusSchedules(): Promise<LiveBusResponse> {
   }
 
   return {
-    success: false,
-    routes: [],
-    lastUpdated: 'Van Bel.tr Standart Hat Saatleri',
-    source: 'van.bel.tr (VAN BELVAN Ulaşım Dairesi)',
+    success: true,
+    routes: BUS_ROUTES,
+    lastUpdated: 'Van Bel.tr Standart Hat Saatleri (Yerel)',
+    source: 'Yerel Mock Data',
     isLive: false,
   };
 }

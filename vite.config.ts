@@ -5,6 +5,20 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react')) return 'vendor-react';
+              if (id.includes('lodash')) return 'vendor-lodash';
+              return 'vendor';
+            }
+          }
+        }
+      }
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

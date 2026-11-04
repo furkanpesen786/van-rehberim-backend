@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Lint (ESLint + TypeScript)
+      run: npm run lint
+
+    - name: Run npm audit fix (non‑breaking)
+      run: npm audit fix
+
+    - name: Build Vite app
+      run: npm run build
+
+    - name: Clean generated files (git rm --cached)
+      run: |
+        git rm -r --cached android/app/build || true
+        git rm -r --cached "node_modules/**/vendor/**" || true
+        git rm -r --cached *.apk *.aab *.dex *.class *.jar *.aar || true
+        git rm -r --cached "node_modules/**/build/**/*.dll" "node_modules/**/build/**/*.so" || true
+        git add .gitignore
+        git commit -m "CI cleanup: remove generated large files" || true
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vite-dist
+        path: dist/

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { JOB_CATEGORIES, JOB_DURATION_OPTIONS, JOB_LISTINGS } from '../data/mockData';
+import { JOB_CATEGORIES, JOB_LISTINGS } from '../data/mockData';
 import { JobListing } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { subscribeJobListings, addJobListingToFirestore } from '../lib/firebase';
+import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import {
   Wrench,
   Sparkles,
@@ -40,6 +41,17 @@ import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
 
 interface JobsViewProps {
   theme?: 'light' | 'dark';
+}
+
+function getJobMetaFromPackage(pkg: PurchasesPackage): { durationDays: 1 | 3 | 7 | 15 | 30; isFeatured: boolean } {
+  const productId = pkg.product.identifier;
+  if (productId === PACKAGE_IDS.ONE_CIKAN_30_GUN) {
+    return { durationDays: 30, isFeatured: true };
+  }
+  if (productId === PACKAGE_IDS.ILAN_30_GUN) {
+    return { durationDays: 30, isFeatured: false };
+  }
+  return { durationDays: 30, isFeatured: false };
 }
 
 // Icon helper function for 10 categories
@@ -106,6 +118,10 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [rcPackages, setRcPackages] = useState<PurchasesPackage[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -117,7 +133,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     phone: '',
     description: '',
     photo: '',
-    durationDays: 7 as 1 | 3 | 7 | 15 | 30,
+    durationDays: 30 as 1 | 3 | 7 | 15 | 30,
     experienceYears: '1+ Yıl Deneyim',
   });
 
@@ -137,10 +153,44 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     return matchesCategory && matchesDistrict && matchesSearch;
   });
 
-  // Calculate selected duration price
-  const selectedDurationObj = JOB_DURATION_OPTIONS.find((opt) => opt.days === formData.durationDays) || JOB_DURATION_OPTIONS[2];
-
   const [formError, setFormError] = useState<string | null>(null);
+
+  const loadRevenueCatPackages = async () => {
+    setPackagesLoading(true);
+    setPackagesError(null);
+    try {
+      const packages = await PurchaseService.getPackages();
+      const jobPackages = packages.filter((pkg) =>
+        pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN ||
+        pkg.product.identifier === PACKAGE_IDS.ONE_CIKAN_30_GUN
+      );
+      const usable = jobPackages.length > 0 ? jobPackages : packages;
+      setRcPackages(usable);
+
+      if (usable.length === 0) {
+        setSelectedPackage(null);
+        setPackagesError('Satın alma paketleri henüz yapılandırılmamış. Lütfen daha sonra tekrar deneyin.');
+      } else {
+        const preferred =
+          usable.find((pkg) => pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN) || usable[0];
+        setSelectedPackage(preferred);
+        const meta = getJobMetaFromPackage(preferred);
+        setFormData((prev) => ({ ...prev, durationDays: meta.durationDays }));
+      }
+    } catch (e: any) {
+      setRcPackages([]);
+      setSelectedPackage(null);
+      setPackagesError(e?.message || 'Paketler yüklenemedi.');
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isPostModalOpen) {
+      loadRevenueCatPackages();
+    }
+  }, [isPostModalOpen]);
 
   // Submit Job Listing
   const handlePostSubmit = async (e: React.FormEvent) => {
@@ -152,18 +202,24 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       return;
     }
 
+    if (!selectedPackage) {
+      setFormError('Lütfen geçerli bir satın alma paketi seçiniz.');
+      return;
+    }
+
     setShowPlayModal(true);
   };
 
   const handleFinalPurchase = async () => {
+    if (!selectedPackage) {
+      alert('Geçerli bir satın alma paketi seçilmedi.');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      const purchased = await PurchaseService.purchasePackage({
-        product: {
-          identifier: formData.durationDays >= 15 ? PACKAGE_IDS.ONE_CIKAN_30_GUN : PACKAGE_IDS.ILAN_30_GUN
-        }
-      });
+      const purchased = await PurchaseService.purchasePackage(selectedPackage);
       if (!purchased) {
         setIsProcessing(false);
         return;
@@ -174,6 +230,9 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       return;
     }
 
+    const meta = getJobMetaFromPackage(selectedPackage);
+    const pricePaid = Number(selectedPackage.product.price) || 0;
+
     const jobPayload = {
       title: formData.title.trim(),
       providerName: formData.providerName.trim(),
@@ -183,13 +242,14 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       phone: formData.phone.trim(),
       description: formData.description.trim(),
       photo: formData.photo || customPhotoInput || undefined,
-      durationDays: formData.durationDays,
-      pricePaid: selectedDurationObj.price,
+      durationDays: meta.durationDays,
+      pricePaid,
       createdAt: new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      isFeatured: formData.durationDays >= 15,
+      isFeatured: meta.isFeatured,
       experienceYears: formData.experienceYears,
       userEmail: currentUser?.email || 'anonim@van.rehberim',
       userId: currentUser?.uid || '',
+      productId: selectedPackage.product.identifier,
     };
 
     try {
@@ -214,9 +274,10 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         phone: '',
         description: '',
         photo: '',
-        durationDays: 7,
+        durationDays: 30,
         experienceYears: '1+ Yıl Deneyim',
       });
+      setSelectedPackage(null);
       setCustomPhotoInput('');
 
       setSuccessToast(`Tebrikler! İlanınız Firebase bulut veri tabanına kaydedildi ve ${newJob.durationDays} gün yayınlandı.`);
@@ -760,44 +821,69 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 )}
               </div>
 
-              {/* 6. İLAN SÜRESİ VE ÜCRET SEÇİMİ (1, 3, 7, 15, 30 Gün) */}
+              {/* 6. REVENUECAT CANLI PAKET SEÇİMİ */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="font-extrabold uppercase tracking-wide text-xs flex items-center gap-1.5">
                     <Calendar className="w-4 h-4 text-amber-500" />
-                    <span>İlan Yayın Süresi ve Ücreti</span>
+                    <span>Yayın Paketi (Google Play)</span>
                   </label>
-                  <span className="text-[10px] font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                    Süreye Göre Fiyatlandırılır
-                  </span>
+                  <button
+                    type="button"
+                    onClick={loadRevenueCatPackages}
+                    className="text-[10px] font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full"
+                  >
+                    Yenile
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {JOB_DURATION_OPTIONS.map((option) => {
-                    const isSelected = formData.durationDays === option.days;
+                {packagesLoading && (
+                  <div className={`text-xs font-bold p-3 rounded-2xl border ${isDark ? 'bg-[#22242b] border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                    Paketler RevenueCat üzerinden yükleniyor...
+                  </div>
+                )}
 
-                    return (
-                      <button
-                        key={option.days}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, durationDays: option.days as 1 | 3 | 7 | 15 | 30 })}
-                        className={`p-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 text-center transition-all ${isSelected
-                          ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white border-indigo-600 shadow-md scale-105'
-                          : isDark
-                            ? 'bg-[#22242b] text-slate-300 border-slate-700 hover:border-slate-600'
-                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
-                          }`}
-                      >
-                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase ${isSelected ? 'bg-white/20 text-white' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                          }`}>
-                          {option.badge}
-                        </span>
-                        <div className="font-extrabold text-xs">{option.days} Gün</div>
-                        <div className="font-black text-sm font-mono text-amber-400">₺{option.price}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {!packagesLoading && packagesError && (
+                  <div className="text-xs font-bold p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-500">
+                    {packagesError}
+                  </div>
+                )}
+
+                {!packagesLoading && !packagesError && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {rcPackages.map((pkg) => {
+                      const isSelected = selectedPackage?.identifier === pkg.identifier;
+                      const meta = getJobMetaFromPackage(pkg);
+                      return (
+                        <button
+                          key={pkg.identifier}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPackage(pkg);
+                            setFormData((prev) => ({ ...prev, durationDays: meta.durationDays }));
+                          }}
+                          className={`p-3 rounded-2xl border flex flex-col items-start gap-1 text-left transition-all ${isSelected
+                            ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white border-indigo-600 shadow-md scale-[1.02]'
+                            : isDark
+                              ? 'bg-[#22242b] text-slate-300 border-slate-700 hover:border-slate-600'
+                              : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
+                            }`}
+                        >
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ${isSelected ? 'bg-white/20 text-white' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
+                            {meta.isFeatured ? 'Öne Çıkan' : 'Standart'}
+                          </span>
+                          <div className="font-extrabold text-xs leading-snug">{pkg.product.title}</div>
+                          <div className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>
+                            {meta.durationDays} gün aktif
+                          </div>
+                          <div className={`font-black text-sm font-mono ${isSelected ? 'text-amber-200' : 'text-amber-500'}`}>
+                            {pkg.product.priceString}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* 7. ÖDEME VE ÖZET BANNER */}
@@ -805,23 +891,32 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 <div>
                   <div className="text-[10px] text-slate-400 font-bold uppercase">SEÇİLEN PAKET ÖZETİ</div>
                   <div className="text-xs font-extrabold text-sky-300">
-                    {selectedDurationObj.label} ({selectedDurationObj.days} Gün Aktif Kalacak)
+                    {selectedPackage
+                      ? `${selectedPackage.product.title} (${getJobMetaFromPackage(selectedPackage).durationDays} Gün)`
+                      : 'Paket seçilmedi'}
                   </div>
                 </div>
 
                 <div className="text-right">
                   <div className="text-xs text-slate-400">Toplam Ücret</div>
-                  <div className="text-lg font-black font-mono text-amber-400">₺{selectedDurationObj.price}</div>
+                  <div className="text-lg font-black font-mono text-amber-400">
+                    {selectedPackage?.product.priceString || '—'}
+                  </div>
                 </div>
               </div>
 
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wide"
+                disabled={!selectedPackage || packagesLoading}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wide"
               >
                 <CheckCircle2 className="w-5 h-5" />
-                <span>₺{selectedDurationObj.price} Öde ve İlanı Yayınla</span>
+                <span>
+                  {selectedPackage
+                    ? `${selectedPackage.product.priceString} Öde ve İlanı Yayınla`
+                    : 'Paket Seçiniz'}
+                </span>
               </button>
             </form>
 
@@ -976,14 +1071,16 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 </div>
                 <div>
                   <h3 className="text-sm font-black leading-snug text-[#F5E6D3]">
-                    İş / Hizmet İlanı ({formData.durationDays} Gün)
-                    {formData.durationDays >= 15 ? ` \n+ Premium Vitrin` : ''}
+                    {selectedPackage?.product.title || `İş / Hizmet İlanı (${formData.durationDays} Gün)`}
+                    {selectedPackage && getJobMetaFromPackage(selectedPackage).isFeatured ? ' + Premium Vitrin' : ''}
                   </h3>
                   <p className="text-[11px] font-bold text-[#D4AF37] mt-1 tracking-wide uppercase">Van Rehberim Premium</p>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-black text-[#D4AF37]">₺{selectedDurationObj.price.toString().replace('.', ',')}</div>
+                <div className="text-xl font-black text-[#D4AF37]">
+                  {selectedPackage?.product.priceString || '—'}
+                </div>
               </div>
             </div>
             <div className="p-4 rounded-3xl flex flex-col gap-2 bg-[#402A23]/50 border border-[#4E342E] text-xs">

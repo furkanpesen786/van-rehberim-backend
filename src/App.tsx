@@ -12,9 +12,10 @@ import { LoginModal } from './components/LoginModal';
 import { App as CapApp } from '@capacitor/app';
 import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
 import { NotificationService } from './services/notificationService';
+import { PurchaseService } from './services/purchaseService';
 
 export default function App() {
-  const { showAuthModal, setShowAuthModal } = useAuth();
+  const { showAuthModal, setShowAuthModal, currentUser } = useAuth();
   const [isAppReady, setIsAppReady] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -33,6 +34,13 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [theme]);
+
+  // Initialize RevenueCat on launch and re-link purchases when auth user changes
+  useEffect(() => {
+    PurchaseService.setup(currentUser?.uid).catch((err) => {
+      console.error('[App] RevenueCat setup failed:', err);
+    });
+  }, [currentUser?.uid]);
 
   useEffect(() => {
     // Hide the native splash screen to go directly to custom React view

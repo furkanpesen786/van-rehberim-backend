@@ -195,9 +195,16 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const handleFinalPurchase = async () => {
     setIsProcessing(true);
     try {
-      await PurchaseService.purchasePackage({
-        product: { identifier: selectedHighlightPkg ? PACKAGE_IDS.ONE_CIKAN_30_GUN : PACKAGE_IDS.ILAN_30_GUN }
-      });
+      const productId = selectedHighlightPkg ? PACKAGE_IDS.ONE_CIKAN_30_GUN : PACKAGE_IDS.ILAN_30_GUN;
+      const dealPackage = await PurchaseService.getPackageByProductId(productId);
+      if (!dealPackage) {
+        throw new Error('Seçilen indirim paketi RevenueCat üzerinde bulunamadı.');
+      }
+      const purchased = await PurchaseService.purchasePackage(dealPackage);
+      if (!purchased) {
+        setIsProcessing(false);
+        return;
+      }
     } catch (e: any) {
       alert(e.message);
       setIsProcessing(false);

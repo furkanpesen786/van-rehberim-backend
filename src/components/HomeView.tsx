@@ -60,6 +60,7 @@ interface HomeViewProps {
   theme?: 'light' | 'dark';
   onNavigateToPlaces: () => void;
   onNavigateToDeals: () => void;
+  onNavigateToJobs?: () => void;
 }
 
 import { subscribeTaxis, addTaxiToFirestore } from '../lib/firebase';
@@ -198,11 +199,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
     setIsProcessingTaksi(true);
 
     try {
-      const purchased = await PurchaseService.purchasePackage({
-        product: {
-          identifier: PACKAGE_IDS.TAKSI_ILAN_AYLIK
-        }
-      });
+      const taxiPackage = await PurchaseService.getPackageByProductId(PACKAGE_IDS.TAKSI_ILAN_AYLIK);
+      if (!taxiPackage) {
+        throw new Error('Taksi ilan paketi RevenueCat üzerinde bulunamadı.');
+      }
+      const purchased = await PurchaseService.purchasePackage(taxiPackage);
 
       if (!purchased) {
         setIsProcessingTaksi(false);

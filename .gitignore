@@ -18,6 +18,11 @@ android/app/build/
 Thumbs.db
 # Environment files
 .env
+# Android signing keys (ASLA commit etme!)
+*.keystore
+*.jks
+android/keystore.properties
+keystore.properties
 # Log files
 *.log
 # Temporary files
