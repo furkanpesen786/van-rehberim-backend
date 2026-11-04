@@ -4,8 +4,9 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 04.11.2026
-> **Son oturum:** Düzeltme oturumu #1 — M0 (HomeView prop uyuşmazlığı) çözüldü
+> **Son güncelleme:** 04.11.2026 (oturum duraklatıldı — yarın devam)
+> **Son oturum:** Düzeltme oturumu #1 — M0 ✅ + M1 ✅ çözüldü; M2 onaylandı, analiz edildi,
+> uygulama yarınki oturumda yapılacak (bkz. Bölüm 2 ve Bölüm 6)
 
 ---
 
@@ -39,12 +40,22 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 
 ## 2. GELİNEN AŞAMA
 
-**Proje çalışır durumda:** APK üretilmiş (`van-rehberim-guncel.apk`, 18 MB), backend Render'da canlı.
-TypeScript derlemesi: M0 düzeltmesi sonrası doğrulama bekliyor (bkz. Bölüm 3 notu).
+**Proje çalışır durumda:** APK üretilmiş (diskte, artık git dışı), backend Render'da canlı.
+TypeScript derlemesi: ✅ `tsc --noEmit` exit 0 (M0 sonrası doğrulandı, 04.11.2026).
 
 **04.11.2026 oturumu:** Kullanıcı tüm sorunların kritikten başlayarak sırayla
-çözülmesini onayladı (her sorun sonrası izin istenerek). M0 çözüldü.
-Sıradaki: M1 (keystore/APK git geçmişinden temizleme) — izin alındıktan sonra.
+çözülmesini onayladı (her sorun sonrası izin istenerek). **M0 ve M1 çözüldü** (bkz. Bölüm 3).
+**M2 onaylandı ve analiz edildi** — kod değişikliği henüz YAPILMADI, oturum duraklatıldı.
+Yarınki oturum M2 uygulamasıyla başlamalı.
+
+**⚠️ ÖNEMLİ — Commit hash'leri değişti:** M1 sırasında `git filter-branch` ile geçmiş
+yeniden yazıldığı için Bölüm 3 tablosundaki eski hash'ler (bf44a84, a578067 vb.)
+artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
+Yeni dal ucu: `522e980` (checkpoint commit).
+
+**⚠️ Bekleyen commit:** Bu MEMORY.md güncellemesi henüz commit edilmedi (oturum
+sonundaki geçici araç sorunu nedeniyle). Yarın M2 commit'i ile birlikte veya
+ayrı olarak commit edilmeli.
 
 **Kırmızı bayraklar:**
 - ESLint yapılandırması kırık → `npm run lint` ve CI lint adımı şu anda başarısız.
@@ -66,17 +77,38 @@ Sıradaki: M1 (keystore/APK git geçmişinden temizleme) — izin alındıktan s
 | `60b7e72` | Güvenlik ve mimari güncellemeleri |
 | `9582ab5` | Deals form gönderim düzeni ve ezan bildirim güvenilirliği |
 
-> **04.11.2026 (çalışma ağacında, henüz commit edilmedi):**
-> - **M0 çözüldü:** `HomeViewProps` arayüzüne `onNavigateToJobs?: () => void` eklendi
+> **04.11.2026 — M0 VE M1 ÇÖZÜLDÜ (commit: `522e980` + force push):**
+>
+> **M0 — HomeView prop uyuşmazlığı (✅ doğrulandı):**
+> - `HomeViewProps` arayüzüne `onNavigateToJobs?: () => void` eklendi
 >   (`src/components/HomeView.tsx:63`). Bu prop `App.tsx:104`'ten gönderiliyordu ve
 >   `HomeView.tsx:85`'te destructure ediliyordu ama arayüzde tanımlı değildi →
->   TypeScript derleme hatası (TS2339) ve kırık CI. Tek satırlık düzeltme.
->   Oturum sonunda `npx tsc --noEmit` ile doğrulanmalı (aşağıdaki not).
+>   TypeScript derleme hatası (TS2339) ve kırık CI.
+> - Doğrulama: `npx tsc --noEmit` → exit 0, temiz.
 >
-> **⚠️ Doğrulama bekliyor:** Düzeltme sonrası `tsc` kontrolü, oturum sırasındaki geçici
-> araç sorunu nedeniyle tam çalıştırılamadı. Sonraki oturumda öncelikle
-> `npx tsc --noEmit` çalıştırılıp exit 0 doğrulanmalı. (02.11 denetiminde tsc exit 0
-> raporlanmıştı; M0 hatası muhtemelen o tarihten sonra yapılan bir değişiklikle geldi.)
+> **M1 — Keystore + APK'nın git'ten tamamen kaldırılması (✅ doğrulandı):**
+> - **Önce yedek alındı:** `Desktop/van-rehberim-YEDEK-2026-11-04.tar.gz` (137 MB,
+>   2577 kayıt; `.git` geçmişi ve keystore dahil; node_modules/build hariç).
+>   Bu arşiv silinmemeli — geçmiş yeniden yazma öncesi tek kurtarma noktası.
+> - **Tespit:** Keystore ana dal geçmişinde YOKTU (asla push edilmedi, sadece
+>   indekste staged + 3 Cline checkpoint ref'inde). APK ise 4 commit'te + GitHub'da idi.
+> - **Yapılanlar:**
+>   1. `git rm --cached` (keystore + APK indeksten çıkarıldı; diskte duruyorlar)
+>   2. `.gitignore`'a `*.keystore`, `*.jks`, `keystore.properties` eklendi
+>   3. Checkpoint commit (`522e980`): tüm bekleyen çalışma + M0 + MEMORY.md
+>   4. `git filter-branch` ile 53 commit yeniden yazıldı (APK yolu silindi)
+>   5. `refs/cline/checkpoints/*` silindi (keystore/APK kopyası taşıyorlardı)
+>   6. reflog expire + `git gc --prune=now --aggressive`
+>   7. **Force push:** `origin/main` `0f16909` → `522e980` (GitHub'daki eski geçmiş geçersiz)
+> - **Doğrulama:** `git rev-list --objects --all` ve `git ls-files`'ta keystore/APK
+>   YOK; `git fsck` temiz; geçmiş sağlam; dosyalar diskte yerinde.
+> - **Artıklar/Notlar:**
+>   - GitHub, eski (ulaşılamaz) commit'leri bir süre SHA ile erişilebilir tutabilir;
+>     keystore asla push edilmediği için risk yok, sadece APK dosyası söz konusu.
+>   - `android/keystore.properties` dosyası hâlâ YOK → release build imzalamada
+>     `storePassword` null olur. Yerelde oluşturulmalı (gitignore'landı, güvenli).
+>   - Kullanıcı keystore'u **yenilemeyi** düşünebilir (savunma derinliği; sızma
+>     kanıtı yok, opsiyonel).
 
 > Not: Bu oturumda (02.11.2026) çözüm değil **tespit** yapıldı; Bölüm 4'teki sorunlar açıktır.
 
@@ -86,13 +118,43 @@ Sıradaki: M1 (keystore/APK git geçmişinden temizleme) — izin alındıktan s
 
 ### 4.1 🔴 Kritik Güvenlik
 
-1. **`android/app/upload.keystore` git'te izleniyor + staged** — Play Store imza anahtarı
-   sızma riski. `van-rehberim-guncel.apk` (18 MB) da repoya commit edilmiş durumda.
-   → Çözüm: `git filter-repo`/BFG ile geçmişten sil, keystore'u yenile, `.gitignore`'a ekle.
+1. ~~**`android/app/upload.keystore` git'te izleniyor + staged**~~ **✅ 04.11.2026 çözüldü**
+   (geçmiş yeniden yazıldı + force push; ayrıntı Bölüm 3'te). Kalan alt-görev:
+   `android/keystore.properties` yerelde oluşturulmalı (şifreler) — release build için.
 2. **Firestore kuralları gevşek** (`firestore.rules`): giriş yapan HER kullanıcı
    `is_ilanlari`, `indirim_ilanlari`, `taksiler` koleksiyonlarını silebilir/değiştirebilir
    (`allow write: if request.auth != null` — update/delete dahil); `users` herkese okunur.
    → Çözüm: `resource.data.userId == request.auth.uid` tabanlı yazma + alan doğrulaması.
+
+   **📋 M2 UYGULAMA PLANI (04.11.2026'da onaylandı + analiz edildi, uygulanacak):**
+   - **Değişecek dosyalar:**
+     a. `firestore.rules` — owner-based yeniden yazım:
+        - `users`: `read, write` yalnız `request.auth.uid == userId` (herkese okuma KAPALI)
+        - `is_ilanlari` / `indirim_ilanlari` / `taksiler`: `read: if true`;
+          `create: request.auth != null && request.resource.data.userId == request.auth.uid`;
+          `update, delete: resource.data.userId == request.auth.uid`
+        - `userFavorites`: mevcut owner-only kural aynen kalır
+     b. `src/lib/firebase.ts` — üç yazma fonksiyonuna `userId` alanı eklenecek:
+        - `addJobListingToFirestore` (satır ~95)
+        - `addDealToFirestore` (satır ~140)
+        - `addTaxiToFirestore` (satır ~212)
+        (En temiz yöntem: fonksiyon imzasına `userId: string` parametresi ekleyip
+        yazılan dokümana dahil etmek)
+     c. Çağrı noktalarında `currentUser.uid` geçilecek (hepsi `useAuth`'tan
+        `currentUser`'a erişiyor):
+        - `JobsView.tsx:256` → `addJobListingToFirestore(jobPayload, currentUser.uid)`
+        - `DealsView.tsx:237` → `addDealToFirestore(dealPayload, currentUser.uid)`
+        - `HomeView.tsx:219` → `addTaxiToFirestore(pendingTaxiData, currentUser.uid)`
+   - **Geçiş notu (kritik):** Firestore'daki MEVCUT ilan dokümanlarında `userId` YOK →
+     yeni kurallarla istemciden kimse onları değiştiremez/silemez. Kabul edilebilir:
+     ilanlar `bitisTarihi` ile zaten otomatik süresi doluyor; eski dokümanları silmek
+     gerekiyorsa Firebase Console'dan (kuralları bypass eder) yapılır.
+   - **Doğrulama:** `firebase emulators:start` + kural testleri VEYA canlıda dikkatli
+     test (kendi hesabıyla ilan ekle → göründüğünü doğrula → ikinci hesapla silmeyi
+     dene → reddedildiğini doğrula). Kurallar Firebase Console'a deploy edilmeli
+     (`firebase deploy --only firestore:rules` — Firebase CLI gerekli).
+   - M2 sonrası `firestore.rules` + `firebase.ts` + bileşen değişiklikleri + bu
+     MEMORY.md güncellemesi TEK commit'te toplu olarak commit edilmeli.
 3. **Ödeme doğrulaması istemci tarafında:** RevenueCat ödemesinden sonra ilan doğrudan
    istemciden Firestore'a yazılıyor; webhook/entitlement kontrolü yok → ödemeyi atlatma mümkün.
 4. **AndroidManifest:** `android:usesCleartextTraffic="true"` ve `android:allowBackup="true"` açık.
@@ -212,9 +274,9 @@ Sıradaki: M1 (keystore/APK git geçmişinden temizleme) — izin alındıktan s
 
 | # | Öncelik | Görev | Kabul Kriteri |
 |---|---|---|---|
-| 0 | 🔴 Acil | ~~M0: `HomeViewProps`'a `onNavigateToJobs` ekle~~ **✅ 04.11.2026 çözüldü** (tsc doğrulaması bekliyor) | `npx tsc --noEmit` exit 0 |
-| 1 | 🔴 Acil | `upload.keystore` + `van-rehberim-guncel.apk`'yı git geçmişinden tamamen kaldır (`git filter-repo`/BFG), keystore'u yenile, `*.keystore`/`*.apk`'yı `.gitignore`'a ekle | `git ls-files` içinde keystore/apk yok; staged keystore geri alındı |
-| 2 | 🔴 Acil | Firestore kurallarını sıkılaştır (owner-based yazma + alan doğrulama; `users` okumasını kapat) | Yabancı kullanıcı başkasının ilanını silemiyor; kurallar emulator ile test edildi |
+| 0 | 🔴 Acil | ~~M0: `HomeViewProps`'a `onNavigateToJobs` ekle~~ **✅ 04.11.2026 çözüldü + tsc doğrulandı** | `npx tsc --noEmit` exit 0 ✅ |
+| 1 | 🔴 Acil | ~~Keystore + APK git geçmişinden kaldır~~ **✅ 04.11.2026 çözüldü** (yedek → filter-branch → force push; doğrulandı). Alt-görev: `keystore.properties` yerelde oluştur | `git ls-files` içinde keystore/apk yok ✅ |
+| 2 | 🔴 Acil | Firestore kurallarını sıkılaştır (owner-based yazma + alan doğrulama; `users` okumasını kapat) — **✅ onaylandı, plan hazır (bkz. 4.1/2), YARIN uygulanacak** | Yabancı kullanıcı başkasının ilanını silemiyor; kurallar emulator ile test edildi |
 | 3 | 🔴 Acil | DealsView süre/fiyat hatasını düzelt: seçilen paket → doğru ürün + `durationDays` payload'a | Seçilen gün = satın alınan ürün = Firestore'a yazılan süre |
 | 4 | 🟠 Yüksek | ESLint'i düzelt (tek flat config + `@typescript-eslint/parser`), `.eslintrc.json`'ı sil | `npm run lint` exit 0; CI main'de yeşil |
 | 5 | 🟠 Yüksek | RevenueCat webhook + backend entitlement doğrulaması; ilan yazımını backend'e taşı | Ödeme yapılmadan ilan yayımlanamıyor |
@@ -231,24 +293,29 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (02.11.2026) |
+| Komut | Sonuç (04.11.2026) |
 |---|---|
-| `npx tsc --noEmit` | ✅ exit 0 — temiz |
-| `npx eslint src --ext .js,.ts,.tsx` | ❌ exit -1 — tüm .tsx dosyalarında parsing error (kırık config) |
+| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0 sonrası doğrulandı) |
+| `npx eslint src --ext .js,.ts,.tsx` | ❌ hâlâ kırık (B1 — sonraki düzeltmelerde) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
 | `npm run build` | `vite build` + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
-| `npm run lint` | `tsc --noEmit && eslint src ...` → ESLint kırık olduğundan BAŞARISIZ |
+| `npm run lint` | `tsc --noEmit && eslint src ...` → tsc artık temiz, ESLint hâlâ kırık (B1) |
 
 **Ortam:** Windows (PowerShell), çalışma dizini:
 `c:\Users\FURKAN\Desktop\van-rehberim - Kopya`
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu: son commit `0f16909` (main, origin ile senkron); çok sayıda dosya
-  staged/modified — bunlar commit edilmemiş çalışma durumu içeriyor.
+- Git durumu (04.11.2026 sonrası): dal ucu `522e980`, origin ile senkron
+  (force push yapıldı). Çalışma ağacı temiz; keystore/APK untracked +
+  gitignore'lı, diskte yerlerinde. Geçmiş yeniden yazıldığı için eski hash'ler geçersiz.
+- **Yedek:** `Desktop/van-rehberim-YEDEK-2026-11-04.tar.gz` (137 MB) — M1 öncesi
+  tam kopya; eski geçmiş (keystore'lu stash nesneleri dahil) buradadır, saklanmalı.
 - Android build: `android/` klasöründe Gradle projesi; `dist/` → `npx cap sync` ile
   `android/app/src/main/assets/public` altına kopyalanır.
+- Release build için `android/keystore.properties` oluşturulmalı (storePassword/
+  keyPassword; artık gitignore'lı olduğu için güvenli).
 
 ---
 
