@@ -2,33 +2,59 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Kullanıcıların kendi profillerini yönetmesi için
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+
+    // --- Ortak yardımcılar -------------------------------------------------
+    // Oluşturulan dokümanın sahibi mi? (userId alanı oturum UID'si ile eşleşmeli)
+    function ownsNewDoc() {
+      return request.auth != null
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid;
     }
-    
-    // İş İlanları
+
+    // Mevcut dokümanın sahibi mi? (update/delete için)
+    function ownsExistingDoc() {
+      return request.auth != null
+        && resource.data.userId is string
+        && resource.data.userId == request.auth.uid;
+    }
+    // -----------------------------------------------------------------------
+
+    // Kullanıcı profilleri: herkese açık okuma KAPALI.
+    // Her kullanıcı yalnızca kendi dokümanını okuyup yazabilir.
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // İş İlanları: herkes okuyabilir; oluşturma/güncelleme/silme yalnız sahibi.
+    // Update'te userId değiştirilemez (sahiplik devredilemez).
     match /is_ilanlari/{jobId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if ownsNewDoc();
+      allow update: if ownsExistingDoc() && ownsNewDoc();
+      allow delete: if ownsExistingDoc();
     }
-    
-    // İndirim İlanları (Fırsatlar)
+
+    // İndirim İlanları (Fırsatlar): aynı sahiplik modeli.
     match /indirim_ilanlari/{dealId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if ownsNewDoc();
+      allow update: if ownsExistingDoc() && ownsNewDoc();
+      allow delete: if ownsExistingDoc();
     }
-    
-    // Taksiler
+
+    // Taksiler: aynı sahiplik modeli.
     match /taksiler/{taxiId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if ownsNewDoc();
+      allow update: if ownsExistingDoc() && ownsNewDoc();
+      allow delete: if ownsExistingDoc();
     }
-    
+
     // Kullanıcı Favorileri (Sadece giriş yapmış kullanıcı kendi favorilerini okuyup yazabilir)
     match /userFavorites/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
     }
   }
 }

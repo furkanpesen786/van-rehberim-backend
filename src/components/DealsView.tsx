@@ -234,7 +234,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     };
 
     try {
-      await addDealToFirestore(dealPayload);
+      await addDealToFirestore(dealPayload, currentUser?.uid || '');
       setIsProcessing(false);
       setShowPlayModal(false);
       setIsPublishing(false);

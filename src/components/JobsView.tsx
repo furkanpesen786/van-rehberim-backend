@@ -253,7 +253,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     };
 
     try {
-      await addJobListingToFirestore(jobPayload);
+      await addJobListingToFirestore(jobPayload, currentUser?.uid || '');
 
       const newJob: JobListing = {
         id: `job-user-${Date.now()}`,

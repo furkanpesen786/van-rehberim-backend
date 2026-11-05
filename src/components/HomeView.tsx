@@ -216,7 +216,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
     }
 
     try {
-      await addTaxiToFirestore(pendingTaxiData);
+      await addTaxiToFirestore(pendingTaxiData, currentUser?.uid || '');
       setIsProcessingTaksi(false);
       setShowPayModalTaksi(false);
       setPendingTaxiData(null);

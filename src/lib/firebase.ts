@@ -92,7 +92,9 @@ export function subscribeJobListings(callback: (jobs: any[]) => void) {
 }
 
 // Add Job Listing to Firebase Firestore
-export async function addJobListingToFirestore(jobData: any) {
+// userId: oturum açan kullanıcının UID'si. Güvenlik kuralları bu alanı
+// request.auth.uid ile eşleştirir; payload'daki değer ezilir (sahtelenemez).
+export async function addJobListingToFirestore(jobData: any, userId: string) {
   try {
     const colRef = collection(db, 'is_ilanlari');
 
@@ -103,6 +105,7 @@ export async function addJobListingToFirestore(jobData: any) {
 
     const docRef = await addDoc(colRef, {
       ...jobData,
+      userId,
       createdAtTimestamp: serverTimestamp(),
       createdAt: jobData.createdAt || new Date().toLocaleDateString('tr-TR'),
       bitisTarihi: bitisTarihi
@@ -137,7 +140,8 @@ export function subscribeDeals(callback: (deals: any[]) => void) {
 }
 
 // Add Deal to Firebase Firestore (indirim_ilanlari koleksiyonu)
-export async function addDealToFirestore(dealData: any) {
+// userId: oturum açan kullanıcının UID'si (kurallar auth.uid ile eşleştirir).
+export async function addDealToFirestore(dealData: any, userId: string) {
   try {
     const colRef = collection(db, 'indirim_ilanlari');
 
@@ -148,6 +152,7 @@ export async function addDealToFirestore(dealData: any) {
 
     const docRef = await addDoc(colRef, {
       ...dealData,
+      userId,
       createdAtTimestamp: serverTimestamp(),
       createdAt: dealData.createdAt || new Date().toLocaleDateString('tr-TR'),
       bitisTarihi: bitisTarihi
@@ -209,7 +214,8 @@ export function subscribeTaxis(callback: (taxis: any[]) => void) {
 }
 
 // Add Taxi to Firebase Firestore (taksiler koleksiyonu)
-export async function addTaxiToFirestore(taxiData: any) {
+// userId: oturum açan kullanıcının UID'si (kurallar auth.uid ile eşleştirir).
+export async function addTaxiToFirestore(taxiData: any, userId: string) {
   try {
     const colRef = collection(db, 'taksiler');
 
@@ -220,6 +226,7 @@ export async function addTaxiToFirestore(taxiData: any) {
 
     const docRef = await addDoc(colRef, {
       ...taxiData,
+      userId,
       createdAtTimestamp: serverTimestamp(),
       createdAt: taxiData.createdAt || new Date().toLocaleDateString('tr-TR'),
       bitisTarihi: bitisTarihi

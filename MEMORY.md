@@ -4,9 +4,9 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 04.11.2026 (oturum duraklatıldı — yarın devam)
-> **Son oturum:** Düzeltme oturumu #1 — M0 ✅ + M1 ✅ çözüldü; M2 onaylandı, analiz edildi,
-> uygulama yarınki oturumda yapılacak (bkz. Bölüm 2 ve Bölüm 6)
+> **Son güncelleme:** 05.11.2026 (M2 çözüldü, commit edildi)
+> **Son oturum:** Düzeltme oturumu #2 — M2 (Firestore kuralları) ✅ uygulandı +
+> doğrulandı + commit edildi. Kurallar henüz Firebase'e DEPLOY EDİLMEDİ (bkz. Bölüm 2).
 
 ---
 
@@ -41,21 +41,30 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ## 2. GELİNEN AŞAMA
 
 **Proje çalışır durumda:** APK üretilmiş (diskte, artık git dışı), backend Render'da canlı.
-TypeScript derlemesi: ✅ `tsc --noEmit` exit 0 (M0 sonrası doğrulandı, 04.11.2026).
+TypeScript derlemesi: ✅ `tsc --noEmit` exit 0 (M0 ve M2 sonrası doğrulandı, 05.11.2026).
+
+**05.11.2026 oturumu:** **M2 çözüldü** (bkz. Bölüm 3). Kod değişiklikleri + tsc doğrulaması +
+MEMORY.md güncellemesi tek commit'te toplandı. Önce tam yedek alındı
+(`Desktop/van-rehberim-YEDEK-2026-11-05.tar.gz`, 63 MB).
 
 **04.11.2026 oturumu:** Kullanıcı tüm sorunların kritikten başlayarak sırayla
 çözülmesini onayladı (her sorun sonrası izin istenerek). **M0 ve M1 çözüldü** (bkz. Bölüm 3).
-**M2 onaylandı ve analiz edildi** — kod değişikliği henüz YAPILMADI, oturum duraklatıldı.
-Yarınki oturum M2 uygulamasıyla başlamalı.
+M2 onaylandı ve planlandı.
+
+**⚠️ M2 sonrası yapılması gerekenler (kullanıcı eli):**
+1. **Kurallar Firebase'e deploy edilmeli** — repoda `firebase.json`/`.firebaserc` YOK,
+   Firebase CLI projesi bağlanmamış. İki seçenek:
+   - Firebase Console → Firestore → Rules → `firestore.rules` içeriğini yapıştır → Publish
+   - VEYA `npx firebase-tools` ile `firebase deploy --project vanrehberim-f181b --only firestore:rules`
+   (deploy edilene kadar canlıda HÂLÂ ESKİ GEVŞEK KURALLAR geçerli!)
+2. **Emulator/canlı test (önerilen):** kendi hesabıyla ilan ekle → göründüğünü doğrula →
+   ikinci hesapla o ilanı silmeyi dene → reddedildiğini doğrula.
+3. **Geçiş notu:** mevcut ilan dokümanlarında `userId` YOK → istemciden kimse
+   değiştiremez/silemez; eski doküman silinecekse Firebase Console'dan yapılır.
 
 **⚠️ ÖNEMLİ — Commit hash'leri değişti:** M1 sırasında `git filter-branch` ile geçmiş
 yeniden yazıldığı için Bölüm 3 tablosundaki eski hash'ler (bf44a84, a578067 vb.)
 artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
-Yeni dal ucu: `522e980` (checkpoint commit).
-
-**⚠️ Bekleyen commit:** Bu MEMORY.md güncellemesi henüz commit edilmedi (oturum
-sonundaki geçici araç sorunu nedeniyle). Yarın M2 commit'i ile birlikte veya
-ayrı olarak commit edilmeli.
 
 **Kırmızı bayraklar:**
 - ESLint yapılandırması kırık → `npm run lint` ve CI lint adımı şu anda başarısız.
@@ -110,6 +119,26 @@ ayrı olarak commit edilmeli.
 >   - Kullanıcı keystore'u **yenilemeyi** düşünebilir (savunma derinliği; sızma
 >     kanıtı yok, opsiyonel).
 
+> **05.11.2026 — M2 ÇÖZÜLDÜ (owner-based Firestore kuralları):**
+>
+> - **Önce yedek alındı:** `Desktop/van-rehberim-YEDEK-2026-11-05.tar.gz` (63 MB).
+> - `firestore.rules` owner-based yeniden yazıldı:
+>   - `users`: `read, write` yalnız `request.auth.uid == userId` (herkese okuma KAPALI)
+>   - `is_ilanlari` / `indirim_ilanlari` / `taksiler`: `read: if true`;
+>     `create` → `ownsNewDoc()` (userId == auth.uid); `update` → sahibi + userId
+>     değiştirilemez; `delete` → yalnız sahibi
+>   - `userFavorites`: owner-only (değişiklik yok)
+> - `src/lib/firebase.ts`: `addJobListingToFirestore`, `addDealToFirestore`,
+>   `addTaxiToFirestore` imzalarına `userId: string` eklendi; `{...data, userId}` ile
+>   payload'daki değer eziliyor (sahtelenemez).
+> - Çağrı noktaları: `JobsView.tsx` (~256), `DealsView.tsx` (~237), `HomeView.tsx` (~219)
+>   → `currentUser?.uid || ''` (uid boşsa kural reddeder — fail-closed güvenli).
+> - **Yan etki analizi:** `saveUserToFirestore` (AuthContext'te yalnız kendi hesabı ile
+>   çağrılıyor) ve `userFavorites` yazıları yeni kurallarla uyumlu; başka kırılan yazma yolu yok.
+> - Doğrulama: `npx tsc --noEmit` → exit 0.
+> - **⚠️ Kurallar henüz Firebase'e DEPLOY EDİLMEDİ** — Firebase Console'dan
+>   yayımlanmalı (bkz. Bölüm 2'deki adımlar).
+
 > Not: Bu oturumda (02.11.2026) çözüm değil **tespit** yapıldı; Bölüm 4'teki sorunlar açıktır.
 
 ---
@@ -121,40 +150,9 @@ ayrı olarak commit edilmeli.
 1. ~~**`android/app/upload.keystore` git'te izleniyor + staged**~~ **✅ 04.11.2026 çözüldü**
    (geçmiş yeniden yazıldı + force push; ayrıntı Bölüm 3'te). Kalan alt-görev:
    `android/keystore.properties` yerelde oluşturulmalı (şifreler) — release build için.
-2. **Firestore kuralları gevşek** (`firestore.rules`): giriş yapan HER kullanıcı
-   `is_ilanlari`, `indirim_ilanlari`, `taksiler` koleksiyonlarını silebilir/değiştirebilir
-   (`allow write: if request.auth != null` — update/delete dahil); `users` herkese okunur.
-   → Çözüm: `resource.data.userId == request.auth.uid` tabanlı yazma + alan doğrulaması.
-
-   **📋 M2 UYGULAMA PLANI (04.11.2026'da onaylandı + analiz edildi, uygulanacak):**
-   - **Değişecek dosyalar:**
-     a. `firestore.rules` — owner-based yeniden yazım:
-        - `users`: `read, write` yalnız `request.auth.uid == userId` (herkese okuma KAPALI)
-        - `is_ilanlari` / `indirim_ilanlari` / `taksiler`: `read: if true`;
-          `create: request.auth != null && request.resource.data.userId == request.auth.uid`;
-          `update, delete: resource.data.userId == request.auth.uid`
-        - `userFavorites`: mevcut owner-only kural aynen kalır
-     b. `src/lib/firebase.ts` — üç yazma fonksiyonuna `userId` alanı eklenecek:
-        - `addJobListingToFirestore` (satır ~95)
-        - `addDealToFirestore` (satır ~140)
-        - `addTaxiToFirestore` (satır ~212)
-        (En temiz yöntem: fonksiyon imzasına `userId: string` parametresi ekleyip
-        yazılan dokümana dahil etmek)
-     c. Çağrı noktalarında `currentUser.uid` geçilecek (hepsi `useAuth`'tan
-        `currentUser`'a erişiyor):
-        - `JobsView.tsx:256` → `addJobListingToFirestore(jobPayload, currentUser.uid)`
-        - `DealsView.tsx:237` → `addDealToFirestore(dealPayload, currentUser.uid)`
-        - `HomeView.tsx:219` → `addTaxiToFirestore(pendingTaxiData, currentUser.uid)`
-   - **Geçiş notu (kritik):** Firestore'daki MEVCUT ilan dokümanlarında `userId` YOK →
-     yeni kurallarla istemciden kimse onları değiştiremez/silemez. Kabul edilebilir:
-     ilanlar `bitisTarihi` ile zaten otomatik süresi doluyor; eski dokümanları silmek
-     gerekiyorsa Firebase Console'dan (kuralları bypass eder) yapılır.
-   - **Doğrulama:** `firebase emulators:start` + kural testleri VEYA canlıda dikkatli
-     test (kendi hesabıyla ilan ekle → göründüğünü doğrula → ikinci hesapla silmeyi
-     dene → reddedildiğini doğrula). Kurallar Firebase Console'a deploy edilmeli
-     (`firebase deploy --only firestore:rules` — Firebase CLI gerekli).
-   - M2 sonrası `firestore.rules` + `firebase.ts` + bileşen değişiklikleri + bu
-     MEMORY.md güncellemesi TEK commit'te toplu olarak commit edilmeli.
+2. ~~**Firestore kuralları gevşek** (`firestore.rules`)~~ **✅ 05.11.2026 çözüldü**
+   (owner-based kurallar yazıldı, kod + tsc doğrulandı, commit edildi; ayrıntı Bölüm 3).
+   **Kalan adım (kullanıcı): kuralları Firebase Console'a deploy et + canlı test.**
 3. **Ödeme doğrulaması istemci tarafında:** RevenueCat ödemesinden sonra ilan doğrudan
    istemciden Firestore'a yazılıyor; webhook/entitlement kontrolü yok → ödemeyi atlatma mümkün.
 4. **AndroidManifest:** `android:usesCleartextTraffic="true"` ve `android:allowBackup="true"` açık.
@@ -276,7 +274,7 @@ ayrı olarak commit edilmeli.
 |---|---|---|---|
 | 0 | 🔴 Acil | ~~M0: `HomeViewProps`'a `onNavigateToJobs` ekle~~ **✅ 04.11.2026 çözüldü + tsc doğrulandı** | `npx tsc --noEmit` exit 0 ✅ |
 | 1 | 🔴 Acil | ~~Keystore + APK git geçmişinden kaldır~~ **✅ 04.11.2026 çözüldü** (yedek → filter-branch → force push; doğrulandı). Alt-görev: `keystore.properties` yerelde oluştur | `git ls-files` içinde keystore/apk yok ✅ |
-| 2 | 🔴 Acil | Firestore kurallarını sıkılaştır (owner-based yazma + alan doğrulama; `users` okumasını kapat) — **✅ onaylandı, plan hazır (bkz. 4.1/2), YARIN uygulanacak** | Yabancı kullanıcı başkasının ilanını silemiyor; kurallar emulator ile test edildi |
+| 2 | 🔴 Acil | ~~Firestore kurallarını sıkılaştır~~ **✅ 05.11.2026 çözüldü** (owner-based; tsc doğrulandı; commit edildi). Kalan: Firebase'e deploy + canlı test | Kurallar canlıda aktif; yabancı kullanıcı silme denemesi reddediliyor |
 | 3 | 🔴 Acil | DealsView süre/fiyat hatasını düzelt: seçilen paket → doğru ürün + `durationDays` payload'a | Seçilen gün = satın alınan ürün = Firestore'a yazılan süre |
 | 4 | 🟠 Yüksek | ESLint'i düzelt (tek flat config + `@typescript-eslint/parser`), `.eslintrc.json`'ı sil | `npm run lint` exit 0; CI main'de yeşil |
 | 5 | 🟠 Yüksek | RevenueCat webhook + backend entitlement doğrulaması; ilan yazımını backend'e taşı | Ödeme yapılmadan ilan yayımlanamıyor |
@@ -293,9 +291,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (04.11.2026) |
+| Komut | Sonuç (05.11.2026) |
 |---|---|
-| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0 sonrası doğrulandı) |
+| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0 + M2 sonrası doğrulandı) |
 | `npx eslint src --ext .js,.ts,.tsx` | ❌ hâlâ kırık (B1 — sonraki düzeltmelerde) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
 | `npm run build` | `vite build` + `esbuild server.ts → dist/server.cjs` |
