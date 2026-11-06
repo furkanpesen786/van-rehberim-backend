@@ -27,3 +27,5 @@ keystore.properties
 *.log
 # Temporary files
 *.tmp
+# Yedek arsivleri (koke kopyalanmaz)
+*.tar.gz
