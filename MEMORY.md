@@ -373,9 +373,12 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (04.11.2026 sonrası): dal ucu `522e980`, origin ile senkron
-  (force push yapıldı). Çalışma ağacı temiz; keystore/APK untracked +
-  gitignore'lı, diskte yerlerinde. Geçmiş yeniden yazıldığı için eski hash'ler geçersiz.
+- Git durumu (06.11.2026, M4 sonrası): dal ucu `a3f46e9` (M4). Öncekiler:
+  `daa6f3b` (M3), `7541456` (M2), `522e980` (M0+M1). Çalışma ağacı temiz;
+  keystore/APK ve yedek `*.tar.gz` dosyaları untracked + gitignore'lı, diskte
+  yerlerinde. Geçmiş yeniden yazıldığı için 04.11 öncesi eski hash'ler geçersiz.
+  Not: M2/M3/M4 commit'lerinin origin'e push edilip edilmediği doğrulanmalı;
+  CI'ın yeşil olduğu push sonrası görülecek.
 - **Yedek:** `Desktop/van-rehberim-YEDEK-2026-11-04.tar.gz` (137 MB) — M1 öncesi
   tam kopya; eski geçmiş (keystore'lu stash nesneleri dahil) buradadır, saklanmalı.
 - Android build: `android/` klasöründe Gradle projesi; `dist/` → `npx cap sync` ile
