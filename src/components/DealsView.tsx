@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { subscribeDeals, addDealToFirestore } from '../lib/firebase';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
+import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import {
   Search,
   Bookmark,
@@ -23,26 +24,26 @@ interface DealsViewProps {
   theme?: 'light' | 'dark';
 }
 
-interface PackageOption {
-  days: number;
-  price: number;
-  label: string;
+// Satın alınan RevenueCat ürününden ilan süresi ve öne çıkma bilgisi türetir.
+// Firestore'a yazılan süre HER ZAMAN buradan gelir — UI'daki seçimle birebir aynıdır.
+function getDealMetaFromPackage(pkg: PurchasesPackage): { durationDays: number; isFeatured: boolean } {
+  const productId = pkg.product.identifier;
+  if (productId === PACKAGE_IDS.ONE_CIKAN_30_GUN) {
+    return { durationDays: 30, isFeatured: true };
+  }
+  return { durationDays: 30, isFeatured: false };
 }
 
-const PUBLISH_PACKAGES: PackageOption[] = [
-  { days: 3, price: 99.99, label: '3 Gün' },
-  { days: 7, price: 199.99, label: '7 Gün' },
-  { days: 15, price: 299.99, label: '15 Gün' },
-  { days: 30, price: 499.99, label: '30 Gün' },
-];
+// Seçilen paketin süresine göre gerçek bitiş tarihi üretir (tr-TR, gg.aa.yyyy).
+function computeEndDate(durationDays: number): string {
+  const end = new Date();
+  end.setDate(end.getDate() + durationDays);
+  return end.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
-const HIGHLIGHT_PACKAGES: PackageOption[] = [
-  { days: 1, price: 19.99, label: '1 Gün' },
-  { days: 3, price: 29.99, label: '3 Gün' },
-  { days: 7, price: 49.99, label: '7 Gün' },
-  { days: 15, price: 89.99, label: '15 Gün' },
-  { days: 30, price: 169.99, label: '30 Gün' },
-];
+function todayTR(): string {
+  return new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
 export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const { currentUser, setShowAuthModal } = useAuth();
@@ -112,8 +113,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
-  const [startDate, setStartDate] = useState('01.08.2026');
-  const [endDate, setEndDate] = useState('31.08.2026');
+  const [startDate, setStartDate] = useState(todayTR());
+  const [endDate, setEndDate] = useState(computeEndDate(30));
   const [category, setCategory] = useState('Kafe & Restoran');
   const [discountAmount, setDiscountAmount] = useState('% 20');
   const [discountText, setDiscountText] = useState('');
@@ -156,10 +157,51 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     setUploadedPhotos((prev) => [...prev, nextSample]);
   };
 
-  const [selectedPublishPkg, setSelectedPublishPkg] = useState<PackageOption | null>(PUBLISH_PACKAGES[3]);
-  const [selectedHighlightPkg, setSelectedHighlightPkg] = useState<PackageOption | null>(null); // Made optional, defaults to none
+  // RevenueCat canlı paket seçimi (JobsView ile aynı model):
+  // UI'da gösterilen fiyat/süre yalnızca gerçek Google Play ürünlerinden gelir.
+  const [rcPackages, setRcPackages] = useState<PurchasesPackage[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const loadRevenueCatPackages = async () => {
+    setPackagesLoading(true);
+    setPackagesError(null);
+    try {
+      const packages = await PurchaseService.getPackages();
+      const dealPackages = packages.filter((pkg) =>
+        pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN ||
+        pkg.product.identifier === PACKAGE_IDS.ONE_CIKAN_30_GUN
+      );
+      const usable = dealPackages.length > 0 ? dealPackages : packages;
+      setRcPackages(usable);
+
+      if (usable.length === 0) {
+        setSelectedPackage(null);
+        setPackagesError('Satın alma paketleri henüz yapılandırılmamış. Lütfen daha sonra tekrar deneyin.');
+      } else {
+        const preferred =
+          usable.find((pkg) => pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN) || usable[0];
+        setSelectedPackage(preferred);
+        setEndDate(computeEndDate(getDealMetaFromPackage(preferred).durationDays));
+      }
+    } catch (e: any) {
+      setRcPackages([]);
+      setSelectedPackage(null);
+      setPackagesError(e?.message || 'Paketler yüklenemedi.');
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isPublishing) {
+      loadRevenueCatPackages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPublishing]);
 
   // New UI states needed for the complex form
   const [discountType, setDiscountType] = useState('Yüzde (%) İndirim');
@@ -189,18 +231,19 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     return matchesCat && matchesSearch && matchesSaved;
   }) : [];
 
-  const totalPrice = (selectedPublishPkg?.price || 0) + (selectedHighlightPkg?.price || 0);
-
-  // Güvenli Asenkron Yükleme Kaydı
+  // Ödeme akışı (JobsView modeli): seçilen gerçek RevenueCat paketi satın alınır,
+  // ilan süresi ve öne çıkma bilgisi SATIN ALINAN ÜRÜNDEN türetilir. Böylece
+  // seçilen gün = satın alınan ürün = Firestore'a yazılan süre her zaman aynıdır.
   const handleFinalPurchase = async () => {
+    if (!selectedPackage) {
+      alert('Geçerli bir satın alma paketi seçilmedi.');
+      return;
+    }
+
     setIsProcessing(true);
+
     try {
-      const productId = selectedHighlightPkg ? PACKAGE_IDS.ONE_CIKAN_30_GUN : PACKAGE_IDS.ILAN_30_GUN;
-      const dealPackage = await PurchaseService.getPackageByProductId(productId);
-      if (!dealPackage) {
-        throw new Error('Seçilen indirim paketi RevenueCat üzerinde bulunamadı.');
-      }
-      const purchased = await PurchaseService.purchasePackage(dealPackage);
+      const purchased = await PurchaseService.purchasePackage(selectedPackage);
       if (!purchased) {
         setIsProcessing(false);
         return;
@@ -210,6 +253,10 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       setIsProcessing(false);
       return;
     }
+
+    const meta = getDealMetaFromPackage(selectedPackage);
+    const finalStartDate = todayTR();
+    const finalEndDate = computeEndDate(meta.durationDays);
 
     const defaultImage = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80';
 
@@ -225,10 +272,12 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       indirimDegeri: safeDiscountAmount.includes('%') ? safeDiscountAmount : `%${safeDiscountAmount}`,
       image: uploadedPhotos.length > 0 ? uploadedPhotos[0] : defaultImage,
       locationName: String(location || 'İpekyolu, Van'),
-      startDate: String(startDate || ''),
-      endDate: String(endDate || ''),
+      startDate: finalStartDate,
+      endDate: finalEndDate,
       description: String(description || '').trim() || `${safeStoreName} işletmesinde geçerli özel kampanya.`,
-      isFeatured: Boolean(selectedHighlightPkg),
+      durationDays: meta.durationDays,
+      isFeatured: meta.isFeatured,
+      pricePaid: selectedPackage.product.priceString,
       userEmail: String(currentUser?.email || 'anonim@van.rehberim'),
       userId: String(currentUser?.uid || ''),
     };
@@ -239,7 +288,10 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       setShowPlayModal(false);
       setIsPublishing(false);
       setUploadedPhotos([]);
-      setToastMessage('🎉 İlanınız başarıyla yayınlandı!');
+      setSelectedPackage(null);
+      setStartDate(todayTR());
+      setEndDate(computeEndDate(30));
+      setToastMessage(`🎉 İlanınız ${meta.durationDays} gün boyunca yayınlandı!`);
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err: any) {
       setIsProcessing(false);
@@ -422,65 +474,91 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
               </div>
             </div>
 
-            {/* 7. Publish Packages */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              {PUBLISH_PACKAGES.map((pkg) => (
-                <div
-                  key={pkg.days}
-                  onClick={() => setSelectedPublishPkg(pkg)}
-                  className={`p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedPublishPkg?.days === pkg.days ? 'border-[#0A1128] bg-[#0A1128] text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#1b1c21] hover:border-slate-700' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+            {/* 7. Yayın Paketi — RevenueCat canlı paketler (gerçek Google Play fiyatları) */}
+            <div className={`p-5 rounded-3xl shadow-sm space-y-3 ${isDark ? 'bg-[#1b1c21]' : 'bg-white'}`}>
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-sm flex items-center gap-2">
+                  <Star className="w-4 h-4 fill-orange-400 text-orange-400" />
+                  Yayın Paketi (Google Play)
+                </label>
+                <button
+                  type="button"
+                  onClick={loadRevenueCatPackages}
+                  className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full"
                 >
-                  <div className="text-sm font-semibold opacity-90">{pkg.label}</div>
-                  <div className="text-lg font-black mt-1">₺{pkg.price.toFixed(2).replace('.', ',')}</div>
+                  Yenile
+                </button>
+              </div>
+
+              {packagesLoading && (
+                <div className={`text-xs font-bold p-3 rounded-2xl border ${isDark ? 'bg-[#24262c] border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                  Paketler RevenueCat üzerinden yükleniyor...
                 </div>
-              ))}
+              )}
+
+              {!packagesLoading && packagesError && (
+                <div className="text-xs font-bold p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-500">
+                  {packagesError}
+                </div>
+              )}
+
+              {!packagesLoading && !packagesError && (
+                <div className="grid grid-cols-2 gap-3">
+                  {rcPackages.map((pkg) => {
+                    const isSelected = selectedPackage?.identifier === pkg.identifier;
+                    const meta = getDealMetaFromPackage(pkg);
+                    return (
+                      <button
+                        key={pkg.identifier}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPackage(pkg);
+                          setEndDate(computeEndDate(meta.durationDays));
+                        }}
+                        className={`p-4 rounded-3xl border-2 flex flex-col items-center justify-center gap-1 text-center cursor-pointer transition-all ${isSelected
+                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-xl scale-[1.02]'
+                          : isDark
+                            ? 'border-slate-800 bg-[#24262c] text-white hover:border-slate-600'
+                            : 'border-slate-100 bg-slate-50 text-slate-800 hover:border-slate-300'
+                          }`}
+                      >
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ${isSelected ? 'bg-white/20 text-white' : 'bg-orange-500/10 text-orange-500'}`}>
+                          {meta.isFeatured ? 'Öne Çıkan' : 'Standart'}
+                        </span>
+                        <div className="text-sm font-bold leading-snug">{pkg.product.title}</div>
+                        <div className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>
+                          {meta.durationDays} gün aktif
+                        </div>
+                        <div className={`text-lg font-black font-mono ${isSelected ? 'text-emerald-100' : 'text-emerald-600'}`}>
+                          {pkg.product.priceString}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Fiyatlar Google Play üzerinden gerçek zamanlı alınır; seçtiğiniz paketin süresi ilanınıza aynen uygulanır.
+              </p>
             </div>
 
-            {/* 8. Highlight Packages */}
-            <div className={`p-5 rounded-3xl shadow-sm border ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-yellow-400'}`}>
-              <div className="flex items-center gap-3 mb-1">
-                <Star className="w-6 h-6 fill-orange-400 text-orange-400" />
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white">İlanınızı Öne Çıkarın</h3>
-              </div>
-              <p className="text-[11px] text-slate-500 mb-4 pl-9">İlanınızın daha fazla kişiye ulaşması için bir paket seçin.</p>
-
-              <div className={`p-3.5 rounded-xl flex items-center justify-between mb-4 border ${isDark ? 'bg-[#24262c] border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="font-bold text-sm text-slate-700 dark:text-slate-300">Seçilen: {selectedHighlightPkg ? `${selectedHighlightPkg.label} (₺${selectedHighlightPkg.price.toFixed(2).replace('.', ',')})` : 'Yok'}</span>
-                <ChevronLeft className="w-4 h-4 text-slate-400 rotate-90" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {HIGHLIGHT_PACKAGES.slice(0, 4).map((pkg) => (
-                  <div
-                    key={pkg.days}
-                    onClick={() => setSelectedHighlightPkg(prev => prev?.days === pkg.days ? null : pkg)}
-                    className={`p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedHighlightPkg?.days === pkg.days ? 'border-orange-500 bg-orange-500 text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#24262c]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}
-                  >
-                    <div className="text-sm font-semibold opacity-90">{pkg.label}</div>
-                    <div className="text-lg font-black mt-1">₺{pkg.price.toFixed(2).replace('.', ',')}</div>
-                  </div>
-                ))}
-                {/* 30 Gün Special Full Width */}
-                <div
-                  onClick={() => setSelectedHighlightPkg(prev => prev?.days === 30 ? null : HIGHLIGHT_PACKAGES[4])}
-                  className={`col-span-2 p-4 rounded-3xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedHighlightPkg?.days === 30 ? 'border-orange-500 bg-orange-500 text-white shadow-xl scale-[1.02]' : isDark ? 'border-slate-800 bg-[#24262c]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}
-                >
-                  <div className="text-sm font-semibold opacity-90">30 Gün</div>
-                  <div className="text-lg font-black mt-1">₺169,99</div>
-                </div>
-              </div>
-            </div>
-            {/* 9. Yayınla Butonu - Sadece form dolduğunda görünür */}
+            {/* 8. Yayınla Butonu - Sadece form dolduğunda görünür */}
             {storeName.trim() && dealTitle.trim() && location.trim() && contactNumber.trim() ? (
               <div className="pt-2">
                 <button
                   onClick={() => {
                     setFormError(null);
+                    if (!selectedPackage) {
+                      setFormError('Lütfen geçerli bir yayın paketi seçiniz.');
+                      return;
+                    }
                     setShowPlayModal(true);
                   }}
                   className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-colors bg-emerald-600 hover:bg-emerald-500 text-white`}
                 >
-                  <Megaphone className="w-5 h-5 fill-white" /> İlanı Yayınla (₺{totalPrice.toFixed(2).replace('.', ',')})
+                  <Megaphone className="w-5 h-5 fill-white" />
+                  İlanı Yayınla{selectedPackage ? ` (${selectedPackage.product.priceString})` : ''}
                 </button>
               </div>
             ) : null}
@@ -619,7 +697,10 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 <Megaphone className="w-6 h-6 text-[#4D372A] -rotate-6" />
               </div>
               <div>
-                <p className="font-bold text-[15px] leading-tight text-white mb-1.5">{selectedPublishPkg?.label} İndirim İlanı{selectedHighlightPkg ? ' + Öne Çıkarma' : ''} <span className="text-[#E5B667]">₺{totalPrice.toFixed(2).replace('.', ',')}</span></p>
+                <p className="font-bold text-[15px] leading-tight text-white mb-1.5">
+                  {selectedPackage ? `${selectedPackage.product.title} İndirim İlanı (${getDealMetaFromPackage(selectedPackage).durationDays} Gün)` : 'İndirim İlanı'}
+                  {selectedPackage ? <span className="text-[#E5B667]"> {selectedPackage.product.priceString}</span> : null}
+                </p>
                 <div className="text-[10px] uppercase font-black text-[#E5B667] tracking-widest">VAN REHBERİM PREMIUM</div>
               </div>
             </div>
