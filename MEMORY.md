@@ -4,11 +4,12 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 06.11.2026 (M4 çözüldü — ESLint flat config düzeltildi)
-> **Son oturum:** Düzeltme oturumu #4 — M4 (ESLint kırık yapılandırma) ✅
-> Tek ESLint 9 flat config yazıldı (parser bağlı), `.eslintrc.json` silindi, lint
-> script'i düzeltildi. `npm run lint` exit 0 (0 error / 87 warning). CI'ın main'de
-> yeşil olduğu push sonrası doğrulanmalı.
+> **Son güncelleme:** 07.11.2026 (M5 kodu yazıldı — doğrulama/commit/push BEKLİYOR)
+> **Son oturum:** Düzeltme oturumu #5 — M5 (ödeme doğrulaması backend'e taşındı) 🔄
+> Kod tamamlandı (backend endpoint + istemci geçişi + kurallar), ANCAK oturum
+> boyunca Bash araçları sistemsel olarak kapalıydı → `npm install`, `tsc`, `lint`,
+> commit, push YAPILAMADI. Ayrıca M4 commit'leri (`a3f46e9`, `713632a`) hâlâ
+> origin'e push EDİLMEDİ. Sıradaki adımlar Bölüm 2'deki kontrol listesinde.
 
 ---
 
@@ -44,6 +45,30 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 
 **Proje çalışır durumda:** APK üretilmiş (diskte, artık git dışı), backend Render'da canlı.
 TypeScript derlemesi: ✅ `tsc --noEmit` exit 0 (M0 ve M2 sonrası doğrulandı, 05.11.2026).
+
+**07.11.2026 oturumu #5:** **M5 kodu yazıldı** (bkz. Bölüm 3 — doğrulama bekliyor).
+Ödeme doğrulaması backend'e taşındı: yeni `server/listings.ts` (POST `/api/listings`),
+istemci `src/services/listingService.ts`, üç bileşende çağrı noktaları değiştirildi,
+`firebase.ts`'ten eski yazım fonksiyonları kaldırıldı, `firestore.rules`'ta istemci
+create kapatıldı. **Doğrulama yapılamadı** (Bash kapalıydı) ve **commit/push yok** —
+aşağıdaki kontrol listesi sırayla uygulanmalı.
+
+**⚠️ M5 sonrası yapılacaklar (sırayla!):**
+1. `git push origin main` (M4 commit'leri `a3f46e9` + `713632a` hâlâ push edilmemiş)
+   → CI main'de yeşil kontrolü (M4'ün de kalan doğrulaması)
+2. Tam yedek al (`Desktop/van-rehberim-YEDEK-2026-11-07.tar.gz` — M5 öncesi durum
+   zaten commit'li olduğu için kritik değil, alışkanlık)
+3. `npm install` (firebase-admin eklendi) → `npx tsc --noEmit` → `npm run lint`
+4. Sorun yoksa commit + push → CI yeşil kontrolü
+5. **Render:** env değişkenleri ekle → `REVENUECAT_SECRET_API_KEY` (Secret API key,
+   Dashboard → Settings → API keys) + `FIREBASE_SERVICE_ACCOUNT` (Firebase service
+   account JSON'ının tamamı tek satır string) → deploy
+6. Endpoint testi: env yokken 503; token'sız 401; sahte ürün 400 beklenir
+7. `npm run build` + yeni APK yayınla (istemci artık backend'e yazıyor)
+8. **SADECE APK yayımlandıktan SONRA** yeni `firestore.rules`'ı Firebase Console'a
+   deploy et (create: false) — önce kapatılırsa eski APK'da yayınlama kırılır
+9. Canlı test: gerçek satın alma → ilan yayımlanıyor; ödeme yapmadan yayınlama
+   denenince reddediliyor
 
 **06.11.2026 oturumu #4:** **M4 çözüldü** (bkz. Bölüm 3). ESLint 9 flat config onarıldı,
 `.eslintrc.json` silindi. `npm run lint` exit 0 — 0 error, 87 warning (bilinen borç:
@@ -81,8 +106,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 **Kırmızı bayraklar:**
 - ~~ESLint yapılandırması kırık~~ **✅ 06.11.2026 çözüldü (M4)** — `npm run lint` artık
   çalışıyor (0 error / 87 warning); CI lint adımı da aynı komutu kullanıyor.
-- Commit edilmemiş staged değişiklikler mevcut; arasında `android/app/upload.keystore`
-  da var — **asla commit edilmemeli** (Bölüm 4.1).
+- ~~Commit edilmemiş staged değişiklikler~~ **✅ temiz** (07.11.2026 doğrulandı: çalışma
+  ağacı clean, keystore/APK diskte + gitignore'lı). M5 değişiklikleri henüz commit'li
+  değil (Bölüm 2 kontrol listesi).
 
 ---
 
@@ -177,6 +203,46 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
 
+> **07.11.2026 — M5 KODU YAZILDI (ödeme doğrulaması backend'e taşındı; doğrulama bekliyor):**
+>
+> - **Mimari ("pull" doğrulama, kullanıcı onaylı):** istemci satın alma sonrası ilan
+>   verisini + Firebase ID token'ı backend'e gönderir; backend RevenueCat subscriber
+>   kontrolü yapar, süreyi/tarihleri kendisi hesaplar, Admin SDK ile Firestore'a yazar.
+>   Webhook kullanılmadı (ilan verisi istemciden geldiği için webhook eşleşmesi sorunlu).
+> - **Yeni dosya `server/listings.ts`** (~300 satır): `POST /api/listings` endpoint'i.
+>   - `PRODUCT_META` (ürün → durationDays/isFeatured) ve `LISTING_TYPES` (tip →
+>     koleksiyon/izinli ürünler/alan beyaz listesi) SUNUCUDA tek doğrul kaynağı.
+>   - Firebase ID token `verifyIdToken(token, true)` (iptal edilmiş oturum reddedilir).
+>   - RevenueCat v1 REST: `GET /v1/subscribers/{uid}` (uid = RevenueCat appUserID —
+>     `purchaseService.ts` zaten Firebase uid kullanıyor). 60 sn in-memory cache.
+>   - Satın alma kontrolü: aktif entitlement (ürün eşleşmeli) **veya** son 15 dk içinde
+>     non-subscription satın alması (tazelik penceresi — eski alımla sonsuz ücretsiz
+>     yayınlamayı engeller).
+>   - Alan beyaz listesi + uzunluk sınırı (5000 kr) + nesne/dizi reddi; userId/userEmail/
+>     productId/durationDays/isFeatured/createdAt/bitisTarihi sunucuda hesaplanır.
+>   - Rate limit: uid başına saatte 10 istek. Fail-closed: env eksikse 503.
+> - **`server.ts`:** `import 'dotenv/config'` eklendi (lokal .env için) +
+>   `app.use('/api/listings', listingsRouter)`.
+> - **`package.json`:** `firebase-admin: ^13.0.0` eklendi (**npm install henüz yapılmadı**).
+> - **Yeni dosya `src/services/listingService.ts`:** `submitPaidListing(type, productId,
+>   data)` — ID token alır, 30 sn timeout, backend hatasını Türkçe mesajla yükseltir.
+> - **Çağrı noktaları:** JobsView (`'job'`, seçilen paketin id'si), DealsView (`'deal'`),
+>   HomeView taksi (`'taxi'`, `taksi_ilan_aylik`) → artık `submitPaidListing` kullanıyor.
+>   JobsView optimistic UI, backend'in döndürdüğü GERÇEK Firestore id'sini kullanıyor.
+> - **`src/lib/firebase.ts`:** `addJobListingToFirestore` / `addDealToFirestore` /
+>   `addTaxiToFirestore` KALDIRILDI (istemciden doğrudan yazma yolu kapandı) +
+>   kullanılmayan importlar temizlendi (addDoc, serverTimestamp, deleteDoc, getDocs, orderBy).
+> - **`firestore.rules`:** üç koleksiyonda `create: if false` (read açık, update/delete
+>   yalnız sahibi). **DİKKAT: Console'a yalnızca yeni APK yayımlandıktan sonra
+>   deploy edilmeli** (önce kapatılırsa mevcut APK'da yayınlama kırılır).
+> - **Doğrulama durumu:** ❌ YAPILAMADI — oturum boyunca Bash komutları sistemsel
+>   olarak çalıştırılamadı. `npm install` + `tsc --noEmit` + `lint` + commit + push
+>   bekliyor (Bölüm 2 kontrol listesi).
+> - **Bilinen sınırlar / sonraki fırsatlar:** `pricePaid` kozmetik olarak istemciden
+>   alınıyor (görüntülenmiyor, doğrulanmıyor); refund'lar (iade) otomatik işlenmiyor
+>   (RevenueCat webhook ile `bitisTarihi` erkenden kapatılabilir — ileride);
+>   subscriber cache Render ücretsiz planda instance başınadır (yeterli).
+
 > **06.11.2026 — M4 ÇÖZÜLDÜ (ESLint 9 flat config onarımı):**
 >
 > - **Kök neden:** ESLint 9 yalnızca `eslint.config.js`'i (flat config) okuyordu ama
@@ -223,8 +289,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 2. ~~**Firestore kuralları gevşek** (`firestore.rules`)~~ **✅ 05.11.2026 çözüldü**
    (owner-based kurallar yazıldı, kod + tsc doğrulandı, commit edildi; ayrıntı Bölüm 3).
    **Kalan adım (kullanıcı): kuralları Firebase Console'a deploy et + canlı test.**
-3. **Ödeme doğrulaması istemci tarafında:** RevenueCat ödemesinden sonra ilan doğrudan
-   istemciden Firestore'a yazılıyor; webhook/entitlement kontrolü yok → ödemeyi atlatma mümkün.
+3. ~~**Ödeme doğrulaması istemci tarafında**~~ **🔄 07.11.2026 kodlandı (M5)** — backend
+   doğrulaması yazıldı; doğrulama/commit/push/Render env/APAK/kural deploy'u bekliyor
+   (Bölüm 2 kontrol listesi + Bölüm 3 M5 kaydı).
 4. **AndroidManifest:** `android:usesCleartextTraffic="true"` ve `android:allowBackup="true"` açık.
 5. **Scraping ToS riski:** MGM / Diyanet / doviz.com / Eczacı Odası / van.bel.tr
    sahte User-Agent ile taranıyor; regex tabanlı parsing kırılgan.
@@ -307,8 +374,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    mock/yerel veriye sessizce düşer (kullanıcıya her zaman "başarılı" görünür).
 4. **Doğrudan istemci → Firestore erişimi:** Backend Firestore'a dokunmaz; tüm okuma/
    yazma istemciden (güvenlik kurallarına dayanıyor — şu an gevşek).
-5. **Ödeme akışı tamamen istemcide:** RevenueCat JS SDK; satın alma sonrası ilan
-   istemciden Firestore'a yazılır (sunucu doğrulaması yok).
+5. **Ödeme akışı (M5 sonrası):** RevenueCat JS SDK ile satın alma istemcide; ilan
+   yazımı backend'de (POST `/api/listings`: ID token + RevenueCat entitlement
+   doğrulaması + Admin SDK). Eski durum (tamamen istemcide) 07.11.2026'da değişti.
 6. **Kalıcılık:** localStorage (tema, oturum önbelleği, favoriler) + custom window
    event'lerle bileşen senkronizasyonu.
 7. **Namaz vakitleri iki bağımsız kaynaktan:** istemci Aladhan API, sunucu Diyanet scraping.
@@ -345,7 +413,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 2 | 🔴 Acil | ~~Firestore kurallarını sıkılaştır~~ **✅ 05.11.2026 çözüldü** (owner-based; tsc doğrulandı; commit edildi). Kalan: Firebase'e deploy + canlı test | Kurallar canlıda aktif; yabancı kullanıcı silme denemesi reddediliyor |
 | 3 | 🔴 Acil | ~~DealsView süre/fiyat hatasını düzelt~~ **✅ 06.11.2026 çözüldü** (JobsView modeli; tsc doğrulandı). Canlı RevenueCat satın alma testi önerilir | Seçilen gün = satın alınan ürün = Firestore'a yazılan süre ✅ (kod düzeyinde) |
 | 4 | 🟠 Yüksek | ~~ESLint'i düzelt (tek flat config + `@typescript-eslint/parser`), `.eslintrc.json`'ı sil~~ **✅ 06.11.2026 çözüldü** (`npm run lint` exit 0, 0 error / 87 warn). Kalan: push sonrası CI main'de yeşil kontrolü | `npm run lint` exit 0 ✅ |
-| 5 | 🟠 Yüksek | RevenueCat webhook + backend entitlement doğrulaması; ilan yazımını backend'e taşı | Ödeme yapılmadan ilan yayımlanamıyor |
+| 5 | 🟠 Yüksek | RevenueCat backend entitlement doğrulaması; ilan yazımını backend'e taşı | **🔄 07.11.2026 kodlandı** — tsc/lint/commit/push, Render env + deploy, APK, kural deploy'u bekliyor (Bölüm 2 kontrol listesi) | Ödeme yapılmadan ilan yayımlanamıyor |
 | 6 | 🟠 Yüksek | Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü |
 | 7 | 🟡 Orta | AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat | Manifest temiz, uygulama çalışıyor |
 | 8 | 🟡 Orta | Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal | Kökte yalnız üretim dosyaları |
@@ -373,12 +441,17 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (06.11.2026, M4 sonrası): dal ucu `a3f46e9` (M4). Öncekiler:
-  `daa6f3b` (M3), `7541456` (M2), `522e980` (M0+M1). Çalışma ağacı temiz;
-  keystore/APK ve yedek `*.tar.gz` dosyaları untracked + gitignore'lı, diskte
-  yerlerinde. Geçmiş yeniden yazıldığı için 04.11 öncesi eski hash'ler geçersiz.
-  Not: M2/M3/M4 commit'lerinin origin'e push edilip edilmediği doğrulanmalı;
-  CI'ın yeşil olduğu push sonrası görülecek.
+- Git durumu (07.11.2026, oturum #5): dal ucu `713632a` (MEMORY.md), önceki
+  `a3f46e9` (M4), `daa6f3b` (M3), `7541456` (M2), `522e980` (M0+M1).
+  **`a3f46e9` + `713632a` henüz push EDİLMEDİ** (M2/M3 origin'de). M5 değişiklikleri
+  çalışma ağacında COMMIT'SİZ duruyor (Bash kapalıydı). Keystore/APK ve yedek
+  `*.tar.gz` dosyaları untracked + gitignore'lı, diskte yerlerinde. Geçmiş yeniden
+  yazıldığı için 04.11 öncesi eski hash'ler geçersiz.
+- **Yeni ortam değişkenleri (M5):** `REVENUECAT_SECRET_API_KEY` (Render + lokal .env)
+  ve `FIREBASE_SERVICE_ACCOUNT` (service account JSON'ı tek satır string; Render +
+  lokal .env). İkisi de eksikken `/api/listings` bilinçli olarak 503 döner (fail-closed).
+- 07.11.2026 oturum notu: Bash araçları sistemsel arıza nedeniyle oturum boyunca
+  kapalıydı; tüm doğrulamalar ertelendi.
 - **Yedek:** `Desktop/van-rehberim-YEDEK-2026-11-04.tar.gz` (137 MB) — M1 öncesi
   tam kopya; eski geçmiş (keystore'lu stash nesneleri dahil) buradadır, saklanmalı.
 - Android build: `android/` klasöründe Gradle projesi; `dist/` → `npx cap sync` ile

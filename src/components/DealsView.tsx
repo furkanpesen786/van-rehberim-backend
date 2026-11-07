@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { subscribeDeals, addDealToFirestore } from '../lib/firebase';
+import { subscribeDeals } from '../lib/firebase';
+import { submitPaidListing } from '../services/listingService';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import {
@@ -283,7 +284,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     };
 
     try {
-      await addDealToFirestore(dealPayload, currentUser?.uid || '');
+      await submitPaidListing('deal', selectedPackage.product.identifier, dealPayload);
       setIsProcessing(false);
       setShowPlayModal(false);
       setIsPublishing(false);

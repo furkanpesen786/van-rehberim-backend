@@ -26,27 +26,28 @@ service cloud.firestore {
         && request.auth.uid == userId;
     }
 
-    // İş İlanları: herkes okuyabilir; oluşturma/güncelleme/silme yalnız sahibi.
+    // İş İlanları: herkes okuyabilir. YENİ ilan oluşturma yalnızca backend'de
+    // yapılır (Admin SDK kuralları bypass eder; ödeme doğrulaması sunucuda).
     // Update'te userId değiştirilemez (sahiplik devredilemez).
     match /is_ilanlari/{jobId} {
       allow read: if true;
-      allow create: if ownsNewDoc();
+      allow create: if false;
       allow update: if ownsExistingDoc() && ownsNewDoc();
       allow delete: if ownsExistingDoc();
     }
 
-    // İndirim İlanları (Fırsatlar): aynı sahiplik modeli.
+    // İndirim İlanları (Fırsatlar): aynı model — create yalnızca backend.
     match /indirim_ilanlari/{dealId} {
       allow read: if true;
-      allow create: if ownsNewDoc();
+      allow create: if false;
       allow update: if ownsExistingDoc() && ownsNewDoc();
       allow delete: if ownsExistingDoc();
     }
 
-    // Taksiler: aynı sahiplik modeli.
+    // Taksiler: aynı model — create yalnızca backend.
     match /taksiler/{taxiId} {
       allow read: if true;
-      allow create: if ownsNewDoc();
+      allow create: if false;
       allow update: if ownsExistingDoc() && ownsNewDoc();
       allow delete: if ownsExistingDoc();
     }

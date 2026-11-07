@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { JOB_CATEGORIES, JOB_LISTINGS } from '../data/mockData';
 import { JobListing } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { subscribeJobListings, addJobListingToFirestore } from '../lib/firebase';
+import { subscribeJobListings } from '../lib/firebase';
+import { submitPaidListing } from '../services/listingService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import {
   Wrench,
@@ -253,10 +254,10 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     };
 
     try {
-      await addJobListingToFirestore(jobPayload, currentUser?.uid || '');
+      const result = await submitPaidListing('job', selectedPackage.product.identifier, jobPayload);
 
       const newJob: JobListing = {
-        id: `job-user-${Date.now()}`,
+        id: result.id,
         ...jobPayload,
       };
       setJobsList((prev) => [newJob, ...prev]);
@@ -284,7 +285,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       setTimeout(() => setSuccessToast(null), 4000);
     } catch (err: any) {
       setIsProcessing(false);
-      alert('Firebase veritabanına kaydedilirken bir hata oluştu: ' + (err.message || err));
+      alert('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
     }
   };
 

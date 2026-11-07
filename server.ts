@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import cors from 'cors';
+import { listingsRouter } from './server/listings';
 
 const app = express();
 // Render.com'un dinamik portunu yakalamak için çok önemli!
@@ -23,6 +25,10 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// M5: Ücretli ilan yayınlama (Firebase ID token + RevenueCat entitlement
+// doğrulaması; Firestore'a yalnızca Admin SDK ile yazılır).
+app.use('/api/listings', listingsRouter);
 
 // Helper function to map MGM wind direction angle to Turkish compass directions
 function getWindDirectionName(degree: number): string {

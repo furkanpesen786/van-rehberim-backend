@@ -63,8 +63,9 @@ interface HomeViewProps {
   onNavigateToJobs?: () => void;
 }
 
-import { subscribeTaxis, addTaxiToFirestore } from '../lib/firebase';
+import { subscribeTaxis } from '../lib/firebase';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
+import { submitPaidListing } from '../services/listingService';
 
 const renderWeatherIcon = (iconName: string, className = "w-5 h-5") => {
   switch (iconName) {
@@ -216,7 +217,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
     }
 
     try {
-      await addTaxiToFirestore(pendingTaxiData, currentUser?.uid || '');
+      await submitPaidListing('taxi', PACKAGE_IDS.TAKSI_ILAN_AYLIK, pendingTaxiData as unknown as Record<string, unknown>);
       setIsProcessingTaksi(false);
       setShowPayModalTaksi(false);
       setPendingTaxiData(null);

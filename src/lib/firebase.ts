@@ -14,13 +14,8 @@ import {
   doc,
   setDoc,
   getDoc,
-  getDocs,
-  addDoc,
   query,
-  orderBy,
   onSnapshot,
-  deleteDoc,
-  serverTimestamp,
   Timestamp,
   where,
 } from 'firebase/firestore';
@@ -91,31 +86,11 @@ export function subscribeJobListings(callback: (jobs: any[]) => void) {
   }
 }
 
-// Add Job Listing to Firebase Firestore
-// userId: oturum açan kullanıcının UID'si. Güvenlik kuralları bu alanı
-// request.auth.uid ile eşleştirir; payload'daki değer ezilir (sahtelenemez).
-export async function addJobListingToFirestore(jobData: any, userId: string) {
-  try {
-    const colRef = collection(db, 'is_ilanlari');
-
-    const durationDays = jobData.durationDays || 7;
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + durationDays);
-    const bitisTarihi = Timestamp.fromDate(expirationDate);
-
-    const docRef = await addDoc(colRef, {
-      ...jobData,
-      userId,
-      createdAtTimestamp: serverTimestamp(),
-      createdAt: jobData.createdAt || new Date().toLocaleDateString('tr-TR'),
-      bitisTarihi: bitisTarihi
-    });
-    return docRef.id;
-  } catch (err) {
-    console.error('Error adding job to Firestore:', err);
-    throw err;
-  }
-}
+// NOT (M5): addJobListingToFirestore / addDealToFirestore / addTaxiToFirestore
+// kaldırıldı — ücretli ilanlar artık backend üzerinden yayımlanır
+// (src/services/listingService.ts → server/listings.ts). İstemciden doğrudan
+// Firestore'a ilan yazma yolu kapatıldı; güvenlik kuralları da create'i
+// istemciye kapatır.
 
 // Subscribe to Deals from Firebase Firestore (indirim_ilanlari koleksiyonu)
 export function subscribeDeals(callback: (deals: any[]) => void) {
@@ -136,31 +111,6 @@ export function subscribeDeals(callback: (deals: any[]) => void) {
   } catch (err) {
     console.error('Error setting up deals listener:', err);
     return () => { };
-  }
-}
-
-// Add Deal to Firebase Firestore (indirim_ilanlari koleksiyonu)
-// userId: oturum açan kullanıcının UID'si (kurallar auth.uid ile eşleştirir).
-export async function addDealToFirestore(dealData: any, userId: string) {
-  try {
-    const colRef = collection(db, 'indirim_ilanlari');
-
-    const durationDays = dealData.durationDays || 7;
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + durationDays);
-    const bitisTarihi = Timestamp.fromDate(expirationDate);
-
-    const docRef = await addDoc(colRef, {
-      ...dealData,
-      userId,
-      createdAtTimestamp: serverTimestamp(),
-      createdAt: dealData.createdAt || new Date().toLocaleDateString('tr-TR'),
-      bitisTarihi: bitisTarihi
-    });
-    return docRef.id;
-  } catch (err) {
-    console.error('Error adding deal to Firestore:', err);
-    throw err;
   }
 }
 
@@ -213,27 +163,3 @@ export function subscribeTaxis(callback: (taxis: any[]) => void) {
   }
 }
 
-// Add Taxi to Firebase Firestore (taksiler koleksiyonu)
-// userId: oturum açan kullanıcının UID'si (kurallar auth.uid ile eşleştirir).
-export async function addTaxiToFirestore(taxiData: any, userId: string) {
-  try {
-    const colRef = collection(db, 'taksiler');
-
-    const durationDays = taxiData.durationDays || 30;
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + durationDays);
-    const bitisTarihi = Timestamp.fromDate(expirationDate);
-
-    const docRef = await addDoc(colRef, {
-      ...taxiData,
-      userId,
-      createdAtTimestamp: serverTimestamp(),
-      createdAt: taxiData.createdAt || new Date().toLocaleDateString('tr-TR'),
-      bitisTarihi: bitisTarihi
-    });
-    return docRef.id;
-  } catch (err) {
-    console.error('Error adding taxi to Firestore:', err);
-    throw err;
-  }
-}
