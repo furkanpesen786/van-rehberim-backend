@@ -15,15 +15,12 @@ interface NewsViewProps {
   theme?: 'light' | 'dark';
 }
 
-const TOP_7_VAN_CHANNELS = [
+// M6: yalnızca canlı doğrulanmış kaynaklar (ölü RSS'ler kaldırıldı — bkz. server.ts /api/news)
+const VAN_NEWS_CHANNELS = [
   { name: 'Tümü', domain: 'all' },
-  { name: 'Şehrivan Gazetesi', url: 'https://www.sehrivan.com' },
   { name: 'Wan Haber', url: 'https://www.wanhaber.com' },
   { name: 'Van Olay', url: 'https://www.vanolay.com' },
-  { name: 'Van Postası', url: 'https://www.vanpostasi.com' },
   { name: 'Van Havadis', url: 'https://www.vanhavadis.com' },
-  { name: 'Gazete Van', url: 'https://www.gazetevan.com' },
-  { name: 'Van Ekspres', url: 'https://www.vanekspres.com' },
 ];
 
 export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
@@ -32,8 +29,9 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
   // Live News State
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
   const [isNewsLoading, setIsNewsLoading] = useState<boolean>(true);
-  const [newsSourceInfo, setNewsSourceInfo] = useState<string>('Van 7 Büyük Haber Portalı');
+  const [newsSourceInfo, setNewsSourceInfo] = useState<string>('Van Haber Kaynakları');
   const [selectedChannel, setSelectedChannel] = useState<string>('Tümü');
+  const [newsError, setNewsError] = useState<string | null>(null);
 
   const isDark = theme === 'dark';
 
@@ -41,10 +39,17 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
     if (!silent) setIsNewsLoading(true);
     try {
       const res = await fetchLiveVanNews();
-      setNewsList(res.news || []);
-      if (res.source) setNewsSourceInfo(res.source);
+      if (res.news && res.news.length > 0) {
+        setNewsList(res.news);
+        setNewsError(null);
+        if (res.source) setNewsSourceInfo(res.source);
+      } else {
+        // Başarısız/boş sonuç: mevcut listeyi koru, hatayı dürüstçe göster
+        setNewsError('Canlı haber kaynaklarına şu anda ulaşılamıyor. Lütfen daha sonra tekrar deneyiniz.');
+      }
     } catch (e) {
       console.error('Error fetching live Van news:', e);
+      setNewsError(e instanceof Error ? e.message : 'Haberler yüklenemedi.');
     } finally {
       if (!silent) setIsNewsLoading(false);
     }
@@ -53,10 +58,12 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
   useEffect(() => {
     loadNewsData(false); // Initial load with spinner
 
-    // 5-second silent auto-refresh interval
+    // M6: 60 saniyelik sessiz yenileme (eskiden 5 sn idi — sunucu ve RSS
+    // kaynakları üzerindeki yükü ciddi biçimde azaltır; sunucuda ayrıca
+    // 10 dakikalık önbellek var, bkz. server.ts /api/news)
     const interval = setInterval(() => {
       loadNewsData(true); // Silent refresh
-    }, 5000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
@@ -70,7 +77,7 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
-    const match = TOP_7_VAN_CHANNELS.find(c => defaultSource && c.name.toLowerCase().includes(defaultSource.toLowerCase()));
+    const match = VAN_NEWS_CHANNELS.find(c => defaultSource && c.name.toLowerCase().includes(defaultSource.toLowerCase()));
     if (match && match.url) {
       window.open(match.url, '_blank', 'noopener,noreferrer');
     } else {
@@ -117,7 +124,7 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
             <div className="flex items-center gap-2">
               <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
               <span className="text-xs font-black uppercase tracking-wider text-emerald-500">
-                VAN'IN İLK 7 HABER KANALI
+                VAN'IN CANLI HABER KAYNAKLARI
               </span>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
@@ -126,12 +133,15 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
           </div>
 
           <p className={`text-[11px] font-medium leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            Şehrin nabzını tutan 7 temel kaynaktan, sansürsüz ve eşzamanlı olarak ({newsList.length}) haber taranmaktadır.
+            Şehrin nabzını tutan 3 canlı kaynaktan, eşzamanlı olarak ({newsList.length}) haber taranmaktadır.
+          </p>
+          <p className={`text-[10px] font-bold leading-tight ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            Kaynak: {newsSourceInfo}
           </p>
 
-          {/* Top 7 Channel Filter Chips */}
+          {/* Channel Filter Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-bold">
-            {TOP_7_VAN_CHANNELS.map((ch) => (
+            {VAN_NEWS_CHANNELS.map((ch) => (
               <button
                 key={ch.name}
                 onClick={() => setSelectedChannel(ch.name)}
@@ -154,6 +164,21 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
             }`}>
             <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
             <p className="text-xs font-bold text-slate-400">Tüm kaynaklardan veriler eşitleniyor...</p>
+          </div>
+        ) : newsError && newsList.length === 0 ? (
+          <div className={`p-8 rounded-3xl text-center border space-y-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'
+            }`}>
+            <Info className="w-8 h-8 text-amber-500 mx-auto" />
+            <p className={`text-xs font-bold leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{newsError}</p>
+            <button
+              onClick={() => loadNewsData(false)}
+              className={`px-5 py-2.5 rounded-xl text-[11px] font-black border transition-all active:scale-95 ${isDark
+                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+                : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                }`}
+            >
+              TEKRAR DENE
+            </button>
           </div>
         ) : filteredNews.length === 0 ? (
           <div className={`p-8 rounded-3xl text-center border space-y-2 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'

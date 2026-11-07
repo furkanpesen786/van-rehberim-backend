@@ -1347,118 +1347,43 @@ app.get('/api/bus-schedules', async (_req, res) => {
   });
 });
 
-// API ROUTE: Live Van News from Top 7 Van News Channels
+// API ROUTE: Live Van News (RSS) — M6: ölü kaynaklar çıkarıldı, 10 dk sunucu
+// önbelleği eklendi, uydurma fallback verisi dürüst hatayla değiştirildi.
+// Canlı doğrulanan kaynaklar (07.11.2026): Wan Haber, Van Olay, Van Havadis.
+// Kaldırılan ölü kaynaklar (02.11.2026 denetimi): sehrivan.com (DNS yok),
+// vanpostasi.com (410), gazetevan.com (404), vanekspres.com (bağlantı kopuyor).
+const NEWS_CACHE_TTL_MS = 10 * 60 * 1000;      // önbellek tazeliği: 10 dakika
+const NEWS_STALE_MAX_MS = 2 * 60 * 60 * 1000;  // eski önbellek üst sınırı: 2 saat
+
+interface NewsApiPayload {
+  success: boolean;
+  count: number;
+  lastUpdated: string;
+  source: string;
+  channelsCount: number;
+  news: any[];
+  stale?: boolean;
+}
+
+let newsCache: { payload: NewsApiPayload; fetchedAt: number } | null = null;
+
 app.get('/api/news', async (_req, res) => {
-  const top7Channels = [
-    { name: 'Şehrivan Gazetesi', domain: 'sehrivan.com', baseUrl: 'https://www.sehrivan.com', rssUrl: 'https://www.sehrivan.com/rss' },
+  const rssChannels = [
     { name: 'Wan Haber', domain: 'wanhaber.com', baseUrl: 'https://www.wanhaber.com', rssUrl: 'https://www.wanhaber.com/rss' },
     { name: 'Van Olay', domain: 'vanolay.com', baseUrl: 'https://www.vanolay.com', rssUrl: 'https://www.vanolay.com/rss' },
-    { name: 'Van Postası', domain: 'vanpostasi.com', baseUrl: 'https://www.vanpostasi.com', rssUrl: 'https://www.vanpostasi.com/rss' },
     { name: 'Van Havadis', domain: 'vanhavadis.com', baseUrl: 'https://www.vanhavadis.com', rssUrl: 'https://www.vanhavadis.com/rss' },
-    { name: 'Gazete Van', domain: 'gazetevan.com', baseUrl: 'https://www.gazetevan.com', rssUrl: 'https://www.gazetevan.com/rss' },
-    { name: 'Van Ekspres', domain: 'vanekspres.com', baseUrl: 'https://www.vanekspres.com', rssUrl: 'https://www.vanekspres.com/rss' },
   ];
+
+  // Taze önbellek varsa doğrudan sun — her istekte RSS taraması yapılmaz
+  if (newsCache && Date.now() - newsCache.fetchedAt < NEWS_CACHE_TTL_MS) {
+    return res.json(newsCache.payload);
+  }
 
   const todayStr = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // Initial authentic live daily dataset from the 7 top news channels
-  const defaultTop7News = [
-    {
-      id: 'news-sh-1',
-      title: 'Van Göğüs Hastalıkları Hastanesinde Yeni Hizmet Binası Müjdesi',
-      category: 'Sağlık & Van Gündem',
-      image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80',
-      summary: 'Van İl Sağlık Müdürlüğü ve Büyükşehir Belediyesi koordinasyonunda Van Göğüs Hastalıkları Hastanesi kapasitesi 2 katına çıkarılıyor.',
-      content: 'Van Şehrivan Gazetesi haberine göre; bölge halkına hizmet veren hastanede modern tıbbi donanımlar ve ek poliklinik binası projesi onaylandı.',
-      date: todayStr,
-      time: '14:20',
-      source: 'Şehrivan Gazetesi',
-      sourceUrl: 'https://www.sehrivan.com',
-      readCount: 2150,
-    },
-    {
-      id: 'news-wh-1',
-      title: 'Van Gölü Çevresinde Tarihi Yürüyüş Yolları ve Kamp Alanları Açıldı',
-      category: 'Turizm & Yaşam',
-      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-      summary: 'Edremit ve Gevaş sahillerinde doğaseverler için ücretsiz çadır ve eko-turizm yürüyüş parkurları tamamlandı.',
-      content: 'Wan Haber kaynaklarından edinilen bilgiye göre, Van Gölü sahil şeridinde doğa ve macera tutkunları için hazırlanan rotalar hizmete açıldı.',
-      date: todayStr,
-      time: '13:45',
-      source: 'Wan Haber',
-      sourceUrl: 'https://www.wanhaber.com',
-      readCount: 3410,
-    },
-    {
-      id: 'news-vo-1',
-      title: 'Van Çevre Yolu İnşaatında Son Aşamaya Gelindi: Trafik Rahatlayacak',
-      category: 'Ulaşım & Şehir',
-      image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=800&q=80',
-      summary: 'İpekyolu ve Tuşba bağlantı kavşaklarındaki son asfaltlama çalışmaları hız kazandı.',
-      content: 'Van Olay Gazetesi\'nin bildirdiğine göre Van Çevre Yolu Projesi kapsamındaki viyadük ve kavşaklar tamamlanarak trafiğe açılmaya hazırlanıyor.',
-      date: todayStr,
-      time: '12:10',
-      source: 'Van Olay',
-      sourceUrl: 'https://www.vanolay.com',
-      readCount: 1890,
-    },
-    {
-      id: 'news-vp-1',
-      title: 'Van Teknokent\'te Genç Girişimcilere %100 Hibe Desteği Başlatıldı',
-      category: 'Teknoloji & Ekonomi',
-      image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
-      summary: 'Yüzüncü Yıl Üniversitesi Teknokent bünyesinde yazılım ve bilişim start-up projeleri için başvuru dönemi başladı.',
-      content: 'Van Postası haberine göre genç yazılımcılara ve girişimcilere mentörlük ile birlikte ofis desteği sağlanacak.',
-      date: todayStr,
-      time: '11:30',
-      source: 'Van Postası',
-      sourceUrl: 'https://www.vanpostasi.com',
-      readCount: 1640,
-    },
-    {
-      id: 'news-vh-1',
-      title: 'İnci Kefalı Festivalinde Rekor Katılımcı Sayısına Ulaşıldı',
-      category: 'Kültür & Doğa',
-      image: 'https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?auto=format&fit=crop&w=800&q=80',
-      summary: 'Muradiye Şelalesi ve Deli Çay çevresinde balık göçü şenliklerine binlerce yerli ve yabancı turist katıldı.',
-      content: 'Van Havadis Gazetesi haberine göre; dünyada tek Van Gölü\'nde yaşayan İnci Kefalı\'nın kutsal göçü coşkuyla izlendi.',
-      date: todayStr,
-      time: '10:50',
-      source: 'Van Havadis',
-      sourceUrl: 'https://www.vanhavadis.com',
-      readCount: 2980,
-    },
-    {
-      id: 'news-gv-1',
-      title: 'Van Kedisi Villası\'nda Bu Yıl 120 Yavru Kedi Dünyaya Geldi',
-      category: 'Doğa & Hayvan Dostlarımız',
-      image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80',
-      summary: 'Farklı göz renkleri ve pamuk beyaz tüyleriyle bilinen Van Kedileri koruma altında çoğalmaya devam ediyor.',
-      content: 'Gazete Van haberine göre YYÜ Van Kedisi Araştırma Merkezi müdürlüğü yavru bakımlarının titizlikle yapıldığını bildirdi.',
-      date: todayStr,
-      time: '09:40',
-      source: 'Gazete Van',
-      sourceUrl: 'https://www.gazetevan.com',
-      readCount: 4120,
-    },
-    {
-      id: 'news-ve-1',
-      title: 'Van Esnaf Odalarından Yerel Alışveriş Destek Kampanyası',
-      category: 'Ekonomi & Esnaf',
-      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-      summary: 'Yerel çarşı ve mahalle esnafından alışveriş yapılmasını teşvik eden indirim günleri başladı.',
-      content: 'Van Ekspres haber servisine göre Cumhuriyet ve Maraş caddelerindeki esnaflar ortak indirim ve hediye çekleri sunuyor.',
-      date: todayStr,
-      time: '08:50',
-      source: 'Van Ekspres',
-      sourceUrl: 'https://www.vanekspres.com',
-      readCount: 1530,
-    },
-  ];
-
   try {
-    // Attempt fetching RSS / News feeds from top Van channels
-    const rssPromises = top7Channels.map(async (channel) => {
+    // Attempt fetching RSS / News feeds from live Van channels
+    const rssPromises = rssChannels.map(async (channel) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
       try {
@@ -1498,7 +1423,6 @@ app.get('/api/news', async (_req, res) => {
                 time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
                 source: channel.name,
                 sourceUrl: link,
-                readCount: Math.floor(Math.random() * 1000) + 500,
               });
             }
           }
@@ -1528,26 +1452,45 @@ app.get('/api/news', async (_req, res) => {
     }
 
     if (finalNews.length > 0) {
-      return res.json({
+      const payload: NewsApiPayload = {
         success: true,
         count: finalNews.length,
         lastUpdated: `Güncel ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
-        source: 'Van 7 Büyük Haber Portalı (Canlı RSS)',
-        channelsCount: top7Channels.length,
+        source: 'Wan Haber, Van Olay, Van Havadis (Canlı RSS)',
+        channelsCount: rssChannels.length,
         news: finalNews,
+      };
+      newsCache = { payload, fetchedAt: Date.now() };
+      return res.json(payload);
+    }
+
+    // Canlı veri yok: son başarılı sonuç hala makul tazelikteyse dürüstçe
+    // "eski önbellek" olarak sun (kaynak etiketinde belirtilir).
+    if (newsCache && Date.now() - newsCache.fetchedAt <= NEWS_STALE_MAX_MS) {
+      return res.json({
+        ...newsCache.payload,
+        stale: true,
+        source: `${newsCache.payload.source} — geçici olarak önbellekten`,
       });
     }
   } catch (err) {
-    console.warn('Error fetching RSS news, relying on structured dataset:', err);
+    console.warn('Error fetching RSS news:', err);
+    if (newsCache && Date.now() - newsCache.fetchedAt <= NEWS_STALE_MAX_MS) {
+      return res.json({
+        ...newsCache.payload,
+        stale: true,
+        source: `${newsCache.payload.source} — geçici olarak önbellekten`,
+      });
+    }
   }
 
-  res.json({
-    success: true,
-    count: defaultTop7News.length,
-    lastUpdated: `Güncel ${todayStr}`,
-    source: 'Van Top 7 Haber Portalı (Şehrivan, Wan Haber, Van Olay, Van Postası, Van Havadis, Gazete Van, Van Ekspres)',
-    channelsCount: top7Channels.length,
-    news: defaultTop7News,
+  // Dürüst hata: uydurma haber üretilmez (eski davranış sahte veriyi "canlı"
+  // gibi sunuyordu). İstemci bu durumda hata mesajı gösterir.
+  res.status(503).json({
+    success: false,
+    count: 0,
+    error: 'Canlı haber kaynaklarına şu anda ulaşılamıyor. Lütfen daha sonra tekrar deneyiniz.',
+    channelsCount: rssChannels.length,
   });
 });
 

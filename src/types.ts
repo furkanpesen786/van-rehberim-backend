@@ -105,7 +105,6 @@ export interface NewsItem {
   time: string;
   source: string;
   sourceUrl?: string;
-  readCount: number;
 }
 
 export interface Deal {
