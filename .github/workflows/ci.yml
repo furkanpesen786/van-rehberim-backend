@@ -26,9 +26,6 @@ jobs:
     - name: Lint (ESLint + TypeScript)
       run: npm run lint
 
-    - name: Run npm audit fix (non‑breaking)
-      run: npm audit fix
-
     - name: Build Vite app
       run: npm run build
 
