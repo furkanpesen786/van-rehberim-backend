@@ -3,7 +3,10 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import cors from 'cors';
-import { listingsRouter } from './server/listings';
+// DİKKAT: Native ESM ("type": "module") uzantısız göreli import'u çözemez —
+// tam .ts uzantısı şart (ts-node, tsx, esbuild ve tsc/allowImportingTsExtensions
+// hepsi bu formu kabul eder).
+import { listingsRouter } from './server/listings.ts';
 
 const app = express();
 // Render.com'un dinamik portunu yakalamak için çok önemli!
