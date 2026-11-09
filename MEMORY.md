@@ -4,17 +4,16 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 09.11.2026 — M8 TAMAMLANDI ✅ (`/api/currencies` önbelleği,
+> **Son güncelleme:** 09.11.2026 — M9 TAMAMLANDI ✅ (AndroidManifest güvenliği,
 > deploy `live` + canlı doğrulandı)
-> **Özet:** 09.11 oturumu: (1) `6ca3a1a`'nın CI run'ı GitHub API'den doğrulandı
-> → yeşil (M7'nin son bekleyen doğrulaması). (2) **M8 çözüldü + CANLIDA**
-> (`b3acdd8`, deploy `live`): `/api/currencies`'e 10 dk sunucu önbelleği +
-> 2 saat bayat-fallback + 10 sn fetch timeout eklendi (haber endpoint'iyle
-> aynı model). HomeView 60 sn'de bir doviz.com scrape tetikliyordu; artık
-> sunucu en fazla 10 dk'da bir tarıyor. Canlı doğrulandı: tekrar çağrılar aynı
-> `lastUpdated` ile önbellekten dönüyor. Kalan: uygulamada Haberler sekmesi
-> elle testi (yeni APK derlenince anlamlı) + sıradaki görev seçimi (B/C/D —
-> Bölüm 2).
+> **Özet:** 09.11 oturumu (M8 + M9): (1) `6ca3a1a` CI ✅ yeşil. (2) **M8**
+> (`b3acdd8`): `/api/currencies`'e 10 dk önbellek + 2 saat bayat-fallback +
+> 10 sn fetch timeout — canlıda doğrulandı. (3) **M9** (`5542427`):
+> AndroidManifest'te `usesCleartextTraffic=false` + `allowBackup=false`;
+> server.ts'te RSS haber görsellerinde `http://` → `https://` yükseltmesi.
+> Deploy `live`, CI yeşil, canlı `/api/news` 30 haber + `http://` görsel yok.
+> ÖNEMLİ: manifest değişikliği yalnızca YENİ APK derlenince etkili olur.
+> Kalan görevler: C (kök temizliği), D (markalaşma); M5 donduruldu.
 
 ---
 
@@ -141,10 +140,18 @@ Not: Bu oturumda da Bash sınıflandırıcısı aralıklı arızalıydı — tsc
 git-commit/curl çalıştı ama `npm run build`, boot testi, `git push` ve bazı
 curl'ler reddedildi; kullanıcı `!` önekiyle çalıştırdı (dünkü yöntem).
 
-**📋 Sıradaki görev seçimi (A tamamlandı, kalan: B/C/D):**
-**B)** AndroidManifest cleartext/allowBackup **C)** Kök dizin temizliği
-**D)** Markalaşma. M5 donduruldu — tüm sorunlar bitince iyzico vs RevenueCat
-karşılaştırması.
+**09.11.2026 oturumu #9 (devamı) — M9 ÇÖZÜLDÜ + CANLIDA (AndroidManifest güvenliği):**
+Kullanıcı görev **B**'yi seçti. Ayrıntı Bölüm 3'teki M9 kaydında. Kısa özet:
+`usesCleartextTraffic=false` + `allowBackup=false` (tüm istemci trafiği zaten
+https — doğrulandı) + RSS görsellerinde http→https yükseltmesi. Commit
+`5542427`, deploy `live`, CI yeşil, canlı doğrulandı. **Etkisi ancak yeni
+APK derlenince görülür** (mevcut kurulu APK'da eski manifest var).
+Bash sınıflandırıcısı bu oturumda da aralıklı arızalıydı (tsc çalıştı;
+build/boot/push/deploy-kontrolleri kullanıcı `!` ile çalıştırdı).
+
+**📋 Sıradaki görev seçimi (A ve B tamamlandı, kalan: C/D):**
+**C)** Kök dizin temizliği **D)** Markalaşma. M5 donduruldu — tüm sorunlar
+bitince iyzico vs RevenueCat karşılaştırması.
 
 **07.11.2026 gece — oturum #6 kapanış notları:**
 - Bash'in güvenlik sınıflandırıcısı OTURUM BOYUNCA arızalıydı; yalnızca önceden
@@ -285,6 +292,34 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **09.11.2026 — M9 ÇÖZÜLDÜ (AndroidManifest: cleartext trafik + allowBackup kapatıldı):**
+>
+> - **Sorun (4.1.4):** `android:usesCleartextTraffic="true"` (HTTP trafiğine izin
+>   veriyor, MITM riski) ve `android:allowBackup="true"` (adb backup ile uygulama
+>   verisi çekilebilir) açıktı.
+> - **Değişiklikler:**
+>   1. `android/app/src/main/AndroidManifest.xml`: her iki öznitelik `false`
+>      yapıldı.
+>   2. `server.ts` (savunmacı önlem): `/api/news` RSS ayrıştırmasında haber
+>      görsel URL'lerinde `http://` → `https://` yükseltmesi — cleartext kapalı
+>      Android'de http görsel zaten yüklenmezdi; https destekleyen kaynak
+>      çalışmaya devam eder.
+> - **Güvenlik analizi:** istemcide `http://` ağ isteği YOK (tek eşleşme
+>   JobsView'daki SVG xmlns — ağ değil); tüm trafik https (Firebase, Render API,
+>   Aladhan, görseller). Sunucudan istemciye giden veride http URL yalnızca RSS
+>   görsellerinde olabilirdi → yükseltme eklendi. CORS localhost origin'leri
+>   dev amaçlı, etkilenmez.
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; `npm run build` OK (server.cjs
+>   72,5 kB); boot smoke-test EXIT 124 + "Server running" (kullanıcı `!` ile
+>   çalıştırdı). Deploy `live`; CI "build" `success`; canlı `/api/news`:
+>   count 30, channelsCount 3, `http://` görsel YOK.
+> - **ÖNEMLİ SINIR:** manifest değişikliği **ancak yeni APK derlenip
+>   kurulunca** etkili olur — mevcut kurulu APK'da hâlâ eski değerler var.
+>   Bir sonraki APK derlemesinde (M6 istemci değişiklikleriyle birlikte)
+>   manifest de devreye girecek. Android tarafında elle test önerilir
+>   (giriş, haberler, görseller, bildirimler).
+> - **Commit:** `5542427`.
 
 > **09.11.2026 — M8 ÇÖZÜLDÜ (/api/currencies önbelleği; 4.2.4'ün kalan yarısı):**
 >
@@ -471,7 +506,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 3. ~~**Ödeme doğrulaması istemci tarafında**~~ **⏸️ 07.11.2026 DONDURULDU (M5)** — kod
    tamam + commit + push; canlıya alma (Render env, APK, kural deploy'u) tüm sorunlar
    çözüldükten sonra iyzico/RevenueCat kararına göre yapılacak (Bölüm 2 dondurma notu).
-4. **AndroidManifest:** `android:usesCleartextTraffic="true"` ve `android:allowBackup="true"` açık.
+4. ~~**AndroidManifest:** `android:usesCleartextTraffic="true"` ve `android:allowBackup="true"` açık~~
+   **✅ 09.11.2026 çözüldü (M9)** — her ikisi `false` yapıldı + RSS görsellerinde
+   http→https yükseltmesi (ayrıntı Bölüm 3'te). **Etkisi yeni APK derlenince
+   görülür** (mevcut kurulu APK'da eski manifest var).
 5. **Scraping ToS riski:** MGM / Diyanet / doviz.com / Eczacı Odası / van.bel.tr
    sahte User-Agent ile taranıyor; regex tabanlı parsing kırılgan.
 
@@ -595,7 +633,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 5 | 🟠 Yüksek | ~~RevenueCat backend entitlement doğrulaması; ilan yazımını backend'e taşı~~ **⏸️ 07.11.2026 DONDURULDU** — kod tamam+push'lı (`d548ef6`); tüm sorunlar bitince iyzico vs RevenueCat kararına göre tamamlanacak | Ödeme yapılmadan ilan yayımlanamıyor (ertelendi — M5 dondurma notu Bölüm 2'de) |
 | 6 | 🟠 Yüksek | ~~Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir~~ **✅ 07.11 çözüldü (M6) + 08.11 CANLIDA (M7 ile)** | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü ✅ (canlıda doğrulandı) |
 | 6b | 🟠 Yüksek | ~~`/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape tetikliyor)~~ **✅ 09.11 çözüldü (M8) + CANLIDA** (`b3acdd8`: 10 dk önbellek + bayat-fallback + 10 sn timeout) | Canlı tekrar çağrılar aynı `lastUpdated` ile önbellekten dönüyor ✅ |
-| 7 | 🟡 Orta | AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat | Manifest temiz, uygulama çalışıyor |
+| 7 | 🟡 Orta | ~~AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat~~ **✅ 09.11 çözüldü (M9)** (`5542427`, canlıda) | Manifest temiz ✅ (kod düzeyinde; etki yeni APK'da) |
 | 8 | 🟡 Orta | Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal | Kökte yalnız üretim dosyaları |
 | 9 | 🟡 Orta | Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README | Başlık "Van Rehberim" |
 | 10 | 🟢 İleri | HomeView'u alt bileşenlere böl; Firestore şemasını normalize et; Vitest testleri ekle | Testler CI'da koşuyor |
@@ -607,10 +645,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (09.11.2026, oturum #8 — M8 sonrası) |
+| Komut | Sonuç (09.11.2026, oturum #9 — M9 sonrası) |
 |---|---|
-| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0–M8 sonrası doğrulandı) |
-| `npx eslint src` | ✅ exit 0 — 0 error, **79 warning** (M6 sonrası 80 idi) |
+| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0–M9 sonrası doğrulandı) |
+| `npx eslint src` | ✅ exit 0 — 0 error, **79 warning** (M8 sonrası; M9 src'yi değiştirmedi) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
 | `npm run build` | `vite build` + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
@@ -621,13 +659,14 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (09.11.2026, oturum #8): dal ucu `b3acdd8` (M8: currencies
-  önbelleği; deploy `live`), önceki `6ca3a1a` (M7), `78f4923` (M6), `bf8bab9`
-  (CI düzeltmesi), `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9` (M4),
-  `daa6f3b` (M3), `7541456` (M2), `522e980` (M0+M1). **Hepsi origin/main'de**
-  (`b3acdd8` push'u + CI sonucu ✅ yeşil doğrulandı, 09.11; `gh` CLI bu
+- Git durumu (09.11.2026, oturum #9): dal ucu `5542427` (M9: manifest güvenliği
+  + http→https görsel yükseltmesi; deploy `live` + CI yeşil), önceki `d70a0c3`
+  (MEMORY M8), `b3acdd8` (M8), `6ca3a1a` (M7), `78f4923` (M6), `bf8bab9` (CI
+  düzeltmesi), `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9` (M4), `daa6f3b`
+  (M3), `7541456` (M2), `522e980` (M0+M1). **Hepsi origin/main'de** (push +
+  CI `6ca3a1a`, `b3acdd8`, `5542427` için ✅ yeşil doğrulandı; `gh` CLI bu
   makinede kurulu DEĞİL — CI kontrolü GitHub API'den `/commits/{sha}/check-runs`
-  ile yapıldı). Keystore/APK ve yedek `*.tar.gz` dosyaları
+  ile yapılıyor). Keystore/APK ve yedek `*.tar.gz` dosyaları
   untracked + gitignore'lı, diskte yerlerinde. Geçmiş yeniden yazıldığı için
   04.11 öncesi eski hash'ler geçersiz.
 - **Yeni ortam değişkenleri (M5):** `REVENUECAT_SECRET_API_KEY` (Render + lokal .env)
