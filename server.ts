@@ -1451,7 +1451,13 @@ app.get('/api/news', async (_req, res) => {
             const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
             const link = linkMatch ? linkMatch[1].trim() : channel.baseUrl;
             const desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 150) : title;
-            const image = imgMatch ? imgMatch[1] : 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
+            // M9: http:// görsel URL'leri https://'e yükseltilir — Android'de
+            // cleartext trafik kapatıldı (usesCleartextTraffic=false), http://
+            // görsel WebView'da zaten yüklenmezdi; https destekleyen kaynaklarda
+            // çalışmaya devam eder.
+            const image = imgMatch
+              ? imgMatch[1].replace(/^http:\/\//i, 'https://')
+              : 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
 
             if (title && title.length > 5) {
               items.push({
