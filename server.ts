@@ -536,9 +536,35 @@ app.get('/api/prayer-times', async (_req, res) => {
 });
 
 // API ROUTE: Live Currency & Gold Rates from doviz.com (https://www.doviz.com/)
+// M8: 10 dk sunucu önbelleği + 2 saat bayat-fallback eklendi (haber endpoint'i
+// /api/news ile aynı model). İstemci (HomeView) bu endpoint'i 60 sn'de bir
+// çağırıyor; önbellek olmadan her çağrı doviz.com scrape tetikliyordu.
+const CURRENCIES_CACHE_TTL_MS = 10 * 60 * 1000;      // önbellek tazeliği: 10 dakika
+const CURRENCIES_STALE_MAX_MS = 2 * 60 * 60 * 1000;  // eski önbellek üst sınırı: 2 saat
+
+interface CurrenciesApiPayload {
+  success: boolean;
+  heroRates: any[];
+  tableItems: any[];
+  lastUpdated: string;
+  source: string;
+  isLive: boolean;
+  stale?: boolean;
+}
+
+let currenciesCache: { payload: CurrenciesApiPayload; fetchedAt: number } | null = null;
+
 app.get('/api/currencies', async (_req, res) => {
+  // Taze önbellek varsa doğrudan sun — her istekte doviz.com taranmaz
+  if (currenciesCache && Date.now() - currenciesCache.fetchedAt < CURRENCIES_CACHE_TTL_MS) {
+    return res.json(currenciesCache.payload);
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const response = await fetch('https://www.doviz.com/', {
+      signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -546,6 +572,7 @@ app.get('/api/currencies', async (_req, res) => {
       },
     });
 
+    clearTimeout(timeoutId);
     if (!response.ok) {
       throw new Error(`doviz.com status ${response.status}`);
     }
@@ -648,16 +675,28 @@ app.get('/api/currencies', async (_req, res) => {
     const now = new Date();
     const nowStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
-    res.json({
+    const payload: CurrenciesApiPayload = {
       success: true,
       heroRates,
       tableItems,
       lastUpdated: `Bugün ${nowStr} (doviz.com)`,
       source: 'doviz.com (Canlı Piyasalar)',
       isLive: true,
-    });
+    };
+    currenciesCache = { payload, fetchedAt: Date.now() };
+    return res.json(payload);
   } catch (error: any) {
     console.error('Error fetching doviz.com rates:', error);
+    // doviz.com geçici olarak düşerse: son başarılı sonuç hâlâ makul
+    // tazelikteyse dürüstçe "eski önbellek" olarak sun (kaynak etiketinde
+    // belirtilir); bunun altında dürüst hata döner.
+    if (currenciesCache && Date.now() - currenciesCache.fetchedAt <= CURRENCIES_STALE_MAX_MS) {
+      return res.json({
+        ...currenciesCache.payload,
+        stale: true,
+        source: `${currenciesCache.payload.source} — geçici olarak önbellekten`,
+      });
+    }
     res.status(500).json({
       success: false,
       error: 'doviz.com canlı kurlar çekilemedi',

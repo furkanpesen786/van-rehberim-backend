@@ -4,11 +4,16 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 07.11.2026, gece (oturum #6 — M6 ÇÖZÜLDÜ, commit/push BEKLİYOR)
-> **M5 DONDURULDU** (iyzico vs RevenueCat kararı sonraya ertelendi — bkz. Bölüm 2
-> dondurma notu). **M6 (haber sistemi) kodlandı ve doğrulandı:** tsc exit 0, lint
-> 0 error / 80 warning (öncesi 87). Değişiklikler çalışma ağacında; commit+push
-> için komut kullanıcıya verildi (Bash sınıflandırıcı arızası devam ediyor).
+> **Son güncelleme:** 09.11.2026 — `6ca3a1a` CI kontrolü ✅ YEŞİL (M7'nin son
+> bekleyen doğrulaması kapandı)
+> **Özet:** 08.11 akşamı M7 tamamlandı: kök neden `server.ts`'teki M5 ilavesi
+> uzantısız göreli import'un (`'./server/listings'`) native ESM'de çözülememesi
+> (boot çökmesi) idi. Düzeltildi (`6ca3a1a`), deploy **live** (119 sn), canlı
+> `/api/news` yeni kodu döndürüyor (`channelsCount: 3`, 30 gerçek haber,
+> `readCount` yok) — **M6+M7 birlikte canlıda.** 09.11: `6ca3a1a`'nın CI run'ı
+> GitHub API'den doğrulandı → "build" check-run `success` (35 sn). Kalan:
+> uygulamada Haberler sekmesi elle testi (yeni APK derlenince anlamlı) +
+> sıradaki görev seçimi (Bölüm 2'deki A/B/C/D).
 
 ---
 
@@ -78,13 +83,66 @@ vanhavadis ~20 haber), sunucuya 10 dk önbellek + 2 saatlik bayat-fallback eklen
 istemci polling'i 5 sn → 60 sn, uydurma haber dizisi ve sahte readCount kaldırıldı,
 hata durumunda dürüst hata kartı gösteriliyor. Ayrıntı Bölüm 3'teki M6 kaydında.
 
-**⚠️ M6 sonrası yapılacaklar:**
-1. Commit + push (komut kullanıcıya verildi) → CI main'de yeşil kontrolü
-2. Render otomatik deploy'un bitmesini bekle → `/api/news` canlı testi:
-   `success: true`, `channelsCount: 3`, `readCount` YOK, kaynak etiketi
-   "Wan Haber, Van Olay, Van Havadis (Canlı RSS)" olmalı
-3. Uygulamada Haberler sekmesi testi: haberler geliyor, 60 sn'de bir sessiz
-   yenileme, hata simülasyonunda (uçak modu) "TEKRAR DENE" kartı
+**⚠️ M6 sonrası yapılacaklar (güncel durum 08.11, oturum #7):**
+1. ✅ Commit + push yapıldı (`78f4923`) → ✅ CI main'de yeşil (GitHub API'den
+   doğrulandı; `bf8bab9` de yeşil, `d548ef6` fail — bilinen/düzeltildi)
+2. ✅ **Render deploy sorunu KÖK NEDENİYLE çözüldü (M7, `6ca3a1a`):** dün gece
+   manuel deploy dahil M5 sonrası TÜM deploy'lar `update_failed` idi (5 kayıt:
+   d548ef6, 2× bf8bab9, 2× 78f4923). Son başarılı deploy `713632a` (88 sn).
+   Neden: M5'te `server.ts`'e eklenen `'./server/listings'` import'u — proje
+   `"type": "module"` (native ESM) olduğundan Node ESM çözümleyicisi uzantısız
+   göreli import'u ÇÖZEMİYOR → sunucu boot'ta `ERR_MODULE_NOT_FOUND` ile
+   çöküyor → Render `update_failed` işaretleyip ESKİ sürümü çalıştırmaya devam
+   ediyordu (canlıda eski kod olmasının açıklaması). tsc/tsx/esbuild bundler
+   çözümlemesi yaptığından ve CI sunucuyu hiç BAŞLATMADIĞINDAN yakalanamadı.
+   Düzeltme: `'./server/listings.ts'` (tam uzantı). Doğrulandı: `npx -y ts-node
+   server.ts` boot EXIT 124 (ayakta), `tsc --noEmit` + `npm run build` temiz,
+   `NODE_ENV=production node dist/server.cjs` boot OK.
+3. ✅ **Push sonrası kontrol yapıldı (08.11 akşam):** `6ca3a1a | live | 119 sn`
+   (Render API'den doğrulandı). Canlı `/api/news` YENİ kodu döndürüyor:
+   `channelsCount: 3`, kaynak "Wan Haber, Van Olay, Van Havadis (Canlı RSS)",
+   `readCount` YOK, 30 gerçek haber (bugünün tarihli, gerçek sourceUrl'ler).
+   **M6+M7 birlikte canlıda.** Gözlem: deploy sonrası İLK istek yavaş/boş
+   dönebiliyor (önbellek boş → 3 RSS senkron taranıyor; 45 sn'de bitmeyebilir,
+   90 sn timeout'la tamamlandı). Sonraki istekler 10 dk önbellekten hızlı.
+   Ayrıca Render free uykudan uyanırken ilk istek 503 + Retry-After verebiliyor.
+4. ⬜ Uygulamada Haberler sekmesi testi (telefonda elle): haberler geliyor,
+   60 sn'de bir sessiz yenileme, hata simülasyonunda (uçak modu) "TEKRAR DENE"
+   kartı. NOT: mevcut APK'daki istemci kodu eski sürüm olabilir — bu test
+   anlamlı şekilde ancak yeni APK derlenince yapılabilir (istemci tarafındaki
+   M6 değişiklikleri: 60 sn polling, 3 kanal, hata kartı).
+5. ✅ **CI kontrolü yapıldı (09.11):** `6ca3a1a` → "build" check-run
+   `conclusion: success` (35 sn, 08.11 19:41 UTC; GitHub API check-runs
+   endpoint'inden doğrulandı). Eski `/status` endpoint'i Actions için boş
+   döner — `.../commits/{sha}/check-runs` kullanılmalı.
+
+**📋 Render servis bilgileri (oturum #7'de API'den doğrulandı):**
+- Servis: `srv-d9nm3bajnfac73bcb2v0` ("van-rehberim-api", free plan, frankfurt,
+  autoDeploy: YES — commit tetikler). Repo: `furkanpesen786/van-rehberim-backend`
+  (= yerel origin; CI de aynı repoda). Build: `npm install && npm run build`;
+  **Start: `npx ts-node server.ts`** (ts-node package.json'da YOK — npx runtime'ta
+  indiriyor; ileride `npm start`/`node dist/server.cjs`'e geçirilmesi düşünülebilir,
+  ama M7 düzeltmesi mevcut komutla da çalışıyor). Health check yok; build cache yok.
+- Render API anahtarı: `Desktop/yeni klasör/render apı keys.txt` (`rnd_...`,
+  08.11'de kullanıcı güncelledi — ESKİ dosya `render-apı-key.txt` silindi).
+  Scriptler (hepsi yeni anahtar dosyasını okuyacak şekilde düzeltildi):
+  `render-deploy-status.sh` (son 5), `render-deploy-history.sh` (son 30 + süre),
+  `render-logs.sh` (zaman aralıklı log — /v1/logs parametre adları HENÜZ
+  çözülemedi: `name`, `serviceId`, `filter[...]` reddedildi), `render-setup.sh`
+  (M5 env kurulumu — DONDURULDU, çalıştırma!).
+
+**📋 Sıradaki görev seçimi (kullanıcıya 07.11'de soruldu, yanıt gelmedi):**
+**A)** `/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape
+tetikliyor — 4.2.4 kalan yarısı, önerilen) **B)** AndroidManifest
+cleartext/allowBackup **C)** Kök dizin temizliği **D)** Markalaşma
+M5 donduruldu — tüm sorunlar bitince iyzico vs RevenueCat karşılaştırması.
+
+**07.11.2026 gece — oturum #6 kapanış notları:**
+- Bash'in güvenlik sınıflandırıcısı OTURUM BOYUNCA arızalıydı; yalnızca önceden
+  onaylı komutlar çalıştı. Doğrulama/commit/push komutları KULLANICI tarafından
+  `!` önekiyle çalıştırıldı (tsc exit 0, lint 0 error/80 warn, commit+push OK).
+- WebFetch aralıklı çalıştı (RSS doğrulaması + CI durumu + canlı endpoint testi
+  yapılabildi); Monitor ile 15 dk deploy izleme yapıldı, zaman aşımına uğradı.
 
 **06.11.2026 oturumu #4:** **M4 çözüldü** (bkz. Bölüm 3). ESLint 9 flat config onarıldı,
 `.eslintrc.json` silindi. `npm run lint` exit 0 — 0 error, 87 warning (bilinen borç:
@@ -218,6 +276,35 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **08.11.2026 — M7 ÇÖZÜLDÜ (M5 sonrası tüm Render deploy'ları update_failed; boot çökmesi):**
+>
+> - **Belirti:** d548ef6 (M5)'ten itibaren 5 deploy da ~90-110 sn'de `update_failed`;
+>   canlıda M5 öncesi kod çalışıyordu. Dün geceki manuel deploy da faydasızdı.
+> - **Teşhis süreci:** Render API'den deploy geçmişi çekildi (yeni `rnd_...` anahtarla;
+>   son başarılı `713632a`, 88 sn). Başarılı deploy süresi ≈ başarısızların süresi
+>   → build değil, **boot aşaması** şüphesi. Render'ın start komutu birebir lokalde
+>   çalıştırıldı (`npx -y ts-node server.ts`) → `ERR_MODULE_NOT_FOUND:
+> ./server/listings` — kök neden yerelde yakalandı.
+> - **Kök neden:** `server.ts:6`'daki `import { listingsRouter } from './server/listings'`
+>   (M5 ilavesi — server.ts'in İLK göreli import'u). Proje `"type": "module"` olduğundan
+>   Node native ESM çözümleyicisi uzantısız göreli belirticiyi çözmez. Eski kodda göreli
+>   import yoktuğu için aynı start komutu yıllardır sorunsuzdu. `tsc`, `tsx`, `esbuild`
+>   bundler çözümlemesi yaptığından ve CI sunucuyu hiç başlatmadığından (yalnızca
+>   lint+build) hata CI'da görünmezdi; lokal dev de `tsx server.ts` kullanıyordu.
+> - **Çözüm:** import `'./server/listings.ts'` olarak değiştirildi (tam uzantı +
+>   açıklama yorumu). tsconfig'de `allowImportingTsExtensions: true` zaten var.
+> - **Doğrulama:** `npx -y ts-node server.ts` → EXIT 124 + "Server running"
+>   (60 sn boyunca ayakta); `npx tsc --noEmit` exit 0; `npm run build` OK
+>   (vite 1741 modül + esbuild dist/server.cjs 71,6 kB); `NODE_ENV=production
+>   PORT=3999 node dist/server.cjs` → EXIT 124 + "Server running" (prod yolu da sağlam).
+> - **Commit:** `6ca3a1a` (yalnızca server.ts, 4 satır) — push edildi, auto-deploy
+>   **`live` (119 sn)**; canlı `/api/news` yeni kodu döndürüyor (3 kanal, gerçek
+>   haberler, readCount yok) — M6+M7 birlikte canlıya geçti (08.11 akşam).
+> - **Dersler:** (1) CI'a sunucu boot smoke-test'i eklenmeli (ör. `NODE_ENV=production
+>   node dist/server.cjs` + 5 sn sonra port kontrolü) — ileride değerlendirilebilir;
+>   (2) native ESM'de göreli import'lara daima tam uzantı; (3) Render `update_failed`
+>   = build sonrası başlatma/aşama hatası (build hatası olsa `build_failed` olurdu).
 
 > **07.11.2026 — M6 ÇÖZÜLDÜ (haber sistemi dürüstleştirme + performans):**
 >
@@ -466,8 +553,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 3 | 🔴 Acil | ~~DealsView süre/fiyat hatasını düzelt~~ **✅ 06.11.2026 çözüldü** (JobsView modeli; tsc doğrulandı). Canlı RevenueCat satın alma testi önerilir | Seçilen gün = satın alınan ürün = Firestore'a yazılan süre ✅ (kod düzeyinde) |
 | 4 | 🟠 Yüksek | ~~ESLint'i düzelt (tek flat config + `@typescript-eslint/parser`), `.eslintrc.json`'ı sil~~ **✅ 06.11.2026 çözüldü** (`npm run lint` exit 0, 0 error / 87 warn). Kalan: push sonrası CI main'de yeşil kontrolü | `npm run lint` exit 0 ✅ |
 | 5 | 🟠 Yüksek | ~~RevenueCat backend entitlement doğrulaması; ilan yazımını backend'e taşı~~ **⏸️ 07.11.2026 DONDURULDU** — kod tamam+push'lı (`d548ef6`); tüm sorunlar bitince iyzico vs RevenueCat kararına göre tamamlanacak | Ödeme yapılmadan ilan yayımlanamıyor (ertelendi — M5 dondurma notu Bölüm 2'de) |
-| 6 | 🟠 Yüksek | ~~Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir~~ **✅ 07.11.2026 çözüldü (M6)** — tsc+lint doğrulandı; commit/push + canlı test bekliyor | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü ✅ (kod düzeyinde) |
-| 6 | 🟠 Yüksek | Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü |
+| 6 | 🟠 Yüksek | ~~Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir~~ **✅ 07.11 çözüldü (M6) + 08.11 CANLIDA (M7 ile)** | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü ✅ (canlıda doğrulandı) |
 | 7 | 🟡 Orta | AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat | Manifest temiz, uygulama çalışıyor |
 | 8 | 🟡 Orta | Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal | Kökte yalnız üretim dosyaları |
 | 9 | 🟡 Orta | Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README | Başlık "Van Rehberim" |
@@ -494,15 +580,28 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (07.11.2026 akşam, oturum #6): dal ucu `bf8bab9` (CI düzeltmesi),
-  önceki `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9` (M4), `daa6f3b` (M3),
-  `7541456` (M2), `522e980` (M0+M1). **Hepsi origin/main'de** (fetch ile doğrulandı;
-  `gh` CLI bu makinede kurulu DEĞİL — CI kontrolü GitHub API/web ile yapılmalı).
-  Keystore/APK ve yedek `*.tar.gz` dosyaları untracked + gitignore'lı, diskte
-  yerlerinde. Geçmiş yeniden yazıldığı için 04.11 öncesi eski hash'ler geçersiz.
+- Git durumu (08.11.2026, oturum #7): dal ucu `6ca3a1a` (M7: ESM import
+  düzeltmesi), önceki `78f4923` (M6), `bf8bab9` (CI düzeltmesi), `d548ef6` (M5),
+  `713632a` (MEMORY), `a3f46e9` (M4), `daa6f3b` (M3), `7541456` (M2), `522e980`
+  (M0+M1). **Hepsi origin/main'de** (`6ca3a1a` push'u + CI sonucu ✅ yeşil
+  doğrulandı, 09.11; `gh` CLI bu makinede kurulu DEĞİL — CI kontrolü GitHub
+  API'den `/commits/{sha}/check-runs` ile yapıldı). Keystore/APK ve yedek
+  `*.tar.gz` dosyaları
+  untracked + gitignore'lı, diskte yerlerinde. Geçmiş yeniden yazıldığı için
+  04.11 öncesi eski hash'ler geçersiz.
 - **Yeni ortam değişkenleri (M5):** `REVENUECAT_SECRET_API_KEY` (Render + lokal .env)
   ve `FIREBASE_SERVICE_ACCOUNT` (service account JSON'ı tek satır string; Render +
   lokal .env). İkisi de eksikken `/api/listings` bilinçli olarak 503 döner (fail-closed).
+- **Render yardımcı dosyaları (repo DIŞINDA, `Desktop/yeni klasör/`):**
+  `render apı keys.txt` (geçerli `rnd_...` API anahtarı, 08.11 güncellendi;
+  eski `render-apı-key.txt` silindi), `render-deploy-status.sh` (son 5 deploy),
+  `render-deploy-history.sh` (son 30 deploy + süreler), `render-logs.sh`
+  (/v1/logs — parametre adları çözülemedi, şimdilik işlevsiz),
+  `render-deploy-logs.sh` (deploy log endpoint'i 404 — işlevsiz),
+  `render-setup.sh` (M5 env kurulumu; DONDURULDU, çalıştırma!),
+  `revenuecat` (Secret API key), `vanrehberim-f181b-firebase-adminsdk-....json`
+  (service account — Firestore tam yetki, dikkat). Bu klasör yedeklenmeli/
+  güvende tutulmalı, işler bitince secret'lar silinmeli.
 - 07.11.2026 oturum notu (#5): Bash araçları sistemsel arıza nedeniyle oturum boyunca
   kapalıydı; tüm doğrulamalar ertelendi. Oturum #6 notu: Bash'in güvenlik
   sınıflandırıcısı aralıklı arızalıydı — yalnızca önceden onaylı komutlar (git
