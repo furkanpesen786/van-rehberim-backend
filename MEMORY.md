@@ -4,16 +4,17 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 09.11.2026 — `6ca3a1a` CI kontrolü ✅ YEŞİL (M7'nin son
-> bekleyen doğrulaması kapandı)
-> **Özet:** 08.11 akşamı M7 tamamlandı: kök neden `server.ts`'teki M5 ilavesi
-> uzantısız göreli import'un (`'./server/listings'`) native ESM'de çözülememesi
-> (boot çökmesi) idi. Düzeltildi (`6ca3a1a`), deploy **live** (119 sn), canlı
-> `/api/news` yeni kodu döndürüyor (`channelsCount: 3`, 30 gerçek haber,
-> `readCount` yok) — **M6+M7 birlikte canlıda.** 09.11: `6ca3a1a`'nın CI run'ı
-> GitHub API'den doğrulandı → "build" check-run `success` (35 sn). Kalan:
-> uygulamada Haberler sekmesi elle testi (yeni APK derlenince anlamlı) +
-> sıradaki görev seçimi (Bölüm 2'deki A/B/C/D).
+> **Son güncelleme:** 09.11.2026 — M8 TAMAMLANDI ✅ (`/api/currencies` önbelleği,
+> deploy `live` + canlı doğrulandı)
+> **Özet:** 09.11 oturumu: (1) `6ca3a1a`'nın CI run'ı GitHub API'den doğrulandı
+> → yeşil (M7'nin son bekleyen doğrulaması). (2) **M8 çözüldü + CANLIDA**
+> (`b3acdd8`, deploy `live`): `/api/currencies`'e 10 dk sunucu önbelleği +
+> 2 saat bayat-fallback + 10 sn fetch timeout eklendi (haber endpoint'iyle
+> aynı model). HomeView 60 sn'de bir doviz.com scrape tetikliyordu; artık
+> sunucu en fazla 10 dk'da bir tarıyor. Canlı doğrulandı: tekrar çağrılar aynı
+> `lastUpdated` ile önbellekten dönüyor. Kalan: uygulamada Haberler sekmesi
+> elle testi (yeni APK derlenince anlamlı) + sıradaki görev seçimi (B/C/D —
+> Bölüm 2).
 
 ---
 
@@ -131,11 +132,19 @@ hata durumunda dürüst hata kartı gösteriliyor. Ayrıntı Bölüm 3'teki M6 k
   çözülemedi: `name`, `serviceId`, `filter[...]` reddedildi), `render-setup.sh`
   (M5 env kurulumu — DONDURULDU, çalıştırma!).
 
-**📋 Sıradaki görev seçimi (kullanıcıya 07.11'de soruldu, yanıt gelmedi):**
-**A)** `/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape
-tetikliyor — 4.2.4 kalan yarısı, önerilen) **B)** AndroidManifest
-cleartext/allowBackup **C)** Kök dizin temizliği **D)** Markalaşma
-M5 donduruldu — tüm sorunlar bitince iyzico vs RevenueCat karşılaştırması.
+**09.11.2026 oturumu #8 — M8 ÇÖZÜLDÜ + CANLIDA (`/api/currencies` önbelleği):**
+Kullanici gorevi secti (A/B/C/D arasindan **A**). Yapilanlar ayrintisi Bölüm 3'teki
+M8 kaydında. Kısa özet: `/api/currencies`'e 10 dk taze önbellek + 2 saat
+bayat-fallback + 10 sn fetch timeout; istemci değişmedi (60 sn polling önbellekten
+ucuz yanıt alır). Commit `b3acdd8`, deploy `live`, canlı doğrulandı.
+Not: Bu oturumda da Bash sınıflandırıcısı aralıklı arızalıydı — tsc/eslint/
+git-commit/curl çalıştı ama `npm run build`, boot testi, `git push` ve bazı
+curl'ler reddedildi; kullanıcı `!` önekiyle çalıştırdı (dünkü yöntem).
+
+**📋 Sıradaki görev seçimi (A tamamlandı, kalan: B/C/D):**
+**B)** AndroidManifest cleartext/allowBackup **C)** Kök dizin temizliği
+**D)** Markalaşma. M5 donduruldu — tüm sorunlar bitince iyzico vs RevenueCat
+karşılaştırması.
 
 **07.11.2026 gece — oturum #6 kapanış notları:**
 - Bash'in güvenlik sınıflandırıcısı OTURUM BOYUNCA arızalıydı; yalnızca önceden
@@ -276,6 +285,36 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **09.11.2026 — M8 ÇÖZÜLDÜ (/api/currencies önbelleği; 4.2.4'ün kalan yarısı):**
+>
+> - **Sorun:** HomeView 60 sn'de bir `handleRefreshCurrencies()` çağırıyordu ve
+>   `/api/currencies` her istekte doviz.com'u baştan tarıyordu (scrape + Render
+>   yükü). Ayrıca endpoint'teki fetch'in timeout'u YOKTU — doviz.com yavaşlarsa
+>   istek süresiz asılı kalabilirdi.
+> - **Çözüm (haber endpoint'i /api/news ile birebir aynı model, M6 deseni):**
+>   - `CURRENCIES_CACHE_TTL_MS` = 10 dk taze önbellek: taze önbellek varsa
+>     doviz.com hiç taranmaz, önbellekteki payload doğrudan döner.
+>   - `CURRENCIES_STALE_MAX_MS` = 2 saat bayat-fallback: doviz.com geçici
+>     düşerse son başarılı sonuç `stale: true` + kaynak etiketinde "geçici
+>     olarak önbellekten" notuyla sunulur; altında dürüst 500 hatası.
+>   - Fetch'e 10 sn AbortController timeout eklendi.
+>   - `CurrenciesApiPayload` interface'i + `currenciesCache` state'i eklendi.
+>   - **İstemci değişmedi** (bilinçli): 60 sn polling sunucuda artık ucuz;
+>     istemci değişikliği yeni APK gerektirirdi. `stale` alanı istemciye ek
+>   alan olarak gider, `LiveCurrencyResponse`'da tanımlı olmasa da zararsız.
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; `npx eslint src` 0 error /
+>   79 warning (80'den düştü); `npm run build` OK (server.cjs 72,4 kB);
+>   boot smoke-test `npx -y ts-node server.ts` EXIT 124 (ayakta — M7 dersi).
+>   (build + boot testi kullanıcı `!` ile çalıştırdı, Bash sınıflandırıcı
+>   arızalıydı.)
+> - **Commit:** `b3acdd8` — push edildi (kullanıcı `!` ile), auto-deploy
+>   **`live`**. Canlı doğrulama: 18:19'da çekilen veri, dakikalar sonraki
+>   tekrar çağrılarda aynı `lastUpdated` ("Bugün 18:19") ile önbellekten
+>   dönüyor → scrape tekrarlanmıyor.
+> - **Bilinen sınırlar:** istemci 60 sn'de bir sunucuya istek atmayı sürdürüyor
+>   (yanıt önbellekten ucuz ama Render free uykudan uyanma 503'ü hâlâ yaşanabilir);
+>   doviz.com scraping ToS riski sürüyor (4.1.5).
 
 > **08.11.2026 — M7 ÇÖZÜLDÜ (M5 sonrası tüm Render deploy'ları update_failed; boot çökmesi):**
 >
@@ -448,8 +487,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    çözüldü (M6)** — ölü 4 kaynak çıkarıldı, 10 dk önbellek + dürüst hata eklendi,
    uydurma veri ve sahte readCount kaldırıldı (ayrıntı Bölüm 3 M6 kaydı).
 4. ~~**Aşırı polling / önbellek yok (haber kısmı)**~~ **✅ 07.11.2026 çözüldü (M6)** —
-   NewsView 5 sn → 60 sn; sunucuda 10 dk önbellek. **Kalan yarısı:** `HomeView` 60 sn'de
-   bir doviz.com scrape tetikliyor → `/api/currencies`'e de önbellek gerekir (sonraki iş).
+   NewsView 5 sn → 60 sn; sunucuda 10 dk önbellek. ~~Kalan yarısı: HomeView 60 sn'de bir
+   doviz.com scrape tetikliyor~~ **✅ 09.11.2026 çözüldü (M8)** — `/api/currencies`'e de
+   10 dk önbellek + bayat-fallback + fetch timeout eklendi; canlıda doğrulandı.
 5. **weatherService uydurma veri:** `windDirection: 'KB'` sabit; `pop` ve `humidity`
    uydurma formüllerle hesaplanıyor (`humidity + (idx % 3) * 2 - 2`); etiket "Canlı API".
 6. **AuthContext sorunları:** `fontLoading()` ölü kod; e-posta girişi `throw` ile kapalı
@@ -554,6 +594,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 4 | 🟠 Yüksek | ~~ESLint'i düzelt (tek flat config + `@typescript-eslint/parser`), `.eslintrc.json`'ı sil~~ **✅ 06.11.2026 çözüldü** (`npm run lint` exit 0, 0 error / 87 warn). Kalan: push sonrası CI main'de yeşil kontrolü | `npm run lint` exit 0 ✅ |
 | 5 | 🟠 Yüksek | ~~RevenueCat backend entitlement doğrulaması; ilan yazımını backend'e taşı~~ **⏸️ 07.11.2026 DONDURULDU** — kod tamam+push'lı (`d548ef6`); tüm sorunlar bitince iyzico vs RevenueCat kararına göre tamamlanacak | Ödeme yapılmadan ilan yayımlanamıyor (ertelendi — M5 dondurma notu Bölüm 2'de) |
 | 6 | 🟠 Yüksek | ~~Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir~~ **✅ 07.11 çözüldü (M6) + 08.11 CANLIDA (M7 ile)** | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü ✅ (canlıda doğrulandı) |
+| 6b | 🟠 Yüksek | ~~`/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape tetikliyor)~~ **✅ 09.11 çözüldü (M8) + CANLIDA** (`b3acdd8`: 10 dk önbellek + bayat-fallback + 10 sn timeout) | Canlı tekrar çağrılar aynı `lastUpdated` ile önbellekten dönüyor ✅ |
 | 7 | 🟡 Orta | AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat | Manifest temiz, uygulama çalışıyor |
 | 8 | 🟡 Orta | Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal | Kökte yalnız üretim dosyaları |
 | 9 | 🟡 Orta | Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README | Başlık "Van Rehberim" |
@@ -566,10 +607,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (07.11.2026, oturum #6 — M6 sonrası) |
+| Komut | Sonuç (09.11.2026, oturum #8 — M8 sonrası) |
 |---|---|
-| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0–M6 sonrası doğrulandı; M6'yı kullanıcı `!` ile çalıştırdı) |
-| `npx eslint src` | ✅ exit 0 — 0 error, **80 warning** (M4 sonrası 87 idi; azalma M5/M6 temizliklerinden) |
+| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0–M8 sonrası doğrulandı) |
+| `npx eslint src` | ✅ exit 0 — 0 error, **79 warning** (M6 sonrası 80 idi) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
 | `npm run build` | `vite build` + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
@@ -580,13 +621,13 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (08.11.2026, oturum #7): dal ucu `6ca3a1a` (M7: ESM import
-  düzeltmesi), önceki `78f4923` (M6), `bf8bab9` (CI düzeltmesi), `d548ef6` (M5),
-  `713632a` (MEMORY), `a3f46e9` (M4), `daa6f3b` (M3), `7541456` (M2), `522e980`
-  (M0+M1). **Hepsi origin/main'de** (`6ca3a1a` push'u + CI sonucu ✅ yeşil
-  doğrulandı, 09.11; `gh` CLI bu makinede kurulu DEĞİL — CI kontrolü GitHub
-  API'den `/commits/{sha}/check-runs` ile yapıldı). Keystore/APK ve yedek
-  `*.tar.gz` dosyaları
+- Git durumu (09.11.2026, oturum #8): dal ucu `b3acdd8` (M8: currencies
+  önbelleği; deploy `live`), önceki `6ca3a1a` (M7), `78f4923` (M6), `bf8bab9`
+  (CI düzeltmesi), `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9` (M4),
+  `daa6f3b` (M3), `7541456` (M2), `522e980` (M0+M1). **Hepsi origin/main'de**
+  (`b3acdd8` push'u + CI sonucu ✅ yeşil doğrulandı, 09.11; `gh` CLI bu
+  makinede kurulu DEĞİL — CI kontrolü GitHub API'den `/commits/{sha}/check-runs`
+  ile yapıldı). Keystore/APK ve yedek `*.tar.gz` dosyaları
   untracked + gitignore'lı, diskte yerlerinde. Geçmiş yeniden yazıldığı için
   04.11 öncesi eski hash'ler geçersiz.
 - **Yeni ortam değişkenleri (M5):** `REVENUECAT_SECRET_API_KEY` (Render + lokal .env)
