@@ -165,10 +165,10 @@ export interface VanWeatherData {
   windSpeed: number;
   windDirection: string;
   pressure: number;
-  uvIndex: number;
+  uvIndex: number | null;
   uvStatus: string;
   uvAdvice: string;
-  aqi: number;
+  aqi: number | null;
   aqiStatus: string;
   aqiColor: string;
   aqiAdvice: string;

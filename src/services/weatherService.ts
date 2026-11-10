@@ -1,10 +1,25 @@
 import { VanWeatherData } from '../types';
 import { VAN_WEATHER } from '../data/mockData';
 
+// Rüzgar yönü: derece -> 16 yönlu Türkçe pusula kısaltması.
+// (M12 öncesi windDirection sabit 'KB' idi — API'den gelen derece hiç kullanılmıyordu.)
+const COMPASS_16_TR = [
+  'K', 'KKD', 'KD', 'DKD', 'D', 'DKG', 'GD', 'GGD',
+  'G', 'GGB', 'GB', 'BGB', 'B', 'BKB', 'KB', 'KKB',
+];
+
+function degToCompassTR(deg: number): string {
+  const normalized = ((deg % 360) + 360) % 360;
+  return COMPASS_16_TR[Math.round(normalized / 22.5) % 16];
+}
+
 export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
   // Client-side Live API via Open-Meteo (lat: 38.5012, lon: 43.3730 for Van)
   try {
-    const openMeteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude=38.5012&longitude=43.3730&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=Europe%2FIstanbul';
+    // M12: daily listesine precipitation_probability_max (gerçek yağış olasılığı)
+    // ve relative_humidity_2m_mean (günlük ortalama nem) eklendi — önceden pop ve
+    // tahmin nemi uydurma formüllerle üretiliyordu.
+    const openMeteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude=38.5012&longitude=43.3730&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,relative_humidity_2m_mean&timezone=Europe%2FIstanbul';
     const aqiUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5012&longitude=43.3730&current=us_aqi';
 
     const controller = new AbortController();
@@ -62,14 +77,24 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
           icon: meta.icon,
           tempMax: Math.round(daily.temperature_2m_max?.[idx] ?? tempMax),
           tempMin: Math.round(daily.temperature_2m_min?.[idx] ?? tempMin),
-          pop: meta.icon === 'rain' ? 70 : meta.icon === 'cloud' ? 25 : 5,
-          humidity: Math.round(humidity + (idx % 3) * 2 - 2),
+          // M12: gerçek yağış olasılığı (önceden ikona göre 70/25/5 uyduruluyordu)
+          pop: Math.round(daily.precipitation_probability_max?.[idx] ?? 0),
+          // M12: gerçek günlük ortalama nem (önceden humidity + (idx%3)*2-2 formülüydü)
+          humidity: Math.round(daily.relative_humidity_2m_mean?.[idx] ?? humidity),
         };
       });
 
-      const aqi = Math.round(aqiData?.current?.us_aqi ?? 32);
-      const uvIndex = Math.round((daily.uv_index_max?.[0] ?? 6.5) * 10) / 10;
+      // M12: AQI ve UV artık uydurma varsayılan DEĞİL — veri yoksa null döner ve
+      // UI "Veri yok" gösterir. (Önceden AQI isteği düşerse sahte "32 AQI İyi"
+      // üretiliyordu.) AQI ayrı bir istek olduğu için ana yanıttan bağımsız düşebilir.
+      const aqiRaw = aqiData?.current?.us_aqi;
+      const aqi = aqiRaw != null ? Math.round(aqiRaw) : null;
+      const uvRaw = daily.uv_index_max?.[0];
+      const uvIndex = uvRaw != null ? Math.round(uvRaw * 10) / 10 : null;
       const nowStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+      // M12: rüzgar yönü artık API'den gelen gerçek dereceden hesaplanıyor.
+      const windDirection = current.wind_direction_10m != null ? degToCompassTR(current.wind_direction_10m) : '—';
 
       return {
         city: 'Van Merkez',
@@ -80,16 +105,20 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
         tempMin,
         humidity,
         windSpeed,
-        windDirection: 'KB',
+        windDirection,
         pressure,
         uvIndex,
-        uvStatus: uvIndex >= 8 ? 'Çok Yüksek' : uvIndex >= 6 ? 'Yüksek' : 'Orta',
-        uvAdvice: 'Güneş ışınlarının dik geldiği öğle saatlerinde koruyucu şapka kullanın.',
+        uvStatus: uvIndex == null ? 'Veri Yok' : uvIndex >= 8 ? 'Çok Yüksek' : uvIndex >= 6 ? 'Yüksek' : uvIndex >= 3 ? 'Orta' : 'Düşük',
+        uvAdvice: uvIndex == null
+          ? 'UV verisi şu anda alınamadı.'
+          : 'Güneş ışınlarının dik geldiği öğle saatlerinde koruyucu şapka kullanın.',
         aqi,
-        aqiStatus: aqi <= 50 ? 'İyi (Temiz Dağ Havası)' : 'Orta',
+        aqiStatus: aqi == null ? 'Veri Yok' : aqi <= 50 ? 'İyi (Temiz Dağ Havası)' : 'Orta',
         aqiColor: 'emerald',
-        aqiAdvice: 'Van Gölü ve etrafında gökyüzü ve hava kalitesi açık hava etkinlikleri için idealdir.',
-        lastUpdated: `Bugün ${nowStr} (Canlı Canlı API)`,
+        aqiAdvice: aqi == null
+          ? 'Hava kalitesi verisi şu anda alınamadı.'
+          : 'Van Gölü ve etrafında gökyüzü ve hava kalitesi açık hava etkinlikleri için idealdir.',
+        lastUpdated: `Bugün ${nowStr} (Open-Meteo canlı veri)`,
         forecast7Days,
       };
     } else {

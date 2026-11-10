@@ -492,7 +492,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   <Wind className="w-4 h-4 text-emerald-500 shrink-0" />
                   <div className="min-w-0">
                     <div className="text-[9px] font-extrabold uppercase tracking-wide opacity-80">Hava Kalitesi</div>
-                    <div className="text-xs font-bold truncate">{weather.aqi} AQI • {weather.aqiStatus.split(' ')[0]}</div>
+                    <div className="text-xs font-bold truncate">{weather.aqi != null ? `${weather.aqi} AQI • ${weather.aqiStatus.split(' ')[0]}` : weather.aqiStatus}</div>
                   </div>
                 </div>
 
@@ -501,7 +501,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                   <div className="min-w-0">
                     <div className="text-[9px] font-extrabold uppercase tracking-wide opacity-80">UV İndeksi</div>
-                    <div className="text-xs font-bold truncate">{weather.uvIndex} • {weather.uvStatus.split(' ')[0]}</div>
+                    <div className="text-xs font-bold truncate">{weather.uvIndex != null ? `${weather.uvIndex} • ${weather.uvStatus.split(' ')[0]}` : weather.uvStatus}</div>
                   </div>
                 </div>
               </div>
@@ -1852,7 +1852,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                     <h4 className="font-extrabold text-xs sm:text-sm uppercase tracking-wide">Hava Kalitesi (AQI)</h4>
                   </div>
                   <span className="bg-emerald-500/20 text-emerald-500 text-xs font-black px-2.5 py-1 rounded-full">
-                    {weather.aqi} AQI - {weather.aqiStatus}
+                    {weather.aqi != null ? `${weather.aqi} AQI - ${weather.aqiStatus}` : weather.aqiStatus}
                   </span>
                 </div>
 
@@ -1861,7 +1861,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
                     <div
                       className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (weather.aqi / 150) * 100)}%` }}
+                      style={{ width: weather.aqi != null ? `${Math.min(100, (weather.aqi / 150) * 100)}%` : '0%' }}
                     />
                   </div>
                   <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase">
@@ -1884,7 +1884,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                     <h4 className="font-extrabold text-xs sm:text-sm uppercase tracking-wide">UV Işın Miktarı</h4>
                   </div>
                   <span className="bg-amber-500/20 text-amber-500 text-xs font-black px-2.5 py-1 rounded-full">
-                    {weather.uvIndex} / 11 ({weather.uvStatus})
+                    {weather.uvIndex != null ? `${weather.uvIndex} / 11 (${weather.uvStatus})` : weather.uvStatus}
                   </span>
                 </div>
 
@@ -1893,7 +1893,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
                     <div
                       className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500"
-                      style={{ width: `${(weather.uvIndex / 11) * 100}%` }}
+                      style={{ width: weather.uvIndex != null ? `${Math.min(100, (weather.uvIndex / 11) * 100)}%` : '0%' }}
                     />
                   </div>
                   <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase">
