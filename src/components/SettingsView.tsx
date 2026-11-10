@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DEALS, PLACES_TO_VISIT } from '../data/mockData';
 import { Deal, PlaceToVisit } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { auth } from '../lib/firebase';
+import { auth, deleteAllUserData } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
 import { NotificationService, NotificationSettings } from '../services/notificationService';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -296,6 +296,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   try {
                     // Yalnızca auth.currentUser varsa native silme işlemi dene, yoksa (mock auth) uyarı ile sil
                     if (auth.currentUser) {
+                      // M13 (KVKK): önce Firestore'daki tüm kullanıcı verisi
+                      // (profil, favoriler, ilanlar) — güvenlik kuralları sahibin
+                      // silmesine izin verir; Auth kaydı silindikten sonra reddederdi.
+                      // Sonra Auth kaydı silinir.
+                      await deleteAllUserData(auth.currentUser.uid);
                       await deleteUser(auth.currentUser);
                     }
 

@@ -14,6 +14,8 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
+  deleteDoc,
   query,
   onSnapshot,
   Timestamp,
@@ -139,6 +141,31 @@ export async function getUserFavoritesFromFirestore(userId: string) {
     console.error('Error getting user favorites:', err);
   }
   return null;
+}
+
+// M13 (KVKK): Hesap silme — Auth kaydı silinmeden ÖNCE çağrılır. Kullanıcının
+// Firestore'daki tüm verisini siler: profil dokümanı, favoriler ve kendi
+// ilanları (is_ilanlari / indirim_ilanlari / taksiler, userId == uid).
+// Güvenlik kuralları sahibin bu silmeleri yapmasına izin verir; Auth kaydı
+// silindikten sonra kurallar reddederdi — bu yüzden sıra önemli.
+// NOT: M2 öncesi oluşturulmuş (userId alanı olmayan) eski ilanlar bu sorguya
+// yakalanmaz — onlar yalnızca Firebase Console'dan silinebilir (bilinen sınır).
+export async function deleteAllUserData(userId: string): Promise<void> {
+  // 1) Profil dokümanı
+  await deleteDoc(doc(db, 'users', userId));
+
+  // 2) Favoriler (doküman yoksa silme no-op'tur, hata vermez)
+  await deleteDoc(doc(db, 'userFavorites', userId));
+
+  // 3) Kullanıcının ilanları — üç koleksiyonda userId eşleşmeli silme
+  const listingCollections = ['is_ilanlari', 'indirim_ilanlari', 'taksiler'];
+  for (const collName of listingCollections) {
+    const q = query(collection(db, collName), where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    for (const d of snapshot.docs) {
+      await deleteDoc(d.ref);
+    }
+  }
 }
 
 // Subscribe to Taxis from Firebase Firestore (taksiler koleksiyonu)
