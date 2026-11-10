@@ -29,8 +29,7 @@
   },
   "include": [
     "src",
-    "server.ts",
-    "test_server_startup.js"
+    "server.ts"
   ],
   "exclude": [
     "node_modules",
