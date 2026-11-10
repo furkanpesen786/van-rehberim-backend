@@ -394,8 +394,26 @@ app.get('/api/pharmacies', async (_req, res) => {
   }
 });
 
-// API ROUTE: Live Diyanet Prayer Times for Van (https://namazvakitleri.diyanet.gov.tr/tr-TR/9930/van-icin-namaz-vakti)
-app.get('/api/prayer-times', async (_req, res) => {
+// M15: Namaz vakitleri TEK KAYNAK — istemci Aladhan'ı bırakıp bu endpoint'i
+// kullanıyor (değer sapması + çift bakım sorunu ortadan kalktı). Vakitler
+// günlük değiştiği için 1 saat önbellek + 24 saat bayat-fallback yeterli.
+const PRAYER_CACHE_TTL_MS = 60 * 60 * 1000;
+const PRAYER_STALE_MAX_MS = 24 * 60 * 60 * 1000;
+interface DiyanetTimesCache {
+  times: { imsak: string; sabah: string; ogle: string; ikindi: string; aksam: string; yatsi: string };
+  dateStr: string;
+  fetchedAt: number;
+}
+let prayerCache: DiyanetTimesCache | null = null;
+
+// Diyanet sayfasından vakitleri çeker (önbellekli). Bayat önbellekten
+// dönerken `stale: true` işaretlenir.
+async function fetchDiyanetTimes(): Promise<DiyanetTimesCache & { stale: boolean }> {
+  const now = Date.now();
+  if (prayerCache && now - prayerCache.fetchedAt < PRAYER_CACHE_TTL_MS) {
+    return { ...prayerCache, stale: false };
+  }
+
   try {
     const diyanetUrl = 'https://namazvakitleri.diyanet.gov.tr/tr-TR/9930/van-icin-namaz-vakti';
     const response = await fetch(diyanetUrl, {
@@ -442,6 +460,23 @@ app.get('/api/prayer-times', async (_req, res) => {
     // Extract Date header if present
     const dateMatch = cleanHtml.match(/([0-9]{1,2}\s+[A-ZÂİIĞÖŞÜa-zâığöşü]+\s+[0-9]{4})/);
     const dateStr = dateMatch ? dateMatch[1] : new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    prayerCache = { times, dateStr, fetchedAt: now };
+    return { times, dateStr, fetchedAt: now, stale: false };
+  } catch (err) {
+    // Diyanet erişilemezse bayat (≤24 saat) önbellekten devam
+    if (prayerCache && now - prayerCache.fetchedAt < PRAYER_STALE_MAX_MS) {
+      console.warn('[prayer-times] Diyanet erişilemedi, bayat önbellek kullanılıyor:', (err as Error).message);
+      return { ...prayerCache, stale: true };
+    }
+    throw err;
+  }
+}
+
+// API ROUTE: Live Diyanet Prayer Times for Van (https://namazvakitleri.diyanet.gov.tr/tr-TR/9930/van-icin-namaz-vakti)
+app.get('/api/prayer-times', async (_req, res) => {
+  try {
+    const { times, dateStr, stale } = await fetchDiyanetTimes();
 
     // Active Prayer calculation logic
     const toMinutes = (timeStr: string) => {
@@ -522,8 +557,9 @@ app.get('/api/prayer-times', async (_req, res) => {
       remainingText,
       remainingMinutes: nextMinutes,
       lastUpdated: `Bugün ${nowStr} (namazvakitleri.diyanet.gov.tr)`,
-      source: 'Diyanet İşleri Başkanlığı',
+      source: stale ? 'Diyanet İşleri Başkanlığı — geçici olarak önbellekten' : 'Diyanet İşleri Başkanlığı',
       isLive: true,
+      stale,
     });
   } catch (error: any) {
     console.error('Error fetching Diyanet prayer times:', error);

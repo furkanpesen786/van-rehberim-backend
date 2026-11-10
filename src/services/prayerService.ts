@@ -21,6 +21,7 @@ export interface LivePrayerTimesResponse {
   lastUpdated: string;
   source: string;
   isLive?: boolean;
+  stale?: boolean;
 }
 
 export function calculatePrayerStatus(times: {
@@ -103,39 +104,37 @@ export function calculatePrayerStatus(times: {
 export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
-    const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Van&country=Turkey&method=13', { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    // M15: TEK KAYNAK — istemci Aladhan'ı bıraktı; Diyanet verisi kendi
+    // sunucumuzdan geliyor (sunucuda 1 saat önbellek + bayat-fallback var).
+    // Böylece aynı özellik için iki ayrı kaynaktan sapan değerler ortadan kalktı.
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com'}/api/prayer-times`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (response.ok) {
-      const json = await response.json();
-      if (json && json.code === 200 && json.data && json.data.timings) {
+      const json: any = await response.json();
+      if (json && json.success && json.times) {
 
-        const liveTimes = {
-          imsak: json.data.timings.Fajr, // Diyanet Imsak generally aligns with Aladhan Fajr when method 13
-          sabah: json.data.timings.Sunrise,
-          ogle: json.data.timings.Dhuhr,
-          ikindi: json.data.timings.Asr,
-          aksam: json.data.timings.Maghrib,
-          yatsi: json.data.timings.Isha,
-        };
-
-        const dynamicStatus = calculatePrayerStatus(liveTimes);
+        // Aktif vakit/geri sayım sunucuda önbelleğe alınma anında hesaplanmış
+        // olabilir — istemcide güncel saatle yeniden hesapla (HomeView zaten
+        // her dakika yeniden hesaplıyor).
+        const dynamicStatus = calculatePrayerStatus(json.times);
 
         const nowStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
         return {
           success: true,
-          city: 'Van (Aladhan)',
-          date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-          times: liveTimes,
+          city: json.city || 'Van (Diyanet)',
+          date: json.date || new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+          times: json.times,
           activeKey: dynamicStatus.activeKey,
           activeTitle: dynamicStatus.activeTitle,
           nextPrayer: dynamicStatus.nextTitle,
           remainingText: dynamicStatus.remainingText,
           remainingMinutes: dynamicStatus.remainingMinutes,
-          lastUpdated: `Bugün ${nowStr} (api.aladhan.com)`,
-          source: 'Aladhan API (Diyanet Metodu)',
+          lastUpdated: `Bugün ${nowStr} (Diyanet — sunucudan)`,
+          source: json.source || 'Diyanet İşleri Başkanlığı',
           isLive: true,
+          stale: !!json.stale,
         };
       }
     } else {
@@ -168,8 +167,8 @@ export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
     nextPrayer: dynamicStatus.nextTitle,
     remainingText: dynamicStatus.remainingText,
     remainingMinutes: dynamicStatus.remainingMinutes,
-    lastUpdated: 'Diyanet Standart',
-    source: 'Diyanet İşleri Başkanlığı',
+    lastUpdated: 'Çevrimdışı varsayılan değerler',
+    source: 'Yerel varsayılan (bağlantı yok)',
     isLive: false,
   };
 }
