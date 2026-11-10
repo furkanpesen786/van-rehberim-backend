@@ -22,7 +22,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
-  loading: fontLoading(),
+  loading: true,
   loginWithEmail: async () => { },
   loginWithGoogle: async () => { },
   loginWithApple: async () => { },
@@ -31,17 +31,11 @@ const AuthContext = createContext<AuthContextType>({
   setShowAuthModal: () => { },
 });
 
-function fontLoading() { return true; }
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('van_user_profile');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  // M14: oturum yalnızca Firebase Auth onayından sonra kurulur —
+  // localStorage'dan doğrulamasız restore kaldırıldı (sahte "girişli"
+  // görünüm + silinmiş hesapların hayalet oturumu riski).
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
@@ -58,16 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastLoginAt: new Date().toISOString(),
         };
         setCurrentUser(profile);
-        localStorage.setItem('van_user_profile', JSON.stringify(profile));
         await saveUserToFirestore(profile);
       } else {
-        // If no Firebase Auth user, check if we have local email-only session
-        const saved = localStorage.getItem('van_user_profile');
-        if (saved) {
-          try {
-            setCurrentUser(JSON.parse(saved));
-          } catch { }
-        }
+        // M14: Firebase oturumu yoksa kullanıcı da yok (eski: localStorage'dan
+        // doğrulamasız restore). UI bu sürede `loading` ile korunur.
+        setCurrentUser(null);
       }
       setLoading(false);
     });
@@ -115,7 +104,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastLoginAt: new Date().toISOString(),
         };
         setCurrentUser(profile);
-        localStorage.setItem('van_user_profile', JSON.stringify(profile));
         setShowAuthModal(false); // Close modal instantly before long network request
 
         // Save to Firestore in the background
@@ -177,7 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastLoginAt: new Date().toISOString(),
         };
         setCurrentUser(profile);
-        localStorage.setItem('van_user_profile', JSON.stringify(profile));
         setShowAuthModal(false);
 
         try {
@@ -199,9 +186,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await fbSignOut(auth);
     } catch { }
+    // M14: hard reload (window.location.href = '/') kaldırıldı — React state
+    // (currentUser = null) UI'ı günceller; SettingsView zaten null-güvenli.
     setCurrentUser(null);
-    localStorage.removeItem('van_user_profile');
-    window.location.href = '/'; // Hard reload nükleer çözüm
   };
 
   return (

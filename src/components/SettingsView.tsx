@@ -279,8 +279,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <button
                 onClick={async () => {
                   try {
+                    // M14: hard reload kaldırıldı — logout() state'i temizler,
+                    // bu ekran currentUser === null'da "oturum kapalı" kartına döner.
                     await logout();
-                    window.location.href = '/'; // Hard reload nükleer çözüm
                   } catch (e) { }
                 }}
                 className="py-2 px-3 border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 rounded-full font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
@@ -337,7 +338,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className={`${cardBg} rounded-3xl p-4 shadow-sm border flex items-center justify-between`}>
             <div className="flex flex-col">
               <span className={`text-xs font-bold ${textPrimary}`}>Firebase Oturumu Kapalı</span>
-              <span className={`text-[11px] ${textSecondary}`}>E-posta veya Google hesabı ile giriş yapın</span>
+              <span className={`text-[11px] ${textSecondary}`}>Google veya Apple hesabı ile giriş yapın</span>
             </div>
             <button
               onClick={() => setShowAuthModal(true)}

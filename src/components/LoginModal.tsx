@@ -142,7 +142,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             }`}>
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
             <span>
-              Verileriniz Firebase Bulut Platformunda uçtan uca güvenle saklanır. Şifre hatırlama derdi olmadan e-posta ile ilan ve fırsat paylaşabilirsiniz.
+              Verileriniz Firebase altyapısında güvenle saklanır. Google veya Apple hesabınızla, şifre hatırlama derdi olmadan ilan ve fırsat paylaşabilirsiniz.
             </span>
           </div>
 
