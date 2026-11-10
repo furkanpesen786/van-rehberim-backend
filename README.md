@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Van Rehberim
 
-# Run and deploy your AI Studio app
+Van ili için dijital şehir rehberi. Google AI Studio'dan export edilen React
+projesi, Capacitor ile Android'e paketlenir; backend Render.com üzerinde
+Express olarak çalışır.
 
-This contains everything you need to run your app locally.
+## Özellikler
 
-View your app in AI Studio: https://ai.studio/apps/94bf42bb-05c2-47fe-9644-d99c30acb30c
+- Hava durumu, namaz vakitleri, nöbetçi eczane bilgileri
+- Döviz/altın kurları (doviz.com, sunucu tarafı önbellekli)
+- Otobüs saatleri (van.bel.tr)
+- Yerel haberler (canlı RSS: Wan Haber, Van Olay, Van Havadis)
+- İş / indirim / taksi ilanları (RevenueCat ödemeli)
+- Yerel bildirimler, açık/koyu tema, Google/Apple girişi
 
-## Run Locally
+## Teknolojiler
 
-**Prerequisites:**  Node.js
+| Katman | Teknolojiler |
+|---|---|
+| Frontend | React 19, TypeScript, Vite 6, Tailwind CSS 4 |
+| Mobil | Capacitor 8 (Android), Firebase Auth, RevenueCat, LocalNotifications |
+| Backend | Express 4 (`server.ts`) — scraping tabanlı veri toplama |
+| Veri | Firebase Firestore |
+| CI/CD | GitHub Actions, Render deploy |
 
+## Geliştirme
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install          # bağımlılıklar
+npm run dev          # dev sunucusu (tsx server.ts, port 3000)
+npm run lint         # tsc --noEmit + eslint
+npm run build        # vite build + esbuild (dist/server.cjs)
+npm start            # production: node dist/server.cjs
+```
+
+Ortam değişkenleri için `.env.example` dosyasına bakın (lokal `.env`).
+
+## Android
+
+`android/` klasöründe Gradle projesi. `npm run build` sonrası
+`npx cap sync android` ile `dist/` çıktısı senkronlanır. Release imzalama
+için `android/keystore.properties` gereklidir (gitignore'lıdır).
+
+## Dağıtım
+
+- Backend: https://van-rehberim-api.onrender.com (Render, auto-deploy)
+- Repo: https://github.com/furkanpesen786/van-rehberim-backend

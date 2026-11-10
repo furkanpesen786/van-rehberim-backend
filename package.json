@@ -1,7 +1,8 @@
 {
-  "name": "react-example",
+  "name": "van-rehberim",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Van Rehberim — Van ili için dijital şehir rehberi (React + Capacitor + Firebase + Express)",
   "type": "module",
   "scripts": {
     "lint:eslint": "eslint src",
