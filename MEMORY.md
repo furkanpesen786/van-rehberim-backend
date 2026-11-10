@@ -4,16 +4,16 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 09.11.2026 — M9 TAMAMLANDI ✅ (AndroidManifest güvenliği,
-> deploy `live` + canlı doğrulandı)
-> **Özet:** 09.11 oturumu (M8 + M9): (1) `6ca3a1a` CI ✅ yeşil. (2) **M8**
-> (`b3acdd8`): `/api/currencies`'e 10 dk önbellek + 2 saat bayat-fallback +
-> 10 sn fetch timeout — canlıda doğrulandı. (3) **M9** (`5542427`):
-> AndroidManifest'te `usesCleartextTraffic=false` + `allowBackup=false`;
-> server.ts'te RSS haber görsellerinde `http://` → `https://` yükseltmesi.
-> Deploy `live`, CI yeşil, canlı `/api/news` 30 haber + `http://` görsel yok.
-> ÖNEMLİ: manifest değişikliği yalnızca YENİ APK derlenince etkili olur.
-> Kalan görevler: C (kök temizliği), D (markalaşma); M5 donduruldu.
+> **Son güncelleme:** 10.11.2026 (gece) — M10 TAMAMLANDI ✅ (kök dizin temizliği,
+> `f541f84`: push + CI yeşil + deploy `live`)
+> **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
+> (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
+> AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
+> (4) **M10** (`f541f84`): kök temizlik — 29 çöp dosya silindi (9.535 satır),
+> 10 ikon scripti `scripts/`'e, APK + 3 eski yedek `Desktop/van-rehberim-arsiv/`'e
+> taşındı, tsconfig düzeltildi. Önce yedek alındı:
+> `Desktop/van-rehberim-YEDEK-2026-11-09.tar.gz` (66 MB). Kalan görev: D
+> (markalaşma); M5 donduruldu.
 
 ---
 
@@ -149,9 +149,17 @@ APK derlenince görülür** (mevcut kurulu APK'da eski manifest var).
 Bash sınıflandırıcısı bu oturumda da aralıklı arızalıydı (tsc çalıştı;
 build/boot/push/deploy-kontrolleri kullanıcı `!` ile çalıştırdı).
 
-**📋 Sıradaki görev seçimi (A ve B tamamlandı, kalan: C/D):**
-**C)** Kök dizin temizliği **D)** Markalaşma. M5 donduruldu — tüm sorunlar
-bitince iyzico vs RevenueCat karşılaştırması.
+**09–10.11.2026 oturumu #10 — M10 ÇÖZÜLDÜ (kök dizin temizliği):**
+Kullanıcı görev **C**'yi seçti; plan onaylandı (AskUserQuestion). Önce tam
+yedek alındı: `Desktop/van-rehberim-YEDEK-2026-11-09.tar.gz` (66 MB, .git dahil,
+node_modules/dist/eski tar.gz'ler hariç). Ayrıntı Bölüm 3'teki M10 kaydında.
+Kısa özet: 29 çöp dosya `git rm`, 10 ikon scripti `git mv scripts/`,
+APK + 3 eski yedek `Desktop/van-rehberim-arsiv/`'e taşındı, tsconfig include
+düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
+doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
+
+**📋 Sıradaki görev: D (markalaşma) — son kalan orta öncelikli iş.**
+M5 donduruldu — tüm sorunlar bitince iyzico vs RevenueCat karşılaştırması.
 
 **07.11.2026 gece — oturum #6 kapanış notları:**
 - Bash'in güvenlik sınıflandırıcısı OTURUM BOYUNCA arızalıydı; yalnızca önceden
@@ -292,6 +300,50 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **10.11.2026 — M10 ÇÖZÜLDÜ (kök dizin temizliği; 4.4 + 4.3'ün bir kısmı):**
+>
+> - **Önce yedek alındı:** `Desktop/van-rehberim-YEDEK-2026-11-09.tar.gz`
+>   (66 MB; .git dahil; node_modules, dist, repo içi eski tar.gz'ler ve
+>   Android build çıktıları hariç — önceki yedeklerle aynı model).
+> - **`git rm` ile silinen 29 dosya** (hepsi git geçmişinden geri getirilebilir):
+>   - Scrap dump'ları: `bus-check.html`, `taziyeler.html`, `temp_taziye.html`,
+>     `van_bel.html`
+>   - Debug/ürün olmayan çıktılar: `debug_urls.json`, `debug_urls2.json`,
+>     `git_diff_components.txt`, `git_log_output.txt`, `gofile_link.txt`,
+>     `lint_full.txt`, `npm_audit.json`, `out.txt`, `temp_output.txt`,
+>     `temp_text.txt`, `theme_issues.txt`
+>   - Geçici testler: `scraper-test.js`, `test-taziye.js`, `test_native.cjs`,
+>     `test_rss.js`, `test_rss2.js`, `test_rss3.js`, `test_server_startup.js`
+>   - AI Studio kalıntıları: `firebase-applet-config.json` (çift proje sorunu
+>     4.3 çözüldü — gerçek config zaten src/lib/firebase.ts'te hardcoded),
+>     `firebase-blueprint.json`, `metadata.json`
+>   - Büyük görseller: `cleaned_icon.png` (751 KB), `van_kedisi.jpg` (1,4 MB)
+>   - Çift lock: `bun.lock` (CI `npm ci`, Render `npm install` — npm tek lock)
+>   - Diğer: `upload.js` (debug APK'yı gofile'a yükleyen geçici araç),
+>     `.agent/fixCards.cjs`
+> - **`git mv` ile `scripts/` klasörüne taşınan 10 ikon scripti:**
+>   combine, crop, extract, find_icon, find_issues, force_icons, transparent
+>   (.cjs), install_android_icons.py, prepare_icon.js, process_logo.py
+>   (jimp bağımlılığı package.json'de duruyor — bu scriptler kullanıyor).
+> - **Diskte taşınanlar (untracked, silinmedi):** `van-rehberim-guncel.apk`
+>   (18 MB) + 3 eski yedek tar.gz → `Desktop/van-rehberim-arsiv/` klasörü.
+> - **`tsconfig.json`:** include listesindeki `test_server_startup.js` çıkarıldı
+>   (dosya silindi).
+> - **Referans kontrolü:** src/, package.json script'leri ve CI'da silinen
+>   dosyalara HİÇ referans yok (grep ile doğrulandı).
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; `npm run build` OK; boot
+>   smoke-test EXIT 124 + "Server running" (kullanıcı `!` ile çalıştırdı).
+>   **Yan kazanç:** CSS bundle 110,50 → 109,74 kB düştü — Tailwind 4 kök
+>   dizindeki tüm dosyaları class taramasından geçiriyordu; çöpteki
+>   class-benzeri metinler CSS'e sızıyordu.
+> - **Commit:** `f541f84` (41 dosya, +1/−9.535 satır) — push edildi.
+>   **CI ✅ yeşil** (check-runs: `build` success, 10.11 doğrulandı).
+>   **Deploy ✅ `live`** (Render API'den doğrulandı, 10.11). Canlı endpoint
+>   kontrolü yapılamadı (sınıflandırıcı) — kritik değil: M10 sunucu kodunu
+>   değiştirmedi, boot/build lokalde doğrulandı.
+> - **Kalan hijyen işi (ileri):** `clean` script'i `rm -rf` → Windows'ta
+>   çalışmıyor (4.2.10'da kayıtlı).
 
 > **09.11.2026 — M9 ÇÖZÜLDÜ (AndroidManifest: cleartext trafik + allowBackup kapatıldı):**
 >
@@ -555,10 +607,13 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
   `name`) → bileşenlerde 5-6 alternatiflı `??` zincirleri ("KORUMA KALKANI" yorumları).
 - **Ödeme/hata akışlarında `alert()`** (JobsView, DealsView, HomeView, SettingsView).
 - **Test altyapısı YOK:** Vitest/Jest yok; kökte geçici `test_*.js` scriptleri duruyor.
-- **İki paket yöneticisi:** `bun.lock` VE `package-lock.json` birlikte.
+- **İki paket yöneticisi:** ~~`bun.lock` VE `package-lock.json` birlikte~~
+  **✅ 10.11.2026 çözüldü (M10)** — `bun.lock` silindi; tek lock `package-lock.json`.
 - **`tsconfig.json`:** `strict` yok, `allowJs: true` → tip güvenliği zayıf.
-- **Çift Firebase projesi:** `src/lib/firebase.ts` (`vanrehberim-f181b`) vs
-  `firebase-applet-config.json` (`emergent-gift-7x4wp`, AI Studio kalıntısı).
+- **Çift Firebase projesi:** ~~`src/lib/firebase.ts` (`vanrehberim-f181b`) vs
+  `firebase-applet-config.json` (`emergent-gift-7x4wp`, AI Studio kalıntısı)~~
+  **✅ 10.11.2026 çözüldü (M10)** — `firebase-applet-config.json` silindi;
+  tek config `src/lib/firebase.ts`'te.
 - **`experimentalForceLongPolling: true`** kalmış (performans kısıtı); servis fetch
   timeout'ları 60 sn (mobil için çok uzun).
 - **State yönetimi yok:** localStorage + özel window event (`van_saved_deals_changed`)
@@ -566,11 +621,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 
 ### 4.4 📁 Proje Hijyeni
 
-- **Kök dizinde ~30 gereksiz dosya:** scrap dump'ları (`bus-check.html`, `taziye.html`,
-  `van_bel.html`, `temp_*`), debug çıktıları (`debug_urls*.json`, `theme_issues.txt`,
-  `npm_audit.json`, `git_log_output.txt`...), ikon scriptleri (`crop.cjs`, `extract.cjs`,
-  `force_icons.cjs`...), geçici testler (`test_rss*.js`, `scraper-test.js`...),
-  18 MB APK, büyük görseller (`cleaned_icon.png`, `van_kedisi.jpg`), `.agent/fixCards.cjs`.
+- ~~**Kök dizinde ~30 gereksiz dosya**~~ **✅ 10.11.2026 çözüldü (M10)** — 29 dosya
+  silindi, 10 script `scripts/`'e taşındı, APK + yedekler `Desktop/van-rehberim-arsiv/`'e
+  alındı (ayrıntı Bölüm 3'te). Yan kazanç: CSS bundle 110,5 → 109,7 kB.
 - **Markalaşma eksik:** `package.json` adı `react-example`; `index.html` başlığı
   "My Google AI Studio App" ve `lang="en"`; README AI Studio şablonu (proje bilgisi yok).
 - **CI anti-pattern'leri:** `npm audit fix` build sırasında lock dosyasını değiştirebilir;
@@ -634,7 +687,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 6 | 🟠 Yüksek | ~~Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir~~ **✅ 07.11 çözüldü (M6) + 08.11 CANLIDA (M7 ile)** | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü ✅ (canlıda doğrulandı) |
 | 6b | 🟠 Yüksek | ~~`/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape tetikliyor)~~ **✅ 09.11 çözüldü (M8) + CANLIDA** (`b3acdd8`: 10 dk önbellek + bayat-fallback + 10 sn timeout) | Canlı tekrar çağrılar aynı `lastUpdated` ile önbellekten dönüyor ✅ |
 | 7 | 🟡 Orta | ~~AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat~~ **✅ 09.11 çözüldü (M9)** (`5542427`, canlıda) | Manifest temiz ✅ (kod düzeyinde; etki yeni APK'da) |
-| 8 | 🟡 Orta | Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal | Kökte yalnız üretim dosyaları |
+| 8 | 🟡 Orta | ~~Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal~~ **✅ 10.11 çözüldü (M10)** (`f541f84`) | Kökte yalnız üretim dosyaları ✅ |
 | 9 | 🟡 Orta | Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README | Başlık "Van Rehberim" |
 | 10 | 🟢 İleri | HomeView'u alt bileşenlere böl; Firestore şemasını normalize et; Vitest testleri ekle | Testler CI'da koşuyor |
 
@@ -659,16 +712,21 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (09.11.2026, oturum #9): dal ucu `5542427` (M9: manifest güvenliği
-  + http→https görsel yükseltmesi; deploy `live` + CI yeşil), önceki `d70a0c3`
-  (MEMORY M8), `b3acdd8` (M8), `6ca3a1a` (M7), `78f4923` (M6), `bf8bab9` (CI
-  düzeltmesi), `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9` (M4), `daa6f3b`
-  (M3), `7541456` (M2), `522e980` (M0+M1). **Hepsi origin/main'de** (push +
-  CI `6ca3a1a`, `b3acdd8`, `5542427` için ✅ yeşil doğrulandı; `gh` CLI bu
-  makinede kurulu DEĞİL — CI kontrolü GitHub API'den `/commits/{sha}/check-runs`
-  ile yapılıyor). Keystore/APK ve yedek `*.tar.gz` dosyaları
-  untracked + gitignore'lı, diskte yerlerinde. Geçmiş yeniden yazıldığı için
-  04.11 öncesi eski hash'ler geçersiz.
+- Git durumu (10.11.2026, oturum #10): dal ucu `f541f84` (M10: kök temizlik;
+  CI/deploy kontrolü BEKLİYOR), önceki `e3f88c4` (MEMORY M9), `5542427` (M9),
+  `d70a0c3` (MEMORY M8), `b3acdd8` (M8), `6ca3a1a` (M7), `78f4923` (M6),
+  `bf8bab9` (CI düzeltmesi), `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9`
+  (M4), `daa6f3b` (M3), `7541456` (M2), `522e980` (M0+M1). **Hepsi
+  origin/main'de** (push doğrulandı; CI `6ca3a1a`, `b3acdd8`, `5542427` için
+  ✅ yeşil; `f541f84`'unki henüz bakılmadı; `gh` CLI bu makinede kurulu DEĞİL —
+  CI kontrolü GitHub API'den `/commits/{sha}/check-runs` ile yapılıyor).
+  Keystore diskte + gitignore'lı.
+- **Yedekler (10.11.2026 itibarıyla):** `Desktop/van-rehberim-YEDEK-2026-11-09.tar.gz`
+  (66 MB, M10 öncesi — en güncel) + eski yedekler (04/05/06.11) ve
+  `van-rehberim-guncel.apk` artık `Desktop/van-rehberim-arsiv/` klasöründe
+  (repo kökünden taşındı). 04.11 yedeği (keystore'lu eski geçmiş) hâlâ tek
+  kurtarma noktasıdır, saklanmalı. Geçmiş yeniden yazıldığı için 04.11 öncesi
+  eski hash'ler geçersiz.
 - **Yeni ortam değişkenleri (M5):** `REVENUECAT_SECRET_API_KEY` (Render + lokal .env)
   ve `FIREBASE_SERVICE_ACCOUNT` (service account JSON'ı tek satır string; Render +
   lokal .env). İkisi de eksikken `/api/listings` bilinçli olarak 503 döner (fail-closed).
