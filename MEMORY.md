@@ -4,8 +4,8 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 10.11.2026 (gece) — M10 TAMAMLANDI ✅ (kök dizin temizliği,
-> `f541f84`: push + CI yeşil + deploy `live`)
+> **Son güncelleme:** 10.11.2026 (gece) — M11 TAMAMLANDI ✅ (markalaşma,
+> `4e60ea4`: push + CI yeşil + deploy `live`)
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -158,8 +158,11 @@ APK + 3 eski yedek `Desktop/van-rehberim-arsiv/`'e taşındı, tsconfig include
 düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
-**📋 Sıradaki görev: D (markalaşma) — son kalan orta öncelikli iş.**
-M5 donduruldu — tüm sorunlar bitince iyzico vs RevenueCat karşılaştırması.
+**📋 Durum (10.11 gece): YOL HARİTASINDAKİ TÜM ORTA ÖNCELİKLİ İŞLER BİTTİ.**
+M8 (currencies önbelleği), M9 (manifest güvenliği), M10 (kök temizliği),
+M11 (markalaşma) — hepsi çözüldü + canlıda. Kalan: M5 (donduruldu — iyzico vs
+RevenueCat kararı), ileri öncelikli mimari işler (Bölüm 6 satır 10: HomeView
+bölme, şema normalize, Vitest) ve 4.2'deki küçük mantık hataları (4.2.5–4.2.10).
 
 **07.11.2026 gece — oturum #6 kapanış notları:**
 - Bash'in güvenlik sınıflandırıcısı OTURUM BOYUNCA arızalıydı; yalnızca önceden
@@ -300,6 +303,23 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **10.11.2026 — M11 ÇÖZÜLDÜ (markalaşma; 4.4'ün son açık maddesi):**
+>
+> - **`package.json`:** ad `react-example` → `van-rehberim`, version `0.0.0` →
+>   `1.0.0`, Türkçe `description` eklendi.
+> - **`index.html`:** `lang="en"` → `lang="tr"`; başlık "My Google AI Studio
+>   App" → **"Van Rehberim"**; Türkçe `meta description` + `theme-color`
+>   (`#0f172a`) eklendi.
+> - **`README.md`:** AI Studio şablonu tamamen değiştirildi — gerçek proje
+>   README'si (özellikler, teknoloji tablosu, geliştirme komutları, Android
+>   akışı, dağıtım bağlantıları).
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; `npm run build` OK — build
+>   başlığı artık `van-rehberim@1.0.0`, index.html 0,81 kB (meta etiketleriyle).
+> - **Commit:** `4e60ea4` (3 dosya, +47/−18) — push edildi, **CI ✅ yeşil**,
+>   **deploy ✅ `live`** (Render API'den doğrulandı, 10.11).
+> - **Not:** başlık/lang değişikliği web'de ve YENİ APK'da görünür; mevcut
+>   kurulu APK'da eski başlık var (M9 notuyla aynı durum).
 
 > **10.11.2026 — M10 ÇÖZÜLDÜ (kök dizin temizliği; 4.4 + 4.3'ün bir kısmı):**
 >
@@ -624,8 +644,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 - ~~**Kök dizinde ~30 gereksiz dosya**~~ **✅ 10.11.2026 çözüldü (M10)** — 29 dosya
   silindi, 10 script `scripts/`'e taşındı, APK + yedekler `Desktop/van-rehberim-arsiv/`'e
   alındı (ayrıntı Bölüm 3'te). Yan kazanç: CSS bundle 110,5 → 109,7 kB.
-- **Markalaşma eksik:** `package.json` adı `react-example`; `index.html` başlığı
-  "My Google AI Studio App" ve `lang="en"`; README AI Studio şablonu (proje bilgisi yok).
+- ~~**Markalaşma eksik:** `package.json` adı `react-example`; `index.html` başlığı
+  "My Google AI Studio App" ve `lang="en"`; README AI Studio şablonu~~
+  **✅ 10.11.2026 çözüldü (M11)** — `van-rehberim@1.0.0`, başlık "Van Rehberim",
+  `lang="tr"`, gerçek README (ayrıntı Bölüm 3'te).
 - **CI anti-pattern'leri:** `npm audit fix` build sırasında lock dosyasını değiştirebilir;
   CI'dan repoya commit atan "cleanup" adımı git geçmişini kirletir.
 
@@ -688,7 +710,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 6b | 🟠 Yüksek | ~~`/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape tetikliyor)~~ **✅ 09.11 çözüldü (M8) + CANLIDA** (`b3acdd8`: 10 dk önbellek + bayat-fallback + 10 sn timeout) | Canlı tekrar çağrılar aynı `lastUpdated` ile önbellekten dönüyor ✅ |
 | 7 | 🟡 Orta | ~~AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat~~ **✅ 09.11 çözüldü (M9)** (`5542427`, canlıda) | Manifest temiz ✅ (kod düzeyinde; etki yeni APK'da) |
 | 8 | 🟡 Orta | ~~Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal~~ **✅ 10.11 çözüldü (M10)** (`f541f84`) | Kökte yalnız üretim dosyaları ✅ |
-| 9 | 🟡 Orta | Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README | Başlık "Van Rehberim" |
+| 9 | 🟡 Orta | ~~Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README~~ **✅ 10.11 çözüldü (M11)** (`4e60ea4`) | Başlık "Van Rehberim" ✅ |
 | 10 | 🟢 İleri | HomeView'u alt bileşenlere böl; Firestore şemasını normalize et; Vitest testleri ekle | Testler CI'da koşuyor |
 
 **Önerilen çalışma düzeni:** Her düzeltme ayrı commit + ayrı oturum; her oturum sonunda
@@ -712,13 +734,14 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (10.11.2026, oturum #10): dal ucu `f541f84` (M10: kök temizlik;
-  CI/deploy kontrolü BEKLİYOR), önceki `e3f88c4` (MEMORY M9), `5542427` (M9),
+- Git durumu (10.11.2026, oturum #10): dal ucu `4e60ea4` (M11: markalaşma;
+  CI ✅ yeşil + deploy `live`), önceki `67c0b1d` (MEMORY M10),
+  `f541f84` (M10), `e3f88c4` (MEMORY M9), `5542427` (M9),
   `d70a0c3` (MEMORY M8), `b3acdd8` (M8), `6ca3a1a` (M7), `78f4923` (M6),
   `bf8bab9` (CI düzeltmesi), `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9`
   (M4), `daa6f3b` (M3), `7541456` (M2), `522e980` (M0+M1). **Hepsi
-  origin/main'de** (push doğrulandı; CI `6ca3a1a`, `b3acdd8`, `5542427` için
-  ✅ yeşil; `f541f84`'unki henüz bakılmadı; `gh` CLI bu makinede kurulu DEĞİL —
+  origin/main'de** (push doğrulandı; CI `6ca3a1a`, `b3acdd8`, `5542427`,
+  `f541f84`, `4e60ea4` için ✅ yeşil; `gh` CLI bu makinede kurulu DEĞİL —
   CI kontrolü GitHub API'den `/commits/{sha}/check-runs` ile yapılıyor).
   Keystore diskte + gitignore'lı.
 - **Yedekler (10.11.2026 itibarıyla):** `Desktop/van-rehberim-YEDEK-2026-11-09.tar.gz`
