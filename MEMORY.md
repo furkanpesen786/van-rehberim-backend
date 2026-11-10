@@ -4,8 +4,9 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 10.11.2026 (gece) — M11 TAMAMLANDI ✅ (markalaşma,
-> `4e60ea4`: push + CI yeşil + deploy `live`)
+> **Son güncelleme:** 10.11.2026 (gece, oturum #11 sürüyor) — M13 TAMAMLANDI ✅
+> (KVKK hesap silme; `1060f5b`: push + CI yeşil). Kullanıcı kalan 17 sorunun
+> TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: AuthContext sorunları (3/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -158,11 +159,27 @@ APK + 3 eski yedek `Desktop/van-rehberim-arsiv/`'e taşındı, tsconfig include
 düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
-**📋 Durum (10.11 gece): YOL HARİTASINDAKİ TÜM ORTA ÖNCELİKLİ İŞLER BİTTİ.**
-M8 (currencies önbelleği), M9 (manifest güvenliği), M10 (kök temizliği),
-M11 (markalaşma) — hepsi çözüldü + canlıda. Kalan: M5 (donduruldu — iyzico vs
-RevenueCat kararı), ileri öncelikli mimari işler (Bölüm 6 satır 10: HomeView
-bölme, şema normalize, Vitest) ve 4.2'deki küçük mantık hataları (4.2.5–4.2.10).
+**📋 Durum (10.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
+M12 (weatherService) ve M13 (KVKK hesap silme) ✅ bitti (2/17). Sıra:
+(3) AuthContext → (4) namaz çift kaynak → (5) taziye → (6) küçük mantık
+kümesi → (7) ToS riski → (8-17) mimari işler. M5 en sonda (iyzico vs
+RevenueCat kararı).
+
+**10.11.2026 oturumu #11 — M13 ÇÖZÜLDÜ (KVKK hesap silme; 4.2.9):**
+Ayrıntı Bölüm 3'teki M13 kaydında. Kısa özet: `deleteAllUserData()` Auth
+kaydı silinmeden ÖNCE Firestore'daki profil + favoriler + kendi ilanlarını
+siliyor (backend 503 döndüğü için istemci tarafında; kurallar sahibin
+silinebilmesine izin veriyor). Commit `1060f5b`, CI ✅ yeşil. İstemci
+tarafı — etki yeni APK/web'de.
+
+**10.11.2026 oturumu #11 — M12 ÇÖZÜLDÜ (weatherService uydurma veri; 4.2.5):**
+Kullanıcı kalan 17 sorunun tamamını çözmeyi onayladı. Ayrıntı Bölüm 3'teki
+M12 kaydında. Kısa özet: rüzgar yönü sabit 'KB' idi → artık API derecesinden
+16 yönlü Türkçe pusula; yağış olasılığı ve günlük nem uydurma formüllerden →
+gerçek `precipitation_probability_max` + `relative_humidity_2m_mean`
+(Open-Meteo desteklemiyor olabilir diye canlı API çağrısıyla doğrulandı);
+AQI/UV eksikse sahte varsayılan yerine null → UI "Veri Yok". Commit `e210a85`,
+CI ✅ yeşil. İstemci tarafı değişikliği — etki yeni APK/web'de görünecek.
 
 **07.11.2026 gece — oturum #6 kapanış notları:**
 - Bash'in güvenlik sınıflandırıcısı OTURUM BOYUNCA arızalıydı; yalnızca önceden
@@ -303,6 +320,61 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **10.11.2026 — M13 ÇÖZÜLDÜ (KVKK hesap silme; 4.2.9):**
+>
+> - **Sorun:** `deleteUser` yalnızca Auth kaydını siliyordu; Firestore'daki
+>   `users/{uid}` profil dokümanı, `userFavorites/{uid}` ve kullanıcının kendi
+>   ilanları (`is_ilanlari` / `indirim_ilanlari` / `taksiler`) geride kalıyordu
+>   — KVKK uyumsuzluğu.
+> - **Çözüm (istemci tarafında):**
+>   - **`src/lib/firebase.ts`:** yeni `deleteAllUserData(userId)` — sırasıyla
+>     `users/{uid}` ve `userFavorites/{uid}` dokümanlarını siler, sonra üç
+>     ilan koleksiyonunda `where('userId', '==', uid)` sorgusuyla eşleşen
+>     dokümanları tek tek siler.
+>   - **`src/components/SettingsView.tsx`:** hesap silme handler'ında
+>     `deleteAllUserData(auth.currentUser.uid)` çağrısı, `deleteUser`'dan
+>     ÖNCE eklendi. Sıra kritik: güvenlik kuralları (M2) Auth oturumu
+>     gerektirir — Auth kaydı silindikten sonra Firestore silmeleri reddedilirdi.
+> - **Neden backend değil:** `/api/listings` M5 gereği env'ler olmadan
+>   Render'da 503 döndürüyor (fail-closed) — Auth kaydı zaten istemcide
+>   silindiği için arka uç endpoint'i pratik değildi. Kurallar sahibin
+>   silmesine izin veriyor.
+> - **Bilinen sınır:** M2 öncesi oluşturulmuş (`userId` alanı olmayan) eski
+>   ilanlar sorguya yakalanmaz — yalnızca Firebase Console'dan silinebilir.
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; eslint 0 error (yalnızca önceden
+>   var olan uyarılar); `npm run build` OK. Commit `1060f5b` — push +
+>   **CI ✅ yeşil**. İstemci tarafı: etki yeni APK/web'de. Canlı silme testi
+>   yapılmadı (gerçek hesap gerektiriyor) — yeni APK'da manuel test önerilir.
+
+> **10.11.2026 — M12 ÇÖZÜLDÜ (weatherService uydurma veri; 4.2.5):**
+>
+> - **Sorun:** `windDirection: 'KB'` sabitti (API'den gelen `wind_direction_10m`
+>   derecesi isteniyor ama hiç kullanılmıyordu); tahmin yağış olasılığı ikona
+>   göre uyduruluyordu (70/25/5); tahmin nemi `humidity + (idx%3)*2-2` formülüyle;
+>   AQI isteği düşerse sahte "32 AQI İyi", UV eksikse sahte 6.5 üretiliyordu;
+>   etikette "(Canlı Canlı API)" yazım hatası.
+> - **Çözüm (`src/services/weatherService.ts`):**
+>   - `degToCompassTR()`: 16 yönlü Türkçe pusula (K, KKD, KD... KB, KKB) —
+>     gerçek dereceden hesap; veri yoksa '—'.
+>   - Open-Meteo daily isteğine `precipitation_probability_max` ve
+>     `relative_humidity_2m_mean` eklendi (önce canlı API çağrısıyla
+>     desteklendikleri doğrulandı — kullanıcı `!` ile çalıştırdı).
+>   - `pop` ve tahmin `humidity` artık gerçek API değerleri.
+>   - `aqi`/`uvIndex` uydurma varsayılan yerine `null` → dürüst "Veri Yok".
+>     (AQI ayrı bir istek olduğundan ana yanıttan bağımsız düşebilir —
+>     gerçek bir senaryo.)
+>   - Etiket: "(Open-Meteo canlı veri)".
+> - **`src/types.ts`:** `uvIndex`/`aqi` → `number | null`.
+> - **`src/components/HomeView.tsx`:** 4 kullanım yeri null-güvenli
+>   (rozet 495/504, detay kartları 1855-1907; bar genişlikleri null'da 0).
+> - **Bilinen sınır:** ana yanıttaki sıcaklık/nem `?? 24/40` varsayılanları
+>   kaldırılmadı (yanıt hep tam gelir, pratikte tetiklenmez); ana istek tamamen
+>   düşerse sessizce `VAN_WEATHER` mock'una dönülüyor — bu 5.1.3 mimari deseni,
+>   ayrı bir iş olarak değerlendirilebilir.
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; `npx eslint src` 0 error /
+>   79 warning (değişiklik yok); `npm run build` OK. Commit `e210a85` — push +
+>   **CI ✅ yeşil**. İstemci tarafı: etki yeni APK/web'de.
 
 > **10.11.2026 — M11 ÇÖZÜLDÜ (markalaşma; 4.4'ün son açık maddesi):**
 >
@@ -600,8 +672,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    NewsView 5 sn → 60 sn; sunucuda 10 dk önbellek. ~~Kalan yarısı: HomeView 60 sn'de bir
    doviz.com scrape tetikliyor~~ **✅ 09.11.2026 çözüldü (M8)** — `/api/currencies`'e de
    10 dk önbellek + bayat-fallback + fetch timeout eklendi; canlıda doğrulandı.
-5. **weatherService uydurma veri:** `windDirection: 'KB'` sabit; `pop` ve `humidity`
-   uydurma formüllerle hesaplanıyor (`humidity + (idx % 3) * 2 - 2`); etiket "Canlı API".
+5. ~~**weatherService uydurma veri:** `windDirection: 'KB'` sabit; `pop` ve `humidity`
+   uydurma formüllerle hesaplanıyor~~ **✅ 10.11.2026 çözüldü (M12)** — rüzgar yönü
+   gerçek dereceden pusulaya, pop/nem gerçek API değerlerinden, AQI/UV null +
+   "Veri Yok" (ayrıntı Bölüm 3'te).
 6. **AuthContext sorunları:** `fontLoading()` ölü kod; e-posta girişi `throw` ile kapalı
    ama UI metinleri hâlâ "e-posta ile..." diyor; Firebase oturumu yoksa localStorage'dan
    doğrulamasız oturum restore ediliyor; logout hard reload (`window.location.href = '/'`).
@@ -609,8 +683,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    ve UI var; backend endpoint'i ve bildirim akışı yok.
 8. **Namaz vakitleri çift kaynak:** istemci Aladhan API (method 13), sunucu Diyanet
    scraping — aynı özellik için iki ayrı kaynak, değerler sapabilir.
-9. **Hesap silme eksik (KVKK):** `deleteUser` yalnızca Auth kaydını siler; Firestore'daki
-   `users` dokümanı ve kullanıcının ilanları silinmiyor.
+9. ~~**Hesap silme eksik (KVKK):** `deleteUser` yalnızca Auth kaydını siler; Firestore'daki
+   `users` dokümanı ve kullanıcının ilanları silinmiyor~~ **✅ 10.11.2026 çözüldü (M13)** —
+   `deleteAllUserData()` Auth silmeden önce profil + favoriler + kendi ilanlarını temizler
+   (ayrıntı Bölüm 3'te).
 10. **Diğer:** `removeAllListeners()` tüm dinleyicileri temizliyor; Vite config'te
     `vendor-lodash` chunk'ı (lodash hiç yok); splash ekranı 2 sn yapay gecikme;
     `clean` script'i `rm -rf` → Windows'ta çalışmaz; haber bildirimleri gün içinde
@@ -734,8 +810,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (10.11.2026, oturum #10): dal ucu `4e60ea4` (M11: markalaşma;
-  CI ✅ yeşil + deploy `live`), önceki `67c0b1d` (MEMORY M10),
+- Git durumu (10.11.2026, oturum #11): dal ucu `1060f5b` (M13: KVKK hesap
+  silme; CI ✅ yeşil), önceki `e210a85` (M12: weatherService), `738399f`
+  (MEMORY M11), `4e60ea4` (M11), `67c0b1d`
+  (MEMORY M10),
   `f541f84` (M10), `e3f88c4` (MEMORY M9), `5542427` (M9),
   `d70a0c3` (MEMORY M8), `b3acdd8` (M8), `6ca3a1a` (M7), `78f4923` (M6),
   `bf8bab9` (CI düzeltmesi), `d548ef6` (M5), `713632a` (MEMORY), `a3f46e9`
