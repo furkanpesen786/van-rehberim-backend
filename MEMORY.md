@@ -4,9 +4,9 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 10.11.2026 (gece, oturum #11 sürüyor) — M13 TAMAMLANDI ✅
-> (KVKK hesap silme; `1060f5b`: push + CI yeşil). Kullanıcı kalan 17 sorunun
-> TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: AuthContext sorunları (3/17).
+> **Son güncelleme:** 10.11.2026 (gece, oturum #11 sürüyor) — M14 TAMAMLANDI ✅
+> (AuthContext sorunları; `1607a85`: push + CI yeşil). Kullanıcı kalan 17 sorunun
+> TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: namaz vakitleri çift kaynak (4/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -160,10 +160,15 @@ düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
 **📋 Durum (10.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
-M12 (weatherService) ve M13 (KVKK hesap silme) ✅ bitti (2/17). Sıra:
-(3) AuthContext → (4) namaz çift kaynak → (5) taziye → (6) küçük mantık
-kümesi → (7) ToS riski → (8-17) mimari işler. M5 en sonda (iyzico vs
-RevenueCat kararı).
+M12 (weatherService), M13 (KVKK hesap silme) ve M14 (AuthContext) ✅ bitti
+(3/17). Sıra: (4) namaz çift kaynak → (5) taziye → (6) küçük mantık kümesi →
+(7) ToS riski → (8-17) mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+
+**10.11.2026 oturumu #11 — M14 ÇÖZÜLDÜ (AuthContext sorunları; 4.2.6):**
+Ayrıntı Bölüm 3'teki M14 kaydında. Kısa özet: ölü `fontLoading()` kodu,
+localStorage'dan doğrulamasız oturum restore'u ve logout hard reload
+kaldırıldı; e-posta yanıltıcı UI metinleri düzeltildi. Commit `1607a85`.
+İstemci tarafı — etki yeni APK/web'de.
 
 **10.11.2026 oturumu #11 — M13 ÇÖZÜLDÜ (KVKK hesap silme; 4.2.9):**
 Ayrıntı Bölüm 3'teki M13 kaydında. Kısa özet: `deleteAllUserData()` Auth
@@ -320,6 +325,38 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **10.11.2026 — M14 ÇÖZÜLDÜ (AuthContext sorunları; 4.2.6):**
+>
+> - **Sorun:** (a) `fontLoading()` ölü/anlaşılmaz kod; (b) e-posta girişi
+>   `throw` ile kapalı ama UI metinleri "e-posta ile..." diyordu; (c) Firebase
+>   oturumu yoksa localStorage'dan (`van_user_profile`) doğrulamasız oturum
+>   restore ediliyordu — silinmiş/cihaz dışı hesaplar "girişli" görünebiliyordu;
+>   (d) logout `window.location.href = '/'` hard reload yapıyordu.
+> - **Çözüm:**
+>   - **`src/context/AuthContext.tsx`:** `fontLoading()` silindi (default
+>     context `loading: true`); `currentUser` başlangıcı `null`; oturum
+>     YALNIZCA `onAuthStateChanged` onayından sonra kuruluyor (else dalı
+>     `setCurrentUser(null)`); tüm `van_user_profile` localStorage
+>     okuma/yazma kaldırıldı (KVKK dostu: PII artık localStorage'da tutulmuyor);
+>     `logout()` hard reload'sız — yalnızca `fbSignOut` + state temizliği.
+>   - **`src/components/SettingsView.tsx`:** çıkış butonundaki tekrarlayan
+>     hard reload kaldırıldı (SettingsView `currentUser === null`'da "oturum
+>     kapalı" kartına döner — null-güvenli); "E-posta veya Google hesabı ile
+>     giriş yapın" → "Google veya Apple hesabı ile giriş yapın".
+>   - **`src/components/LoginModal.tsx`:** "uçtan uca güvenle saklanır ...
+>     e-posta ile ilan ve fırsat paylaşabilirsiniz" (iki yanıltma) →
+>     "Firebase altyapısında güvenle saklanır ... Google veya Apple hesabınızla
+>     ... paylaşabilirsiniz".
+>   - Hesap silme akışındaki (`M13`) hard reload'lar BILINÇLİ olarak korundu —
+>     hesap silinmesi sonrası tüm uygulama state'inin sıfırlanması gerekli.
+> - **Bilinen davranış değişikliği:** uygulama açılışında Firebase Auth
+>   kararı gelene kadar `loading === true` (önceden localStorage'dan anında
+>   sahte profil geliyordu). Gerçek oturum varsa `onAuthStateChanged` hızla
+>   düzeltir.
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; `npm run build` OK (index.js
+>   259,71 → 259,23 kB). Commit `1607a85` — push + **CI ✅ yeşil**. İstemci
+>   tarafı: etki yeni APK/web'de.
 
 > **10.11.2026 — M13 ÇÖZÜLDÜ (KVKK hesap silme; 4.2.9):**
 >
@@ -676,9 +713,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    uydurma formüllerle hesaplanıyor~~ **✅ 10.11.2026 çözüldü (M12)** — rüzgar yönü
    gerçek dereceden pusulaya, pop/nem gerçek API değerlerinden, AQI/UV null +
    "Veri Yok" (ayrıntı Bölüm 3'te).
-6. **AuthContext sorunları:** `fontLoading()` ölü kod; e-posta girişi `throw` ile kapalı
+6. ~~**AuthContext sorunları:** `fontLoading()` ölü kod; e-posta girişi `throw` ile kapalı
    ama UI metinleri hâlâ "e-posta ile..." diyor; Firebase oturumu yoksa localStorage'dan
-   doğrulamasız oturum restore ediliyor; logout hard reload (`window.location.href = '/'`).
+   doğrulamasız oturum restore ediliyor; logout hard reload (`window.location.href = '/'`)~~
+   **✅ 10.11.2026 çözüldü (M14)** — ölü kod, doğrulamasız restore ve hard reload kaldırıldı;
+   UI metinleri dürüstleştirildi (ayrıntı Bölüm 3'te).
 7. **Taziye (vefat) özelliği yarım:** tip (`DeathNotice`), ayar anahtarı (`obituaryEnabled`)
    ve UI var; backend endpoint'i ve bildirim akışı yok.
 8. **Namaz vakitleri çift kaynak:** istemci Aladhan API (method 13), sunucu Diyanet
@@ -810,8 +849,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (10.11.2026, oturum #11): dal ucu `1060f5b` (M13: KVKK hesap
-  silme; CI ✅ yeşil), önceki `e210a85` (M12: weatherService), `738399f`
+- Git durumu (10.11.2026, oturum #11): dal ucu `1607a85` (M14: AuthContext;
+  CI ✅ yeşil), önceki `0e67302` (MEMORY M13), `1060f5b` (M13: KVKK;
+  CI ✅ yeşil), `e210a85` (M12: weatherService), `738399f`
   (MEMORY M11), `4e60ea4` (M11), `67c0b1d`
   (MEMORY M10),
   `f541f84` (M10), `e3f88c4` (MEMORY M9), `5542427` (M9),
