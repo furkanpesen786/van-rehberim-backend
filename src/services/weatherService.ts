@@ -23,7 +23,7 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
     const aqiUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5012&longitude=43.3730&current=us_aqi';
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const [omRes, aqiRes] = await Promise.all([
       fetch(openMeteoUrl, { signal: controller.signal }),
       fetch(aqiUrl, { signal: controller.signal }).catch(() => null)

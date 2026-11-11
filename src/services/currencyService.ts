@@ -30,7 +30,7 @@ export interface LiveCurrencyResponse {
 export async function fetchLiveCurrencies(): Promise<LiveCurrencyResponse> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com'}/api/currencies`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (response.ok) {

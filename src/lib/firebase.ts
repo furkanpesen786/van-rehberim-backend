@@ -67,7 +67,14 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
+  // BİLİNÇLİ KARAR (M22): Bu flag kaldırılmamalı. capacitor.config.ts'te
+  // CapacitorHttp açık; o, WebView'daki tüm fetch/XHR'yi native katmana
+  // yönlendirir ve akış (streaming) yanıtlarını tamponlar. Firestore'un
+  // varsayılan WebChannel transport'u XHR akışına dayanır — CapacitorHttp
+  // altında onSnapshot canlı dinleyicileri Android'de çalışmaz.
+  // Long-polling her istekte tam yanıt aldığı için bu kombinasyonda
+  // güvenilir tek yoldur. CapacitorHttp kapatılırsa bu flag de kaldırılmalı.
+  experimentalForceLongPolling: true,
 });
 
 // User Profile interface for App

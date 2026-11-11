@@ -14,7 +14,7 @@ export interface DutyPharmaciesResponse {
 export async function fetchLivePharmacies(): Promise<DutyPharmaciesResponse> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com'}/api/pharmacies`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (response.ok) {
