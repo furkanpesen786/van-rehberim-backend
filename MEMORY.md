@@ -4,10 +4,10 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M20 TAMAMLANDI ✅
-> (server.ts şişkinliği; `1b49a38`: push + CI yeşil + Render'da CANLIDA).
+> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M21 TAMAMLANDI ✅
+> (any tip borcu; `a24c93d`: push + CI yeşil; no-explicit-any 29 → 0).
 > Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
-> `any` tip borcu (~79 lint uyarısı) (10/17).
+> experimentalForceLongPolling + 60 sn timeout'lar (11/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -162,8 +162,15 @@ doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
 **📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
 M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
-(server.ts şişkinliği) ✅ bitti (9/17). Sıra: (10) `any` tip borcu → (11-17)
+(server.ts şişkinliği) ✅ bitti (9/17). M21 (any tip borcu) ✅ bitti (10/17).
+Sıra: (11) experimentalForceLongPolling + 60 sn timeout'lar → (12-17)
 mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+
+**11.11.2026 oturumu #11 — M21 ÇÖZÜLDÜ (any tip borcu; 4.3):**
+29 explicit `any`'nin TAMAMI temizlendi (eslint no-explicit-any 29 → 0;
+toplam uyarı 77 → 48). Firestore sınırı tipli hale geldi (RawDealDoc /
+RawTaxiDoc ham doküman arayüzleri + JobListing); ölü
+`src/services/firestoreFetchData.ts` silindi. Commit `a24c93d`, CI ✅ yeşil.
 
 **11.11.2026 oturumu #11 — M20 ÇÖZÜLDÜ (server.ts şişkinliği; 4.3):**
 612 satırlık inline otobüs fallback verisi (b-1..b-30, `fallbackRoutes`
@@ -364,6 +371,40 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **11.11.2026 — M21 ÇÖZÜLDÜ (any tip borcu; 4.3):**
+>
+> - **Sorun:** 29 yerde explicit `any` — firebase.ts subscribe
+>   fonksiyonları, bileşen mapping'leri, catch blokları, prayerService ham
+>   JSON; ayrıca hiçbir yerde import edilmeyen ölü
+>   `src/services/firestoreFetchData.ts` (2 `any` daha).
+> - **Çözüm:**
+>   - **firebase.ts:** `subscribeJobListings` artık `(jobs: JobListing[])`
+>     verir (Firestore sınırında tek belgeli `as JobListing[]` cast'ı;
+>     JobsView'daki tüketici cast'ı kalktı). `subscribeDeals` /
+>     `subscribeTaxis` için yeni **ham doküman arayüzleri**:
+>     `RawDealDoc` (isletmeAdi/storeName/name/title, indirimKodu/baslik,
+>     indirimDegeri/oran vb. TÜM bilinen alan varyantları) ve `RawTaxiDoc`
+>     (name/isim/title, plaka/plaka/taxiPlate, calismaBolgeleri vb.).
+>     Bunlar şema karışıklığını (denetim maddesi 15) kodda belgeler;
+>     normalizasyon tamamlanana kadar bileşen mapping'lerinin tip kaynağı.
+>   - **DealsView:** `useState<any[]>` → `Deal[]`, `selectedDeal` →
+>     `Deal | null`; mapping parametresi tipli akıyor; startDate/endDate/
+>     address eksikliği için `as Deal[]` cast'ı tek noktada, belgeli.
+>   - **HomeView:** taksi mapping parametresi artık `RawTaxiDoc` (annotation
+>     kaldırıldı, tip callback'ten akıyor).
+>   - **prayerService:** ham sunucu yanıtı için `PrayerTimesApiResponse`
+>     arayüzü; kullanılmayan `PrayerTimes` import'u da temizlendi.
+>   - **19 catch bloğu:** `catch (err: any)` → `catch (err)` (strict kapalı
+>     olduğundan davranış birebir aynı — implicit any; `unknown` işleyişi
+>     16/17 strict maddesinde yapılacak).
+>   - **Ölü kod:** `firestoreFetchData.ts` silindi (grep ile doğrulandı:
+>     hiçbir import yoktu).
+> - **Sonuç:** `no-explicit-any` 29 → 0; toplam lint uyarısı 77 → 48
+>  (kalanlar önceden var olan başka uyarılar). Toplam satır kazancı: -42 ölü.
+> - **Doğrulama:** eslint 0 error; tsc exit 0; `npm run build` OK.
+>   Commit `a24c93d` — push + **CI ✅ yeşil**. İstemci tarafı: etki yeni
+>   APK/web'de (Render deploy gerekmedi — sunucu kodu değişmedi).
 
 > **11.11.2026 — M20 ÇÖZÜLDÜ (server.ts şişkinliği; 4.3):**
 >
@@ -922,7 +963,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
   (mockData.ts ile tekrar eden veri).~~
   **✅ 11.11.2026 çözüldü (M20)** — 612 satırlık fallback verisi
   `server/busFallbackData.ts`'e taşındı; server.ts 1694 → 1082 satır.
-- **20+ yerde `any`** (firebase.ts fonksiyonları, bileşen mapping'leri, catch blokları).
+- ~~**20+ yerde `any`** (firebase.ts fonksiyonları, bileşen mapping'leri, catch blokları).~~
+  **✅ 11.11.2026 çözüldü (M21)** — 29 explicit any'nin tamamı temizlendi
+  (no-explicit-any 29 → 0); Firestore sınırı tipli; ölü firestoreFetchData.ts
+  silindi. Catch değişkenleri strict kapalıyken implicit any olarak kaldı —
+  `unknown` işleyişi 16/17 (strict) maddesinde.
 - **Tutarsız Firestore şeması:** Türkçe/İngilizce alan karışımı (`isletmeAdi`/`storeName`/
   `name`) → bileşenlerde 5-6 alternatiflı `??` zincirleri ("KORUMA KALKANI" yorumları).
 - ~~**Ödeme/hata akışlarında `alert()`** (JobsView, DealsView, HomeView, SettingsView).~~
@@ -1036,8 +1081,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (11.11.2026, oturum #11): dal ucu `1b49a38` (M20: server.ts
-  şişkinliği; CI ✅ yeşil + CANLIDA), önceki `22006de` (MEMORY M19),
+- Git durumu (11.11.2026, oturum #11): dal ucu `a24c93d` (M21: any tip
+  borcu; CI ✅ yeşil), önceki `b82f2ac` (MEMORY M20), `1b49a38` (M20:
+  server.ts şişkinliği; CI ✅ yeşil + CANLIDA), `22006de` (MEMORY M19),
   `acc21ae` (M19: alert → bildirimler; CI ✅ yeşil), `328a03f` (MEMORY M18),
   `130c114` (M18: scraping önbellekleri; CI ✅ yeşil + CANLIDA),
   `d637daa` (MEMORY M17), `2410c94` (M17: küçük mantık kümesi; CI ✅ yeşil), `3575efe` (MEMORY M16), `10b54ec`
