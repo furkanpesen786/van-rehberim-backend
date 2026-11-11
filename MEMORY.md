@@ -4,10 +4,10 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M15 TAMAMLANDI ✅
-> (namaz vakitleri tek kaynak; `cbf355f` CANLIDA + `4ab347f` ek düzeltme).
-> Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
-> taziye özelliği (5/17).
+> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M16 TAMAMLANDI ✅
+> (taziye yarı-özelliği kaldırıldı; `10b54ec`: push + CI yeşil). Kullanıcı
+> kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: küçük mantık
+> kümesi (6/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -161,9 +161,16 @@ düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
 **📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
-M12 (weatherService), M13 (KVKK), M14 (AuthContext) ve M15 (namaz tek kaynak)
-✅ bitti (4/17). Sıra: (5) taziye → (6) küçük mantık kümesi → (7) ToS riski →
-(8-17) mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+M12-M15 ✅ bitti (4/17). M16 (taziye kaldırma) ✅ bitti (5/17). Sıra:
+(6) küçük mantık kümesi → (7) ToS riski → (8-17) mimari işler. M5 en sonda
+(iyzico vs RevenueCat kararı).
+
+**11.11.2026 oturumu #11 — M16 ÇÖZÜLDÜ (taziye yarı-özelliği; 4.2.7):**
+Kullanıcı kararı: yarım özellik TAMAMEN KALDIRILDI (tamamlama değil).
+`DeathNotice` tipi, boş `DEATH_NOTICES` mock'u, `obituaryEnabled` ayarı,
+ölü `deathNoticeAlerts` state'i ve politika metinlerindeki "vefat ilanları"
+vaatleri silindi. Özellik ileride gerçekten istenirse planlı ve tam olarak
+eklenecek. Commit `10b54ec`, CI ✅ yeşil. İstemci tarafı.
 
 **11.11.2026 oturumu #11 — M15 ÇÖZÜLDÜ (namaz vakitleri çift kaynak; 4.2.8):**
 Ayrıntı Bölüm 3'teki M15 kaydında. Kısa özet: istemci Aladhan'ı bıraktı,
@@ -332,6 +339,24 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **11.11.2026 — M16 ÇÖZÜLDÜ (taziye yarı-özelliği; 4.2.7):**
+>
+> - **Sorun:** taziye (vefat) özelliği yarım — `DeathNotice` tipi, boş
+>   `DEATH_NOTICES` mock'u, `obituaryEnabled` ayar anahtarı ve UI'sı olmayan
+>   `deathNoticeAlerts` state'i vardı; backend endpoint'i ve bildirim akışı
+>   yoktu. Kullanıcıya görünür tek şey politika metinlerindeki boş vaatti.
+> - **Kullanıcı kararı (AskUserQuestion):** tamamlamak yerine TAMAMEN KALDIR.
+> - **Silinenler:** `src/types.ts` `DeathNotice` interface'i; `mockData.ts`
+>   `DEATH_NOTICES` + import; `notificationService.ts` `obituaryEnabled`
+>   alanı (interface + varsayılan) + legacy id-200 bildirim iptali;
+>   `SettingsView.tsx` ölü `deathNoticeAlerts` state'i + KVKK/Gizlilik ve
+>   Kullanım Koşulları metinlerinden "vefat ilanları" vaatleri.
+> - **Geriye dönük uyum:** eski kullanıcıların localStorage'ında kalan
+>   `obituaryEnabled` anahtarı zararsız — ayar objesi artık state'ten
+>   yeniden kuruluyor, fazladan anahtar yok sayılıyor.
+> - **Doğrulama:** `npx tsc --noEmit` exit 0; `npm run build` OK. Commit
+>   `10b54ec` — push + **CI ✅ yeşil**. İstemci tarafı: etki yeni APK/web'de.
 
 > **11.11.2026 — M15 ÇÖZÜLDÜ (namaz vakitleri çift kaynak; 4.2.8):**
 >
@@ -750,8 +775,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    doğrulamasız oturum restore ediliyor; logout hard reload (`window.location.href = '/'`)~~
    **✅ 10.11.2026 çözüldü (M14)** — ölü kod, doğrulamasız restore ve hard reload kaldırıldı;
    UI metinleri dürüstleştirildi (ayrıntı Bölüm 3'te).
-7. **Taziye (vefat) özelliği yarım:** tip (`DeathNotice`), ayar anahtarı (`obituaryEnabled`)
-   ve UI var; backend endpoint'i ve bildirim akışı yok.
+7. ~~**Taziye (vefat) özelliği yarım:** tip (`DeathNotice`), ayar anahtarı (`obituaryEnabled`)
+   ve UI var; backend endpoint'i ve bildirim akışı yok~~ **✅ 11.11.2026 çözüldü (M16)** —
+   kullanıcı kararıyla yarım özellik tamamen kaldırıldı (ölü kod + politika vaatleri).
 8. ~~**Namaz vakitleri çift kaynak:** istemci Aladhan API (method 13), sunucu Diyanet
    scraping — aynı özellik için iki ayrı kaynak, değerler sapabilir~~
    **✅ 11.11.2026 çözüldü (M15)** — tek kaynak: sunucudaki Diyanet endpoint'i
@@ -883,8 +909,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (11.11.2026, oturum #11): dal ucu `4ab347f` (M15 ek: Gregorian
-  tarih), önceki `cbf355f` (M15: namaz tek kaynak; CANLIDA + CI ✅ yeşil),
+- Git durumu (11.11.2026, oturum #11): dal ucu `10b54ec` (M16: taziye
+  kaldırma; CI ✅ yeşil), önceki `ca6651f` (MEMORY M15), `4ab347f` (M15 ek:
+  Gregorian tarih), `cbf355f` (M15: namaz tek kaynak; CANLIDA + CI ✅ yeşil),
   `0c93429` (MEMORY M14), `1607a85` (M14: AuthContext; CI ✅ yeşil),
   `0e67302` (MEMORY M13), `1060f5b` (M13: KVKK;
   CI ✅ yeşil), `e210a85` (M12: weatherService), `738399f`
