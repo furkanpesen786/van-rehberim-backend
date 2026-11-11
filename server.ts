@@ -132,8 +132,42 @@ function getUvDetails(uvVal: number) {
   }
 }
 
+// M18: MGM/Open-Meteo 10 dk önbellek + 2 saat bayat-fallback — her istemci
+// yenilemesi MGM servis API'sini doğrudan vuruyordu (ToS/blok riski + gecikme).
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+const WEATHER_STALE_MAX_MS = 2 * 60 * 60 * 1000;
+interface WeatherApiPayload {
+  city: string;
+  currentTemp: number;
+  feelsLike: number;
+  condition: string;
+  tempMax: number;
+  tempMin: number;
+  humidity: number;
+  windSpeed: number;
+  windDirection: string;
+  pressure: number;
+  uvIndex: number;
+  uvStatus: string;
+  uvAdvice: string;
+  aqi: number;
+  aqiStatus: string;
+  aqiColor: string;
+  aqiAdvice: string;
+  lastUpdated: string;
+  forecast7Days: any[];
+  isLive: boolean;
+  source: string;
+  stale?: boolean;
+}
+let weatherCache: { payload: WeatherApiPayload; fetchedAt: number } | null = null;
+
 // API ROUTE: Live Van Weather Data fetched directly from MGM + Open-Meteo
 app.get('/api/weather', async (_req, res) => {
+  // Taze önbellek varsa doğrudan dön
+  if (weatherCache && Date.now() - weatherCache.fetchedAt < WEATHER_CACHE_TTL_MS) {
+    return res.json(weatherCache.payload);
+  }
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -281,15 +315,42 @@ app.get('/api/weather', async (_req, res) => {
       source: 'Meteoroloji Genel Müdürlüğü (MGM)'
     };
 
+    weatherCache = { payload: vanWeatherData, fetchedAt: Date.now() };
     res.json(vanWeatherData);
   } catch (error: any) {
     console.error('Error fetching MGM weather data:', error);
+    // M18: bayat (≤2 saat) önbellekten devam
+    if (weatherCache && Date.now() - weatherCache.fetchedAt < WEATHER_STALE_MAX_MS) {
+      return res.json({ ...weatherCache.payload, stale: true, source: `${weatherCache.payload.source} — geçici olarak önbellekten` });
+    }
     res.status(500).json({ error: 'MGM hava durumu verisi alınamadı' });
   }
 });
 
+// M18: Eczacı Odası sayfası 1 saat önbellek + 24 saat bayat-fallback —
+// nöbet listesi günlük değişir; her istemci yenilemesi sayfayı scrape
+// ediyordu (ToS/blok riski).
+const PHARMACIES_CACHE_TTL_MS = 60 * 60 * 1000;
+const PHARMACIES_STALE_MAX_MS = 24 * 60 * 60 * 1000;
+interface PharmaciesApiPayload {
+  success: boolean;
+  dutyDate: string;
+  rawTitle: string;
+  count: number;
+  vanCount: number;
+  lastUpdated: string;
+  source: string;
+  pharmacies: any[];
+  stale?: boolean;
+}
+let pharmaciesCache: { payload: PharmaciesApiPayload; fetchedAt: number } | null = null;
+
 // API ROUTE: Live Duty Pharmacies fetched directly from Van Eczacı Odası (https://www.vaneczaciodasi.org.tr/nobetci-eczaneler)
 app.get('/api/pharmacies', async (_req, res) => {
+  // Taze önbellek varsa doğrudan dön
+  if (pharmaciesCache && Date.now() - pharmaciesCache.fetchedAt < PHARMACIES_CACHE_TTL_MS) {
+    return res.json(pharmaciesCache.payload);
+  }
   try {
     const response = await fetch('https://www.vaneczaciodasi.org.tr/nobetci-eczaneler', {
       headers: {
@@ -374,7 +435,7 @@ app.get('/api/pharmacies', async (_req, res) => {
 
     const nowStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
-    res.json({
+    const payload: PharmaciesApiPayload = {
       success: true,
       dutyDate,
       rawTitle: rawDate,
@@ -383,9 +444,15 @@ app.get('/api/pharmacies', async (_req, res) => {
       lastUpdated: `Bugün ${nowStr} (vaneczaciodasi.org.tr)`,
       source: 'TEB 38. Bölge Van Eczacı Odası',
       pharmacies: sortedPharmacies,
-    });
+    };
+    pharmaciesCache = { payload, fetchedAt: Date.now() };
+    res.json(payload);
   } catch (error: any) {
     console.error('Error scraping Van Eczacı Odası duty pharmacies:', error);
+    // M18: bayat (≤24 saat) önbellekten devam
+    if (pharmaciesCache && Date.now() - pharmaciesCache.fetchedAt < PHARMACIES_STALE_MAX_MS) {
+      return res.json({ ...pharmaciesCache.payload, stale: true, source: `${pharmaciesCache.payload.source} — geçici olarak önbellekten` });
+    }
     res.status(500).json({
       success: false,
       error: 'Van Eczacı Odası nöbetçi eczane verisi çekilemedi',
@@ -741,8 +808,27 @@ app.get('/api/currencies', async (_req, res) => {
   }
 });
 
+// M18: van.bel.tr 1 saat önbellek + 24 saat bayat-fallback — tarifeler nadir
+// değişir; her istemci yenilemesi sayfayı scrape ediyordu (ToS/blok riski).
+const BUS_CACHE_TTL_MS = 60 * 60 * 1000;
+const BUS_STALE_MAX_MS = 24 * 60 * 60 * 1000;
+interface BusApiPayload {
+  success: boolean;
+  routes: any[];
+  lastUpdated: string;
+  source: string;
+  isLive: boolean;
+  stale?: boolean;
+}
+let busCache: { payload: BusApiPayload; fetchedAt: number } | null = null;
+
 // API ROUTE: Live Bus Schedules & Stops from van.bel.tr (https://van.bel.tr/Syf/Otobus-Hareket-Saatleri.html)
 app.get('/api/bus-schedules', async (_req, res) => {
+  // Taze önbellek varsa doğrudan dön
+  if (busCache && Date.now() - busCache.fetchedAt < BUS_CACHE_TTL_MS) {
+    return res.json(busCache.payload);
+  }
+
   const fallbackRoutes = [
     {
       id: 'b-1',
@@ -1400,17 +1486,24 @@ app.get('/api/bus-schedules', async (_req, res) => {
       });
 
       if (parsedRoutes.length > 0) {
-        return res.json({
+        const livePayload: BusApiPayload = {
           success: true,
           routes: parsedRoutes,
           lastUpdated: 'van.bel.tr Canlı',
           source: 'van.bel.tr (VAN BELVAN Ulaşım Dairesi)',
           isLive: true,
-        });
+        };
+        busCache = { payload: livePayload, fetchedAt: Date.now() };
+        return res.json(livePayload);
       }
     }
   } catch {
     // Graceful fallback to official BELVAN bus schedules dataset when external van.bel.tr endpoint is unreachable
+  }
+
+  // M18: canlı veri alınamadıysa önce bayat (≤24 saat) önbellek
+  if (busCache && Date.now() - busCache.fetchedAt < BUS_STALE_MAX_MS) {
+    return res.json({ ...busCache.payload, stale: true, source: `${busCache.payload.source} — geçici olarak önbellekten` });
   }
 
   const now = new Date();
