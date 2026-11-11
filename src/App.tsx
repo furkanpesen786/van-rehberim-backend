@@ -50,15 +50,16 @@ export default function App() {
     const settings = NotificationService.getSettings();
     NotificationService.applySettings(settings);
 
-    // Custom App-level Splash Screen timer (2s delay for visual impact)
+    // Custom App-level Splash Screen timer — M17: 2 sn yapay gecikme
+    // 600 ms'e indirildi (logo animasyonu için kısa bir nefes yeterli).
     const timer = setTimeout(() => {
       setIsAppReady(true);
-    }, 2000);
+    }, 600);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    CapApp.addListener('backButton', ({ canGoBack }) => {
+    const listener = CapApp.addListener('backButton', ({ canGoBack }) => {
       if (activeTab === 'home') {
         CapApp.exitApp();
       } else {
@@ -66,7 +67,9 @@ export default function App() {
       }
     });
     return () => {
-      CapApp.removeAllListeners();
+      // M17: removeAllListeners() TÜM eklenti dinleyicilerini (bildirim vb.)
+      // öldürüyordu — yalnızca bu dinleyicinin kendisi kaldırılır.
+      listener.then((handle) => handle.remove()).catch(() => { });
     };
   }, [activeTab]);
 

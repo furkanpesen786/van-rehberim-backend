@@ -90,40 +90,34 @@ export class NotificationService {
     private static async scheduleNews() {
         await this.cancelNews(); // Cancel old ones first
 
-        // Schedule 5 random times between 09:00 and 21:00 for the current day.
-        // In a real app, this should run periodically to schedule for the next days.
-        const notifications = [];
+        // M17: önceden gün içinde RASTGELE 5 saate "Yeni Haberler Var"
+        // bildirimi planlanıyordu — yeni haber kontrolü olmadan bu iddialı bir
+        // bildirimdi. Artık sabit saatlerde (09:00, 18:00) dürüst bir "günün
+        // haberlerine göz at" hatırlatması gönderiliyor. (Gerçek yeni-haber
+        // bildirimi push altyapısı gerektirir — yol haritasında değil.)
         const now = new Date();
-
-        // If we're past 21:00, schedule for tomorrow
-        const baseDate = now.getHours() >= 21 ? new Date(now.getTime() + 86400000) : now;
-
-        for (let i = 1; i <= 5; i++) {
-            const hour = Math.floor(Math.random() * (21 - 9 + 1)) + 9;
-            const minute = Math.floor(Math.random() * 60);
-
-            const scheduleDate = new Date(baseDate);
-            scheduleDate.setHours(hour, minute, 0, 0);
-
-            // Only schedule if time is in the future
-            if (scheduleDate.getTime() > new Date().getTime()) {
-                notifications.push({
-                    id: 100 + i,
-                    title: 'Yeni Haberler Var',
-                    body: 'Van Rehberim\'de güncel haberleri ve içerikleri keşfetmek için dokunun.',
-                    channelId: 'default_channel',
-                    schedule: { at: scheduleDate, allowWhileIdle: true },
-                });
+        const notificationHours = [9, 18];
+        const notifications = notificationHours.map((hour, i) => {
+            const scheduleDate = new Date(now);
+            scheduleDate.setHours(hour, 0, 0, 0);
+            // Saat geçtiyse yarına planla
+            if (scheduleDate.getTime() <= now.getTime()) {
+                scheduleDate.setDate(scheduleDate.getDate() + 1);
             }
-        }
+            return {
+                id: 101 + i,
+                title: 'Van Rehberim — Günün Haberleri',
+                body: 'Van\'da bugün neler olduğuna göz atmak ister misiniz?',
+                channelId: 'default_channel',
+                schedule: { at: scheduleDate, allowWhileIdle: true },
+            };
+        });
 
-        if (notifications.length > 0) {
-            await LocalNotifications.schedule({ notifications });
-        }
+        await LocalNotifications.schedule({ notifications });
     }
 
     private static async cancelNews() {
-        const ids = [101, 102, 103, 104, 105];
+        const ids = [101, 102];
         await LocalNotifications.cancel({ notifications: ids.map(id => ({ id })) });
     }
 

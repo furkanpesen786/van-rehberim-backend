@@ -12,7 +12,7 @@ export default defineConfig(() => {
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (id.includes('react')) return 'vendor-react';
-              if (id.includes('lodash')) return 'vendor-lodash';
+              // M17: 'vendor-lodash' chunk'ı kaldırıldı — projede lodash yok.
               return 'vendor';
             }
           }
