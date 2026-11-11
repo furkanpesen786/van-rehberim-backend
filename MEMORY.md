@@ -4,9 +4,9 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M17 TAMAMLANDI ✅
-> (5 küçük mantık düzeltmesi; `2410c94`: push + CI yeşil). Kullanıcı kalan 17
-> sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: scraping ToS riski (7/17).
+> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M18 TAMAMLANDI ✅
+> (scraping ToS riski hafifletildi; `130c114`: push edildi). Kullanıcı kalan
+> 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: alert() → UI (8/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -160,9 +160,13 @@ düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
 **📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
-M12-M16 ✅ bitti (5/17). M17 (küçük mantık kümesi) ✅ bitti (6/17). Sıra:
-(7) scraping ToS riski → (8-17) mimari işler. M5 en sonda (iyzico vs
-RevenueCat kararı).
+M12-M17 ✅ bitti (6/17). M18 (scraping ToS hafifletme) ✅ bitti (7/17). Sıra:
+(8) alert() → UI → (9-17) mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+
+**11.11.2026 oturumu #11 — M18 ÇÖZÜLDÜ (scraping ToS riski; 4.1.5):**
+Önbelleği olmayan üç scraped endpoint'e (hava/eczane/otobüs) M8/M15 deseni
+uygulandı — kaynak başına istek hacmi ciddi düştü. Commit `130c114`.
+Render deploy + canlı doğrulama bekliyor.
 
 **11.11.2026 oturumu #11 — M17 ÇÖZÜLDÜ (küçük mantık kümesi; 4.2.10):**
 Beş bağımsız düzeltme tek batch'te: (1) `removeAllListeners()` → yalnızca
@@ -345,6 +349,31 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **11.11.2026 — M18 ÇÖZÜLDÜ (scraping ToS riski hafifletme; 4.1.5):**
+>
+> - **Sorun:** MGM / Diyanet / doviz.com / Eczacı Odası / van.bel.tr sahte
+>   User-Agent ile taranıyordu; önbelleği olmayan üç endpoint'te (hava,
+>   eczane, otobüs) HER istemci yenilemesi kaynak siteyi doğrudan vuruyordu.
+> - **Çözüm (kod düzeyinde hafifletme):** M8/M15 önbellek deseni kalan üçüne:
+>   - `/api/weather`: 10 dk TTL + 2 saat bayat-fallback (`stale: true` +
+>     kaynak eki). MGM + Open-Meteo istekleri önbellekleniyor.
+>   - `/api/pharmacies`: 1 saat TTL + 24 saat bayat-fallback (nöbet listesi
+>     günlük değişir).
+>   - `/api/bus-schedules`: 1 saat TTL + 24 saat bayat-fallback (tarifeler
+>     nadir değişir); canlı parse başarısızsa önce bayat önbellek, sonra
+>     yerel fallback verisi.
+>   - Önceden var olanlar: haber 10 dk (M6), döviz 10 dk (M8), namaz 1 saat (M15).
+> - **Sonuç:** kaynak başına üst sınır (istemci sayısından bağımsız):
+>   MGM saatte ≤6, Eczacı Odası saatte ≤1, van.bel.tr saatte ≤1, Diyanet
+>   saatte ≤1, doviz.com 10 dk'da ≤1 istek.
+> - **KALAN RİSK (kod dışı):** resmî API sözleşmesi/izni alınamadı; sahte
+>   User-Agent kullanımı ve regex tabanlı kırılgan parsing sürüyor. Kaynak
+>   site HTML değiştirirse endpoint dürüst hataya düşer (fallback'ler var).
+>   Tam çözüm kaynaklarla resmî anlaşma gerektirir — ürün kararı, ertelendi.
+> - **Doğrulama:** tsc exit 0; boot testi EXIT 124 ✅; `npm run build` OK.
+>   Commit `130c114` — push edildi. CI + Render deploy + canlı önbellek
+>   doğrulaması bekliyor (sınıflandırıcı engeli).
 
 > **11.11.2026 — M17 ÇÖZÜLDÜ (küçük mantık kümesi; 4.2.10):**
 >
@@ -775,8 +804,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    **✅ 09.11.2026 çözüldü (M9)** — her ikisi `false` yapıldı + RSS görsellerinde
    http→https yükseltmesi (ayrıntı Bölüm 3'te). **Etkisi yeni APK derlenince
    görülür** (mevcut kurulu APK'da eski manifest var).
-5. **Scraping ToS riski:** MGM / Diyanet / doviz.com / Eczacı Odası / van.bel.tr
-   sahte User-Agent ile taranıyor; regex tabanlı parsing kırılgan.
+5. ~~**Scraping ToS riski:** MGM / Diyanet / doviz.com / Eczacı Odası / van.bel.tr
+   sahte User-Agent ile taranıyor; regex tabanlı parsing kırılgan~~
+   **✅ 11.11.2026 hafifletildi (M18)** — tüm scraped kaynaklarda önbellek +
+   bayat-fallback; kaynak başına istek üst sınırı düştü. Kalan risk (resmî API
+   sözleşmesi yok, sahte UA, kırılgan regex) ürün kararı olarak ertelendi.
 
 ### 4.2 🐛 Mantık Hataları
 
@@ -937,8 +969,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (11.11.2026, oturum #11): dal ucu `2410c94` (M17: küçük mantık
-  kümesi; CI ✅ yeşil), önceki `3575efe` (MEMORY M16), `10b54ec`
+- Git durumu (11.11.2026, oturum #11): dal ucu `130c114` (M18: scraping
+  önbellekleri; CI + deploy kontrolü bekliyor), önceki `d637daa` (MEMORY M17),
+  `2410c94` (M17: küçük mantık kümesi; CI ✅ yeşil), `3575efe` (MEMORY M16), `10b54ec`
   (M16: taziye kaldırma; CI ✅ yeşil), `ca6651f` (MEMORY M15), `4ab347f` (M15 ek:
   Gregorian tarih), `cbf355f` (M15: namaz tek kaynak; CANLIDA + CI ✅ yeşil),
   `0c93429` (MEMORY M14), `1607a85` (M14: AuthContext; CI ✅ yeşil),
