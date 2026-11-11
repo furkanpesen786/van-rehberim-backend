@@ -4,9 +4,10 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 10.11.2026 (gece, oturum #11 sürüyor) — M14 TAMAMLANDI ✅
-> (AuthContext sorunları; `1607a85`: push + CI yeşil). Kullanıcı kalan 17 sorunun
-> TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: namaz vakitleri çift kaynak (4/17).
+> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M15 TAMAMLANDI ✅
+> (namaz vakitleri tek kaynak; `cbf355f` CANLIDA + `4ab347f` ek düzeltme).
+> Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
+> taziye özelliği (5/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -159,10 +160,16 @@ APK + 3 eski yedek `Desktop/van-rehberim-arsiv/`'e taşındı, tsconfig include
 düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
-**📋 Durum (10.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
-M12 (weatherService), M13 (KVKK hesap silme) ve M14 (AuthContext) ✅ bitti
-(3/17). Sıra: (4) namaz çift kaynak → (5) taziye → (6) küçük mantık kümesi →
-(7) ToS riski → (8-17) mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+**📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
+M12 (weatherService), M13 (KVKK), M14 (AuthContext) ve M15 (namaz tek kaynak)
+✅ bitti (4/17). Sıra: (5) taziye → (6) küçük mantık kümesi → (7) ToS riski →
+(8-17) mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+
+**11.11.2026 oturumu #11 — M15 ÇÖZÜLDÜ (namaz vakitleri çift kaynak; 4.2.8):**
+Ayrıntı Bölüm 3'teki M15 kaydında. Kısa özet: istemci Aladhan'ı bıraktı,
+tek kaynak kendi sunucumuzdaki Diyanet endpoint'i oldu (1 saat önbellek +
+24 saat bayat-fallback). Commit `cbf355f` CANLIDA doğrulandı; `4ab347f`
+ek düzeltme (Gregorian tarih gösterimi).
 
 **10.11.2026 oturumu #11 — M14 ÇÖZÜLDÜ (AuthContext sorunları; 4.2.6):**
 Ayrıntı Bölüm 3'teki M14 kaydında. Kısa özet: ölü `fontLoading()` kodu,
@@ -325,6 +332,31 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **11.11.2026 — M15 ÇÖZÜLDÜ (namaz vakitleri çift kaynak; 4.2.8):**
+>
+> - **Sorun:** aynı özellik için iki ayrı kaynak — istemci Aladhan API
+>   (method 13, "Diyanet'e yakın" varsayımıyla Fajr'ı İmsak sayıyordu),
+>   sunucu Diyanet scraping. Değerler sapabiliyordu, çift bakım gerekiyordu.
+> - **Çözüm (tek kaynak = sunucudaki Diyanet):**
+>   - **`server.ts`:** scrape kodu `fetchDiyanetTimes()` yardımcısına
+>     ayrıştırıldı + M8 deseniyle önbellek: 1 saat TTL (vakitler günlük
+>     değişir) + 24 saat bayat-fallback (`stale: true` + kaynak eki
+>     "— geçici olarak önbellekten"). Aktif vakit/geri sayım her istekte
+>     güncel saatten hesaplanır (önbelleğe alınmaz).
+>   - **`src/services/prayerService.ts`:** Aladhan çağrısı kaldırıldı →
+>     `${VITE_API_URL}/api/prayer-times`; 60 sn → 15 sn timeout; aktif
+>     vakit/geri sayım istemcide güncel saatle yeniden hesaplanıyor;
+>     `stale` alanı istemci arayüzüne eklendi; mock fallback etiketi
+>     "Diyanet Standart" (yanıltıcı) → "Çevrimdışı varsayılan" oldu.
+>   - **`4ab347f` ek düzeltme:** sunucudan gelen `date` bazen Hicri oluyor
+>     ("1 Cemaziyelahir 1448" — Diyanet sayfasındaki ilk tarih eşleşmesi);
+>     ana gösterim için Gregorian Türkçe tarih istemcide üretiliyor.
+> - **Doğrulama:** tsc exit 0; eslint 0 error; `npm run build` OK; boot testi
+>   EXIT 124 ✅; **CANLIDA**: iki çağrıda aynı Diyanet vakitleri (önbellek
+>   çalışıyor), `stale: false`, gerçek vakitler (05:12/06:35/11:55/14:41/
+>   17:05/18:24). `cbf355f` Render'da live. `4ab347f` istemci tarafı —
+>   etki yeni APK/web'de.
 
 > **10.11.2026 — M14 ÇÖZÜLDÜ (AuthContext sorunları; 4.2.6):**
 >
@@ -720,8 +752,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    UI metinleri dürüstleştirildi (ayrıntı Bölüm 3'te).
 7. **Taziye (vefat) özelliği yarım:** tip (`DeathNotice`), ayar anahtarı (`obituaryEnabled`)
    ve UI var; backend endpoint'i ve bildirim akışı yok.
-8. **Namaz vakitleri çift kaynak:** istemci Aladhan API (method 13), sunucu Diyanet
-   scraping — aynı özellik için iki ayrı kaynak, değerler sapabilir.
+8. ~~**Namaz vakitleri çift kaynak:** istemci Aladhan API (method 13), sunucu Diyanet
+   scraping — aynı özellik için iki ayrı kaynak, değerler sapabilir~~
+   **✅ 11.11.2026 çözüldü (M15)** — tek kaynak: sunucudaki Diyanet endpoint'i
+   (1 saat önbellek + bayat-fallback); istemci Aladhan'ı bıraktı (ayrıntı Bölüm 3'te).
 9. ~~**Hesap silme eksik (KVKK):** `deleteUser` yalnızca Auth kaydını siler; Firestore'daki
    `users` dokümanı ve kullanıcının ilanları silinmiyor~~ **✅ 10.11.2026 çözüldü (M13)** —
    `deleteAllUserData()` Auth silmeden önce profil + favoriler + kendi ilanlarını temizler
@@ -849,8 +883,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (10.11.2026, oturum #11): dal ucu `1607a85` (M14: AuthContext;
-  CI ✅ yeşil), önceki `0e67302` (MEMORY M13), `1060f5b` (M13: KVKK;
+- Git durumu (11.11.2026, oturum #11): dal ucu `4ab347f` (M15 ek: Gregorian
+  tarih), önceki `cbf355f` (M15: namaz tek kaynak; CANLIDA + CI ✅ yeşil),
+  `0c93429` (MEMORY M14), `1607a85` (M14: AuthContext; CI ✅ yeşil),
+  `0e67302` (MEMORY M13), `1060f5b` (M13: KVKK;
   CI ✅ yeşil), `e210a85` (M12: weatherService), `738399f`
   (MEMORY M11), `4e60ea4` (M11), `67c0b1d`
   (MEMORY M10),
