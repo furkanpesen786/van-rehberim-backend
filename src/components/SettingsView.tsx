@@ -54,6 +54,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // M19: hesap silme başarısı — alert yerine yeşil bildirim
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(false);
@@ -234,6 +236,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
+      {/* M19: Hesap silme başarı bildirimi (alert yerine) */}
+      {deleteSuccess && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-slideDown">
+          <div className="mx-auto bg-white/70 dark:bg-[#121316]/80 backdrop-blur-3xl border border-white/60 dark:border-white/10 shadow-2xl rounded-3xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 shadow-inner">
+              <ShieldCheck className="w-5 h-5 text-emerald-500" />
+            </div>
+            <span className="text-xs font-bold text-slate-800 dark:text-white leading-snug drop-shadow-sm pr-2">{deleteSuccess}</span>
+          </div>
+        </div>
+      )}
+
       {/* Glassmorphism Delete Spinner UI */}
       {isDeletingAccount && (
         <div className="fixed inset-0 z-50 bg-white/40 dark:bg-black/60 backdrop-blur-md flex flex-col items-center justify-center animate-fadeIn">
@@ -304,9 +318,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                     // React state'inin güvenle render edilebilmesi için bloklayan işlemleri biraz erteliyoruz.
                     setTimeout(async () => {
-                      alert("Hesabınız ve ona bağlı tüm verileriniz başarıyla silinmiştir.");
+                      // M19: alert() yerine yeşil başarı bildirimi — kullanıcı
+                      // okuyabilsin diye çıkış/yenileme 2,5 sn gecikmeli.
+                      setDeleteSuccess("Hesabınız ve ona bağlı tüm verileriniz başarıyla silinmiştir.");
+                      await new Promise((r) => setTimeout(r, 2500));
                       await logout(); // Session sıfırla
-                      window.location.href = '/'; // Hard reload nükleer çözüm
+                      window.location.href = '/'; // Hard reload — hesap silme sonrası tam sıfırlama gerekli
                     }, 50);
                   } catch (err: any) {
                     if (err.code === 'auth/requires-recent-login') {

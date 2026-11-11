@@ -117,6 +117,8 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  // M19: alert() yerine kırmızı hata bildirimi
+  const [errorToast, setErrorToast] = useState<string | null>(null);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [rcPackages, setRcPackages] = useState<PurchasesPackage[]>([]);
@@ -213,7 +215,8 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
 
   const handleFinalPurchase = async () => {
     if (!selectedPackage) {
-      alert('Geçerli bir satın alma paketi seçilmedi.');
+      setErrorToast('Geçerli bir satın alma paketi seçilmedi.');
+      setTimeout(() => setErrorToast(null), 4000);
       return;
     }
 
@@ -226,7 +229,8 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         return;
       }
     } catch (e: any) {
-      alert(e.message);
+      setErrorToast(e.message || 'Ödeme sırasında bir hata oluştu.');
+      setTimeout(() => setErrorToast(null), 5000);
       setIsProcessing(false);
       return;
     }
@@ -285,7 +289,8 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       setTimeout(() => setSuccessToast(null), 4000);
     } catch (err: any) {
       setIsProcessing(false);
-      alert('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
+      setErrorToast('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
+      setTimeout(() => setErrorToast(null), 5000);
     }
   };
 
@@ -303,6 +308,14 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white font-bold text-xs sm:text-sm py-3 px-5 rounded-full shadow-2xl flex items-center gap-2 animate-bounce">
           <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
           <span>{successToast}</span>
+        </div>
+      )}
+
+      {/* M19: Hata Bildirimi (alert yerine) */}
+      {errorToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white font-bold text-xs sm:text-sm py-3 px-5 rounded-full shadow-2xl flex items-center gap-2 animate-bounce">
+          <AlertCircle className="w-5 h-5 text-rose-200 shrink-0" />
+          <span>{errorToast}</span>
         </div>
       )}
 
@@ -1028,7 +1041,12 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                     if (navigator.share) {
                       navigator.share({ title: selectedJob.title, text: `${selectedJob.title} - ${selectedJob.providerName}`, url: window.location.href });
                     } else {
-                      alert('İlan bağlantısı kopyalandı!');
+                      // M19: önceden alert('kopyalandı') deniyordu ama hiçbir
+                      // şey kopyalanmıyordu — gerçek panoya kopyalama yap.
+                      navigator.clipboard?.writeText(window.location.href).then(() => {
+                        setSuccessToast('İlan bağlantısı panoya kopyalandı!');
+                        setTimeout(() => setSuccessToast(null), 3000);
+                      }).catch(() => { });
                     }
                   }}
                   className={`p-3.5 rounded-2xl border font-bold text-xs flex items-center justify-center ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-800'

@@ -18,7 +18,8 @@ import {
   ImagePlus,
   CheckCircle2,
   Megaphone,
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
 
 interface DealsViewProps {
@@ -111,6 +112,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const [selectedDeal, setSelectedDeal] = useState<any | null>(null);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // M19: alert() yerine kırmızı hata bildirimi
+  const [errorToast, setErrorToast] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
@@ -237,7 +240,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   // seçilen gün = satın alınan ürün = Firestore'a yazılan süre her zaman aynıdır.
   const handleFinalPurchase = async () => {
     if (!selectedPackage) {
-      alert('Geçerli bir satın alma paketi seçilmedi.');
+      setErrorToast('Geçerli bir satın alma paketi seçilmedi.');
+      setTimeout(() => setErrorToast(null), 4000);
       return;
     }
 
@@ -250,7 +254,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         return;
       }
     } catch (e: any) {
-      alert(e.message);
+      setErrorToast(e.message || 'Ödeme sırasında bir hata oluştu.');
+      setTimeout(() => setErrorToast(null), 5000);
       setIsProcessing(false);
       return;
     }
@@ -296,7 +301,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err: any) {
       setIsProcessing(false);
-      alert('Hata: ' + (err.message || err));
+      setErrorToast('Hata: ' + (err.message || err));
+      setTimeout(() => setErrorToast(null), 5000);
     }
   };
 
@@ -306,6 +312,14 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 font-bold text-xs animate-bounce">
           <CheckCircle2 className="w-5 h-5 shrink-0" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* M19: Hata Bildirimi (alert yerine) */}
+      {errorToast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 font-bold text-xs animate-bounce">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{errorToast}</span>
         </div>
       )}
 

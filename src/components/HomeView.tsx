@@ -144,6 +144,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
 
   const [isAddTaxiModalOpen, setIsAddTaxiModalOpen] = useState<boolean>(false);
   const [showPayModalTaksi, setShowPayModalTaksi] = useState<boolean>(false);
+  // M19: alert() yerine ödeme modalı içi hata mesajı
+  const [payModalError, setPayModalError] = useState<string | null>(null);
   const [isProcessingTaksi, setIsProcessingTaksi] = useState<boolean>(false);
   const [pendingTaxiData, setPendingTaxiData] = useState<TaxiStand | null>(null);
 
@@ -198,6 +200,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   const handleFinalPurchaseTaksi = async () => {
     if (!pendingTaxiData) return;
     setIsProcessingTaksi(true);
+    setPayModalError(null);
 
     try {
       const taxiPackage = await PurchaseService.getPackageByProductId(PACKAGE_IDS.TAKSI_ILAN_AYLIK);
@@ -211,7 +214,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
         return;
       }
     } catch (e: any) {
-      alert(e.message);
+      setPayModalError(e.message || 'Ödeme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
       setIsProcessingTaksi(false);
       return;
     }
@@ -236,7 +239,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
       }, 3000);
     } catch (err: any) {
       setIsProcessingTaksi(false);
-      alert('Hata oluştur: ' + (err.message || err));
+      setPayModalError('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
     }
   };
 
@@ -2322,6 +2325,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </span>
               </div>
             </div>
+
+            {/* M19: ödeme hatası modal içinde gösterilir (alert yerine) */}
+            {payModalError && (
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold px-4 py-3 rounded-2xl flex items-start gap-2">
+                <span className="text-base leading-none mt-0.5">!</span>
+                <span>{payModalError}</span>
+              </div>
+            )}
 
             {/* Action Button */}
             <button
