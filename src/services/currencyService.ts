@@ -42,7 +42,7 @@ export async function fetchLiveCurrencies(): Promise<LiveCurrencyResponse> {
       const errText = await response.text().catch(() => 'No Body');
       console.error(`[currencyService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error(`[currencyService] Ağ/Timeout Hatası:`, err.message || err);
   }
 

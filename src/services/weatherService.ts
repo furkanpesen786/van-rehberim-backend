@@ -125,7 +125,7 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
       const errText = await omRes.text().catch(() => 'No Body');
       console.error(`[weatherService] API Hatası - Status: ${omRes.status}`, errText);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error(`[weatherService] Ağ/Timeout Hatası:`, err.message || err);
   }
 

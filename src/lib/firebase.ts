@@ -21,6 +21,35 @@ import {
   Timestamp,
   where,
 } from 'firebase/firestore';
+import type { JobListing } from '../types';
+
+// M21: Firestore ham doküman tipleri. Koleksiyonlarda şema normalizasyonu
+// (denetim maddesi 15) tamamlanana kadar Türkçe/İngilizce alan karışımı var;
+// bileşenler bu ham tipleri alıp kendi mapping'inde normalize ediyor. Bu
+// arayüzler bilinen tüm alan varyantlarını belgeler — bilinmeyen bir alan
+// adı kullanılırsa artık derleme hatası verir.
+export interface RawDealDoc {
+  id: string;
+  isletmeAdi?: string; storeName?: string; name?: string; title?: string;
+  indirimKodu?: string; dealTitle?: string; baslik?: string;
+  indirimDegeri?: string; discountRate?: string; indirimMiktari?: string; oran?: string;
+  kategori?: string; category?: string;
+  image?: string; images?: string[]; photoUrl?: string;
+  locationName?: string; district?: string; ilce?: string; konum?: string;
+  description?: string; aciklama?: string; detay?: string;
+  startDate?: string; endDate?: string; address?: string;
+}
+
+export interface RawTaxiDoc {
+  id: string;
+  name?: string; isim?: string; title?: string;
+  driverName?: string; soforAdi?: string;
+  phone?: string; telefon?: string; tel?: string;
+  plate?: string; plaka?: string; taxiPlate?: string;
+  operatingRegions?: string; calismaBolgeleri?: string; bolgeler?: string; regions?: string;
+  district?: string; ilce?: string; mahalle?: string;
+  monthlyFee?: string; aylikUcret?: string; fee?: string;
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyCH3N-PpKQ92bjg9aCDQdwcL74r0Jkidzc",
@@ -66,7 +95,7 @@ export async function saveUserToFirestore(profile: UserProfile) {
 }
 
 // Subscribe to Job Listings from Firebase Firestore
-export function subscribeJobListings(callback: (jobs: any[]) => void) {
+export function subscribeJobListings(callback: (jobs: JobListing[]) => void) {
   try {
     // PRODUCTION: Yalnızca bitiş tarihi geçmemiş (aktif) ilanları getir
     const q = query(
@@ -74,10 +103,11 @@ export function subscribeJobListings(callback: (jobs: any[]) => void) {
       where('bitisTarihi', '>', Timestamp.now())
     );
     return onSnapshot(q, (snapshot) => {
+      // Firestore verisi tipsizdir — güvenilir tek cast noktası burasıdır
       const jobs = snapshot.docs.map((d) => ({
         id: d.id,
         ...d.data(),
-      }));
+      })) as JobListing[];
       callback(jobs);
     }, (error) => {
       console.warn('Firestore is_ilanlari snapshot warning:', error);
@@ -95,17 +125,18 @@ export function subscribeJobListings(callback: (jobs: any[]) => void) {
 // istemciye kapatır.
 
 // Subscribe to Deals from Firebase Firestore (indirim_ilanlari koleksiyonu)
-export function subscribeDeals(callback: (deals: any[]) => void) {
+export function subscribeDeals(callback: (deals: RawDealDoc[]) => void) {
   try {
     const q = query(
       collection(db, 'indirim_ilanlari'),
       where('bitisTarihi', '>', Timestamp.now())
     );
     return onSnapshot(q, (snapshot) => {
+      // Firestore verisi tipsizdir — güvenilir tek cast noktası burasıdır
       const deals = snapshot.docs.map((d) => ({
         id: d.id,
         ...d.data(),
-      }));
+      })) as RawDealDoc[];
       callback(deals);
     }, (error) => {
       console.warn('Firestore indirim_ilanlari snapshot warning:', error);
@@ -169,17 +200,18 @@ export async function deleteAllUserData(userId: string): Promise<void> {
 }
 
 // Subscribe to Taxis from Firebase Firestore (taksiler koleksiyonu)
-export function subscribeTaxis(callback: (taxis: any[]) => void) {
+export function subscribeTaxis(callback: (taxis: RawTaxiDoc[]) => void) {
   try {
     const q = query(
       collection(db, 'taksiler'),
       where('bitisTarihi', '>', Timestamp.now())
     );
     return onSnapshot(q, (snapshot) => {
+      // Firestore verisi tipsizdir — güvenilir tek cast noktası burasıdır
       const taxis = snapshot.docs.map((d) => ({
         id: d.id,
         ...d.data(),
-      }));
+      })) as RawTaxiDoc[];
       callback(taxis);
     }, (error) => {
       console.warn('Firestore taksiler snapshot warning:', error);

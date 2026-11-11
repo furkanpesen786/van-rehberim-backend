@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn("Firestore sync failed, but user is logged in locally.");
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Google Sign-In Error:', err);
       // Ignore user cancellation codes
       if (err.code !== 'auth/popup-closed-by-user' && err.message !== 'signInWithGoogle canceled.') {
@@ -173,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn("Firestore sync failed, but user is logged in locally.");
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Apple Sign-In Error:', err);
       if (err.code !== 'auth/popup-closed-by-user' && err.message !== 'signInWithApple canceled.') {
         throw new Error('Apple ile giriş yapılamadı: ' + (err.message || 'Lütfen tekrar deneyiniz.'));

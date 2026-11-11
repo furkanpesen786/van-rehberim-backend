@@ -79,7 +79,7 @@ export class PurchaseService {
         try {
             const result = await Purchases.purchasePackage({ aPackage });
             return typeof result?.customerInfo !== 'undefined';
-        } catch (e: any) {
+        } catch (e) {
             if (e?.userCancelled) {
                 return false;
             }

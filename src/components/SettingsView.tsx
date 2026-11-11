@@ -325,7 +325,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       await logout(); // Session sıfırla
                       window.location.href = '/'; // Hard reload — hesap silme sonrası tam sıfırlama gerekli
                     }, 50);
-                  } catch (err: any) {
+                  } catch (err) {
                     if (err.code === 'auth/requires-recent-login') {
                       setDeleteError("Güvenlik kuralı: Hesabı silebilmek için oturum tazelemeniz gerekiyor. Lütfen yeniden giriş yapın.");
                       setTimeout(async () => {

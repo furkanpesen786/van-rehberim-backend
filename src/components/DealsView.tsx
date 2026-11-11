@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { subscribeDeals } from '../lib/firebase';
+import type { Deal } from '../types';
 import { submitPaidListing } from '../services/listingService';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
@@ -49,14 +50,14 @@ function todayTR(): string {
 
 export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const { currentUser, setShowAuthModal } = useAuth();
-  const [dealsList, setDealsList] = useState<any[]>([]);
+  const [dealsList, setDealsList] = useState<Deal[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Subscribe to Firebase Firestore live deals
   useEffect(() => {
     const unsub = subscribeDeals((firestoreDeals) => {
       if (Array.isArray(firestoreDeals)) {
-        const mappedDeals = firestoreDeals.map((d: any) => {
+        const mappedDeals = firestoreDeals.map((d) => {
           // KORUMA KALKANI: Firebase Timestamp objelerini (seconds, nanoseconds) bulup düz metne çevirir
           const safeData = { ...d };
           Object.keys(safeData).forEach(key => {
@@ -76,7 +77,10 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             description: safeData?.description ?? safeData?.aciklama ?? safeData?.detay ?? '',
           };
         });
-        setDealsList(mappedDeals);
+        // Ham dokümanın startDate/endDate/address alanları koleksiyonda
+        // tutarsız — normalizasyon (denetim maddesi 15) tamamlanana kadar
+        // tek cast noktası burası.
+        setDealsList(mappedDeals as Deal[]);
       }
       setIsLoading(false);
     });
@@ -109,7 +113,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   }, [savedDeals]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDeal, setSelectedDeal] = useState<any | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   // M19: alert() yerine kırmızı hata bildirimi
@@ -191,7 +195,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         setSelectedPackage(preferred);
         setEndDate(computeEndDate(getDealMetaFromPackage(preferred).durationDays));
       }
-    } catch (e: any) {
+    } catch (e) {
       setRcPackages([]);
       setSelectedPackage(null);
       setPackagesError(e?.message || 'Paketler yüklenemedi.');
@@ -253,7 +257,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         setIsProcessing(false);
         return;
       }
-    } catch (e: any) {
+    } catch (e) {
       setErrorToast(e.message || 'Ödeme sırasında bir hata oluştu.');
       setTimeout(() => setErrorToast(null), 5000);
       setIsProcessing(false);
@@ -299,7 +303,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       setEndDate(computeEndDate(30));
       setToastMessage(`🎉 İlanınız ${meta.durationDays} gün boyunca yayınlandı!`);
       setTimeout(() => setToastMessage(null), 4000);
-    } catch (err: any) {
+    } catch (err) {
       setIsProcessing(false);
       setErrorToast('Hata: ' + (err.message || err));
       setTimeout(() => setErrorToast(null), 5000);

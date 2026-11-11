@@ -24,7 +24,7 @@ export async function fetchLiveBusSchedules(): Promise<LiveBusResponse> {
       const errText = await response.text().catch(() => 'No Body');
       console.error(`[busService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error(`[busService] Ağ/Timeout Hatası:`, err.message || err);
   }
 

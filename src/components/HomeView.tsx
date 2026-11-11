@@ -124,7 +124,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   useEffect(() => {
     const unsub = subscribeTaxis((firestoreTaxis) => {
       if (firestoreTaxis) {
-        const mappedTaxis = firestoreTaxis.map((t: any) => ({
+        const mappedTaxis = firestoreTaxis.map((t) => ({
           ...t,
           id: t.id,
           name: t.name || t.isim || t.title || 'Taksi',
@@ -213,7 +213,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
         setIsProcessingTaksi(false);
         return;
       }
-    } catch (e: any) {
+    } catch (e) {
       setPayModalError(e.message || 'Ödeme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
       setIsProcessingTaksi(false);
       return;
@@ -237,7 +237,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
         setNewTaxiPlate('');
         setNewTaxiOperatingRegions('');
       }, 3000);
-    } catch (err: any) {
+    } catch (err) {
       setIsProcessingTaksi(false);
       setPayModalError('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
     }

@@ -26,7 +26,7 @@ export async function fetchLivePharmacies(): Promise<DutyPharmaciesResponse> {
       const errText = await response.text().catch(() => 'No Body');
       console.error(`[pharmacyService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error(`[pharmacyService] Ağ/Timeout Hatası:`, err.message || err);
   }
 

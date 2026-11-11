@@ -35,7 +35,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         setShowAuthModal(false);
         if (onClose) onClose();
       }, 50);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Google girişi sırasında hata oluştu.');
     } finally {
       setIsSubmitting(false); // KESİNLİKLE spinner'ı kapat
@@ -51,7 +51,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         setShowAuthModal(false);
         if (onClose) onClose();
       }, 50);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Apple girişi sırasında hata oluştu.');
     } finally {
       setIsSubmitting(false);

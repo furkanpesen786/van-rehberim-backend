@@ -104,7 +104,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   useEffect(() => {
     const unsub = subscribeJobListings((firestoreJobs) => {
       if (firestoreJobs) {
-        setJobsList(firestoreJobs as JobListing[]);
+        setJobsList(firestoreJobs);
       }
       setIsLoading(false);
     });
@@ -180,7 +180,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         const meta = getJobMetaFromPackage(preferred);
         setFormData((prev) => ({ ...prev, durationDays: meta.durationDays }));
       }
-    } catch (e: any) {
+    } catch (e) {
       setRcPackages([]);
       setSelectedPackage(null);
       setPackagesError(e?.message || 'Paketler yüklenemedi.');
@@ -228,7 +228,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         setIsProcessing(false);
         return;
       }
-    } catch (e: any) {
+    } catch (e) {
       setErrorToast(e.message || 'Ödeme sırasında bir hata oluştu.');
       setTimeout(() => setErrorToast(null), 5000);
       setIsProcessing(false);
@@ -287,7 +287,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
 
       setSuccessToast(`Tebrikler! İlanınız Firebase bulut veri tabanına kaydedildi ve ${newJob.durationDays} gün yayınlandı.`);
       setTimeout(() => setSuccessToast(null), 4000);
-    } catch (err: any) {
+    } catch (err) {
       setIsProcessing(false);
       setErrorToast('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
       setTimeout(() => setErrorToast(null), 5000);

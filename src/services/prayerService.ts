@@ -1,4 +1,3 @@
-import { PrayerTimes } from '../types';
 import { PRAYER_TIMES } from '../data/mockData';
 
 export interface LivePrayerTimesResponse {
@@ -21,6 +20,18 @@ export interface LivePrayerTimesResponse {
   lastUpdated: string;
   source: string;
   isLive?: boolean;
+  stale?: boolean;
+}
+
+// M21: /api/prayer-times ham sunucu yanıtı — istemci status alanlarını
+// (activeKey, geri sayım vb.) kendisi yeniden hesapladığı için burada yalnız
+// sunucunun garantili gönderdiği alanlar tiplenir.
+interface PrayerTimesApiResponse {
+  success?: boolean;
+  city?: string;
+  date?: string;
+  times?: LivePrayerTimesResponse['times'];
+  source?: string;
   stale?: boolean;
 }
 
@@ -111,7 +122,7 @@ export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
     const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com'}/api/prayer-times`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (response.ok) {
-      const json: any = await response.json();
+      const json = await response.json() as PrayerTimesApiResponse;
       if (json && json.success && json.times) {
 
         // Aktif vakit/geri sayım sunucuda önbelleğe alınma anında hesaplanmış
@@ -144,7 +155,7 @@ export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
       const errText = await response.text().catch(() => 'No Body');
       console.error(`[prayerService] API Hatası - Status: ${response.status}`, errText);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error(`[prayerService] Ağ/Timeout Hatası:`, err.message || err);
   }
 
