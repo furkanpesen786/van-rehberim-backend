@@ -4,10 +4,10 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M19 TAMAMLANDI ✅
-> (alert() → uygulama içi bildirimler; `acc21ae`: push + CI yeşil). Kullanıcı
-> kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: server.ts
-> şişkinliği / inline otobüs verisi (9/17).
+> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M20 TAMAMLANDI ✅
+> (server.ts şişkinliği; `1b49a38`: push + CI yeşil + Render'da CANLIDA).
+> Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
+> `any` tip borcu (~79 lint uyarısı) (10/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -29,7 +29,7 @@ backend Render.com üzerinde Express olarak çalışır.
 |---|---|
 | Frontend | React 19, TypeScript 5.8 (strict KAPALI), Vite 6, Tailwind CSS 4, lucide-react |
 | Mobil | Capacitor 8 (yalnızca Android; iOS projesi yok), Firebase Auth, RevenueCat, LocalNotifications |
-| Backend | Express 4 (`server.ts`, ~1.570 satır) — scraping tabanlı veri toplama |
+| Backend | Express 4 (`server.ts`, ~1.080 satır + `server/` modülleri) — scraping tabanlı veri toplama |
 | Veri | Firebase Firestore (`is_ilanlari`, `indirim_ilanlari`, `taksiler`, `users`, `userFavorites`) |
 | CI/CD | GitHub Actions (`.github/workflows/ci.yml`), Render deploy (`van-rehberim-api.onrender.com`) |
 
@@ -161,9 +161,16 @@ düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
 **📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
-M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). Sıra:
-(9) server.ts şişkinliği → (10-17) mimari işler. M5 en sonda (iyzico vs
-RevenueCat kararı).
+M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
+(server.ts şişkinliği) ✅ bitti (9/17). Sıra: (10) `any` tip borcu → (11-17)
+mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+
+**11.11.2026 oturumu #11 — M20 ÇÖZÜLDÜ (server.ts şişkinliği; 4.3):**
+612 satırlık inline otobüs fallback verisi (b-1..b-30, `fallbackRoutes`
+dizisi + 23 `push` bloğu) `server/busFallbackData.ts` modülüne taşındı
+(`BUS_FALLBACK_ROUTES` + `BusRouteData` export). server.ts 1694 → 1082
+satır; veri artık istek başına yeniden oluşturulmuyor. Commit `1b49a38`,
+CI ✅ yeşil + Render'da CANLIDA (canlı endpoint doğrulandı).
 
 **11.11.2026 oturumu #11 — M19 ÇÖZÜLDÜ (alert() kullanımları; 4.3):**
 10 alert() çağrısının tamamı uygulama içi bildirimlere çevrildi (JobsView
@@ -357,6 +364,31 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **11.11.2026 — M20 ÇÖZÜLDÜ (server.ts şişkinliği; 4.3):**
+>
+> - **Sorun:** `server.ts` 1694 satırdı; ~612 satırı (satır 832-1443) rotanın
+>   içinde inline otobüs fallback verisiydi: `const fallbackRoutes = [...]`
+>   (b-1..b-7) + 23 adet `fallbackRoutes.push({...})` (b-8..b-30 ring
+>   hatları). Her `/api/bus-schedules` isteğinde tüm bu nesne dizisi yeniden
+>   oluşturuluyordu.
+> - **Çözüm:** veri `server/busFallbackData.ts` modülüne taşındı (listings.ts
+>   ile aynı dizin; native ESM `.ts` uzantılı import):
+>   - `export interface BusRouteData` (id/lineNo/title/route/departureTimes/
+>     returnTimes/stops/frequency/status/tariff/operatingHours) +
+>     `export const BUS_FALLBACK_ROUTES: BusRouteData[]` (30 hat, birebir
+>     aynı içerik — b-1..b-3, b-8, b-29, b-30 örneklemiyle doğrulandı).
+>   - server.ts'te: import eklendi; `typeof fallbackRoutes` → `BusRouteData[]`;
+>     `routes: fallbackRoutes` → `routes: BUS_FALLBACK_ROUTES`.
+>   - 612 satırlık silme Edit aracı yerine `sed -i '832,1443d'` ile yapıldı
+>     (birebir eşleşme kırılgan olurdu; Bash sınıflandırıcısı kapalıydı,
+>     kullanıcı `!` ile çalıştırdı).
+> - **Sonuç:** server.ts 1694 → 1082 satır; veri modül seviyesinde tek seferde
+>   tanımlı. Davranış değişikliği yok.
+> - **Doğrulama:** tsc exit 0; `npm run build` OK; boot testi EXIT_CODE=124;
+>   yerel `localhost:3000/api/bus-schedules` yeni modülden aynı veriyi döndü;
+>   commit `1b49a38` — push + **CI ✅ yeşil** + Render'da **CANLIDA**
+>   (canlı endpoint aynı veriyi döndürüyor).
 
 > **11.11.2026 — M19 ÇÖZÜLDÜ (alert() kullanımları; 4.3):**
 >
@@ -886,8 +918,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 
 - **Monolit bileşenler:** HomeView 2.167 satır, JobsView 1.033, SettingsView 995 —
   bakımı zor, alt bileşenlere bölünmeli.
-- **`server.ts` şişkin:** ~1.570 satırın ~700 satırı inline otobüs fallback verisi
-  (mockData.ts ile tekrar eden veri).
+- ~~**`server.ts` şişkin:** ~1.570 satırın ~700 satırı inline otobüs fallback verisi
+  (mockData.ts ile tekrar eden veri).~~
+  **✅ 11.11.2026 çözüldü (M20)** — 612 satırlık fallback verisi
+  `server/busFallbackData.ts`'e taşındı; server.ts 1694 → 1082 satır.
 - **20+ yerde `any`** (firebase.ts fonksiyonları, bileşen mapping'leri, catch blokları).
 - **Tutarsız Firestore şeması:** Türkçe/İngilizce alan karışımı (`isletmeAdi`/`storeName`/
   `name`) → bileşenlerde 5-6 alternatiflı `??` zincirleri ("KORUMA KALKANI" yorumları).
@@ -1002,8 +1036,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (11.11.2026, oturum #11): dal ucu `acc21ae` (M19: alert →
-  bildirimler; CI ✅ yeşil), önceki `328a03f` (MEMORY M18),
+- Git durumu (11.11.2026, oturum #11): dal ucu `1b49a38` (M20: server.ts
+  şişkinliği; CI ✅ yeşil + CANLIDA), önceki `22006de` (MEMORY M19),
+  `acc21ae` (M19: alert → bildirimler; CI ✅ yeşil), `328a03f` (MEMORY M18),
   `130c114` (M18: scraping önbellekleri; CI ✅ yeşil + CANLIDA),
   `d637daa` (MEMORY M17), `2410c94` (M17: küçük mantık kümesi; CI ✅ yeşil), `3575efe` (MEMORY M16), `10b54ec`
   (M16: taziye kaldırma; CI ✅ yeşil), `ca6651f` (MEMORY M15), `4ab347f` (M15 ek:
