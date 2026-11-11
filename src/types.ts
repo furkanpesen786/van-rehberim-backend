@@ -123,18 +123,6 @@ export interface Deal {
   isFeatured?: boolean;
 }
 
-export interface DeathNotice {
-  id: string;
-  fullName: string;
-  age: number | string;
-  family: string;
-  funeralPlace: string;
-  condolenceAddress: string;
-  date: string;
-  contactPhone: string;
-  sourceUrl?: string;
-}
-
 export interface CurrencyRate {
   code: string;
   name: string;

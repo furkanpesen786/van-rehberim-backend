@@ -6,7 +6,6 @@ import {
   PlaceToVisit,
   NewsItem,
   Deal,
-  DeathNotice,
   CurrencyRate,
   PrayerTimes,
   VanWeatherData,
@@ -655,8 +654,6 @@ export const PLACES_TO_VISIT: PlaceToVisit[] = [
 export const NEWS_ITEMS: NewsItem[] = [];
 
 export const DEALS: Deal[] = [];
-
-export const DEATH_NOTICES: DeathNotice[] = [];
 
 export const JOB_CATEGORIES = [
   { id: 'cat-1', name: 'Usta & Tamirat', iconName: 'Wrench', color: 'bg-amber-500' },

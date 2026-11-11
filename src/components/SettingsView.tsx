@@ -57,14 +57,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(false);
-  const [deathNoticeAlerts, setDeathNoticeAlerts] = useState(false);
   const [vibrationDisabled, setVibrationDisabled] = useState(false);
 
   useEffect(() => {
     const settings = NotificationService.getSettings();
     setNotificationsEnabled(settings.newsEnabled);
     setDailyRemindersEnabled(settings.prayerEnabled);
-    setDeathNoticeAlerts(settings.obituaryEnabled);
     setVibrationDisabled(!settings.vibrationEnabled);
     NotificationService.requestPermissions();
   }, []);
@@ -77,12 +75,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
     const settings: NotificationSettings = {
       newsEnabled: notificationsEnabled,
-      obituaryEnabled: deathNoticeAlerts,
       prayerEnabled: dailyRemindersEnabled,
       vibrationEnabled: !vibrationDisabled
     };
     NotificationService.saveSettings(settings);
-  }, [notificationsEnabled, deathNoticeAlerts, dailyRemindersEnabled, vibrationDisabled, isInitialLoad]);
+  }, [notificationsEnabled, dailyRemindersEnabled, vibrationDisabled, isInitialLoad]);
 
   const [isLoggedOut, setIsLoggedOut] = useState(false);
   const [isPoliciesOpen, setIsPoliciesOpen] = useState(true);
@@ -677,7 +674,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
                   <div>
                     <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>2. Verilerin Kullanımı</h4>
-                    <p>Toplanan veriler; uygulama içi ayarlarınızın saklanması, favorilerinizin senkronize edilmesi, duyuru, yerel haber, indirim ve vefat ilanlarının tarafınıza bildirim olarak iletilmesi amacıyla işlenir.</p>
+                    <p>Toplanan veriler; uygulama içi ayarlarınızın saklanması, favorilerinizin senkronize edilmesi, duyuru, yerel haber ve indirimlerin tarafınıza bildirim olarak iletilmesi amacıyla işlenir.</p>
                   </div>
                   <div>
                     <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>3. Veri Güvenliği ve Paylaşım</h4>
@@ -697,7 +694,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </p>
                   <div>
                     <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>1. Hizmet Kapsamı</h4>
-                    <p>Van Rehberim; şehir rehberi, gezilecek yerler, yerel esnaf indirimleri, vefat ilanları, nöbetçi eczaneler ve güncel duyuruları sunan bilgilendirme amaçlı bir mobil şehir rehberi platformudur.</p>
+                    <p>Van Rehberim; şehir rehberi, gezilecek yerler, yerel esnaf indirimleri, nöbetçi eczaneler ve güncel duyuruları sunan bilgilendirme amaçlı bir mobil şehir rehberi platformudur.</p>
                   </div>
                   <div>
                     <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>2. Kullanıcı Yükümlülükleri</h4>

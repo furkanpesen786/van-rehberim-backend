@@ -3,7 +3,6 @@ import { fetchLivePrayerTimes } from './prayerService';
 
 export interface NotificationSettings {
     newsEnabled: boolean;
-    obituaryEnabled: boolean;
     prayerEnabled: boolean;
     vibrationEnabled: boolean;
 }
@@ -54,7 +53,6 @@ export class NotificationService {
         }
         return {
             newsEnabled: false,
-            obituaryEnabled: false,
             prayerEnabled: false,
             vibrationEnabled: true,
         };
@@ -69,10 +67,9 @@ export class NotificationService {
         // 1. Re-init channels with the new vibration setup
         await this.initChannels(settings.vibrationEnabled);
 
-        // Cancel legacy obituary notification explicitly
-        try {
-            await LocalNotifications.cancel({ notifications: [{ id: 200 }] });
-        } catch (e) { }
+        // M16: taziye (obituary) yarı-özelliği kaldırıldı — ayar alanı ve
+        // legacy bildirim iptali silindi. Eski kullanıcılarda localStorage'da
+        // kalan obituaryEnabled anahtarı zararsız (yok sayılır).
 
         // 2. News (Bildirim Al - 5 times a day)
         if (settings.newsEnabled) {
