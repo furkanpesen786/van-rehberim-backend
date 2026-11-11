@@ -4,9 +4,10 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M18 TAMAMLANDI ✅
-> (scraping ToS riski hafifletildi; `130c114`: push edildi). Kullanıcı kalan
-> 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: alert() → UI (8/17).
+> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M19 TAMAMLANDI ✅
+> (alert() → uygulama içi bildirimler; `acc21ae`: push + CI yeşil). Kullanıcı
+> kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: server.ts
+> şişkinliği / inline otobüs verisi (9/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -160,13 +161,20 @@ düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
 **📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
-M12-M17 ✅ bitti (6/17). M18 (scraping ToS hafifletme) ✅ bitti (7/17). Sıra:
-(8) alert() → UI → (9-17) mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). Sıra:
+(9) server.ts şişkinliği → (10-17) mimari işler. M5 en sonda (iyzico vs
+RevenueCat kararı).
+
+**11.11.2026 oturumu #11 — M19 ÇÖZÜLDÜ (alert() kullanımları; 4.3):**
+10 alert() çağrısının tamamı uygulama içi bildirimlere çevrildi (JobsView
+errorToast, DealsView errorToast, HomeView ödeme modalı hata alanı,
+SettingsView yeşil başarı bildirimi). Bonus: paylaş butonundaki sahte
+"bağlantı kopyalandı" artık gerçek clipboard kopyalaması. Commit `acc21ae`.
 
 **11.11.2026 oturumu #11 — M18 ÇÖZÜLDÜ (scraping ToS riski; 4.1.5):**
 Önbelleği olmayan üç scraped endpoint'e (hava/eczane/otobüs) M8/M15 deseni
-uygulandı — kaynak başına istek hacmi ciddi düştü. Commit `130c114`.
-Render deploy + canlı doğrulama bekliyor.
+uygulandı — kaynak başına istek hacmi ciddi düştü. Commit `130c114`,
+CI ✅ yeşil + Render'da CANLIDA.
 
 **11.11.2026 oturumu #11 — M17 ÇÖZÜLDÜ (küçük mantık kümesi; 4.2.10):**
 Beş bağımsız düzeltme tek batch'te: (1) `removeAllListeners()` → yalnızca
@@ -349,6 +357,29 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **11.11.2026 — M19 ÇÖZÜLDÜ (alert() kullanımları; 4.3):**
+>
+> - **Sorun:** ödeme/hata akışlarında 10 yerde `alert()` (JobsView 4,
+>   DealsView 3, HomeView 2, SettingsView 1) — çirkin, engelleyici ve
+>   Android WebView'da kötü UX.
+> - **Çözüm:**
+>   - **JobsView:** `errorToast` state (successToast'un kırmızı ikizi,
+>     fixed toast) — 3 hata alert'i buraya; `AlertCircle` zaten importluydu.
+>   - **DealsView:** aynı `errorToast` deseni — 3 alert; `AlertCircle`
+>     import'u eklendi.
+>   - **HomeView:** taksi ödeme modalında hata alanı yoktu → `payModalError`
+>     state + modal içi kırmızı kutu — 2 alert buraya.
+>   - **SettingsView:** hesap silme `alert(...)` → `deleteSuccess` yeşil
+>     cam bildirim; çıkış/hard reload 2,5 sn gecikmeli (kullanıcı mesajı
+>     okuyabilsin).
+>   - **Bonus hata (JobsView paylaş butonu):** `navigator.share` yoksa
+>     "İlan bağlantısı kopyalandı!" alert'i veriyordu ama HİÇBİR ŞEY
+>     kopyalanmıyordu → artık gerçek `navigator.clipboard.writeText` +
+>     successToast.
+> - **Doğrulama:** tsc exit 0; eslint 0 error; `npm run build` OK.
+>   Commit `acc21ae` — push + **CI ✅ yeşil**. İstemci tarafı: etki yeni
+>   APK/web'de.
 
 > **11.11.2026 — M18 ÇÖZÜLDÜ (scraping ToS riski hafifletme; 4.1.5):**
 >
@@ -860,7 +891,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 - **20+ yerde `any`** (firebase.ts fonksiyonları, bileşen mapping'leri, catch blokları).
 - **Tutarsız Firestore şeması:** Türkçe/İngilizce alan karışımı (`isletmeAdi`/`storeName`/
   `name`) → bileşenlerde 5-6 alternatiflı `??` zincirleri ("KORUMA KALKANI" yorumları).
-- **Ödeme/hata akışlarında `alert()`** (JobsView, DealsView, HomeView, SettingsView).
+- ~~**Ödeme/hata akışlarında `alert()`** (JobsView, DealsView, HomeView, SettingsView).~~
+  **✅ 11.11.2026 çözüldü (M19)** — 10 alert'in tamamı uygulama içi bildirimlere
+  çevrildi; sahte "kopyalandı" iddiası gerçek clipboard kopyalaması oldu.
 - **Test altyapısı YOK:** Vitest/Jest yok; kökte geçici `test_*.js` scriptleri duruyor.
 - **İki paket yöneticisi:** ~~`bun.lock` VE `package-lock.json` birlikte~~
   **✅ 10.11.2026 çözüldü (M10)** — `bun.lock` silindi; tek lock `package-lock.json`.
@@ -969,9 +1002,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (11.11.2026, oturum #11): dal ucu `130c114` (M18: scraping
-  önbellekleri; CI + deploy kontrolü bekliyor), önceki `d637daa` (MEMORY M17),
-  `2410c94` (M17: küçük mantık kümesi; CI ✅ yeşil), `3575efe` (MEMORY M16), `10b54ec`
+- Git durumu (11.11.2026, oturum #11): dal ucu `acc21ae` (M19: alert →
+  bildirimler; CI ✅ yeşil), önceki `328a03f` (MEMORY M18),
+  `130c114` (M18: scraping önbellekleri; CI ✅ yeşil + CANLIDA),
+  `d637daa` (MEMORY M17), `2410c94` (M17: küçük mantık kümesi; CI ✅ yeşil), `3575efe` (MEMORY M16), `10b54ec`
   (M16: taziye kaldırma; CI ✅ yeşil), `ca6651f` (MEMORY M15), `4ab347f` (M15 ek:
   Gregorian tarih), `cbf355f` (M15: namaz tek kaynak; CANLIDA + CI ✅ yeşil),
   `0c93429` (MEMORY M14), `1607a85` (M14: AuthContext; CI ✅ yeşil),
