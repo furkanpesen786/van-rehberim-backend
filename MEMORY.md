@@ -4,10 +4,9 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M16 TAMAMLANDI ✅
-> (taziye yarı-özelliği kaldırıldı; `10b54ec`: push + CI yeşil). Kullanıcı
-> kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: küçük mantık
-> kümesi (6/17).
+> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M17 TAMAMLANDI ✅
+> (5 küçük mantık düzeltmesi; `2410c94`: push + CI yeşil). Kullanıcı kalan 17
+> sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: scraping ToS riski (7/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -161,9 +160,16 @@ düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
 **📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
-M12-M15 ✅ bitti (4/17). M16 (taziye kaldırma) ✅ bitti (5/17). Sıra:
-(6) küçük mantık kümesi → (7) ToS riski → (8-17) mimari işler. M5 en sonda
-(iyzico vs RevenueCat kararı).
+M12-M16 ✅ bitti (5/17). M17 (küçük mantık kümesi) ✅ bitti (6/17). Sıra:
+(7) scraping ToS riski → (8-17) mimari işler. M5 en sonda (iyzico vs
+RevenueCat kararı).
+
+**11.11.2026 oturumu #11 — M17 ÇÖZÜLDÜ (küçük mantık kümesi; 4.2.10):**
+Beş bağımsız düzeltme tek batch'te: (1) `removeAllListeners()` → yalnızca
+kendi backButton dinleyicisi; (2) splash 2 sn → 600 ms; (3) var olmayan
+lodash chunk'ı kaldırıldı; (4) `clean` script'i Windows uyumlu (node
+fs.rmSync — test edildi); (5) haber bildirimleri rastgele 5 saat yerine
+sabit 09:00/18:00 dürüst hatırlatma. Commit `2410c94`.
 
 **11.11.2026 oturumu #11 — M16 ÇÖZÜLDÜ (taziye yarı-özelliği; 4.2.7):**
 Kullanıcı kararı: yarım özellik TAMAMEN KALDIRILDI (tamamlama değil).
@@ -339,6 +345,27 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **11.11.2026 — M17 ÇÖZÜLDÜ (küçük mantık kümesi; 4.2.10):**
+>
+> - **(1) `removeAllListeners()` (App.tsx):** backButton effect'i her sekme
+>   değişiminde yeniden kuruluyor ve temizlikte TÜM Capacitor dinleyicilerini
+>   öldürüyordu (bildirim vb.). Artık `listener.then(h => h.remove())` ile
+>   yalnızca kendi dinleyicisi kaldırılıyor.
+> - **(2) Splash gecikmesi (App.tsx):** 2000 ms yapay bekleme → 600 ms.
+> - **(3) `vendor-lodash` chunk (vite.config.ts):** projede lodash yok —
+>   ölü chunk kuralı kaldırıldı.
+> - **(4) `clean` script (package.json):** `rm -rf dist server.js` →
+>   `node -e "require('fs').rmSync(...)"` — Windows'ta çalışır (lokal
+>   test edildi: "temiz" çıktısı). `node -e` CJS yorumlanır (require güvenli).
+> - **(5) Haber bildirimleri (notificationService.ts):** önceden gün içinde
+>   RASTGELE 5 saate "Yeni Haberler Var" planlanıyordu — yeni haber kontrolü
+>   olmadan yanlış iddia. Artık sabit 09:00 ve 18:00'de dürüst hatırlatma
+>   ("Günün Haberleri — göz atmak ister misiniz?"). Gerçek yeni-haber push'ı
+>   altyapı gerektirir, kapsam dışı.
+> - **Doğrulama:** tsc exit 0; eslint 0 error (1 önceden var olan uyarı);
+>   `npm run clean` ✅; `npm run build` OK. Commit `2410c94` — push +
+>   **CI ✅ yeşil**. İstemci tarafı: etki yeni APK/web'de.
 
 > **11.11.2026 — M16 ÇÖZÜLDÜ (taziye yarı-özelliği; 4.2.7):**
 >
@@ -786,10 +813,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    `users` dokümanı ve kullanıcının ilanları silinmiyor~~ **✅ 10.11.2026 çözüldü (M13)** —
    `deleteAllUserData()` Auth silmeden önce profil + favoriler + kendi ilanlarını temizler
    (ayrıntı Bölüm 3'te).
-10. **Diğer:** `removeAllListeners()` tüm dinleyicileri temizliyor; Vite config'te
+10. ~~**Diğer:** `removeAllListeners()` tüm dinleyicileri temizliyor; Vite config'te
     `vendor-lodash` chunk'ı (lodash hiç yok); splash ekranı 2 sn yapay gecikme;
     `clean` script'i `rm -rf` → Windows'ta çalışmaz; haber bildirimleri gün içinde
-    RASTGELE 5 saate planlanıyor (gerçek yeni haber kontrolü yok).
+    RASTGELE 5 saate planlanıyor (gerçek yeni haber kontrolü yok)~~
+    **✅ 11.11.2026 çözüldü (M17)** — beş düzeltme tek batch'te (ayrıntı Bölüm 3'te).
 
 ### 4.3 🏗️ Mimari / Kod Kalitesi
 
@@ -909,8 +937,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (11.11.2026, oturum #11): dal ucu `10b54ec` (M16: taziye
-  kaldırma; CI ✅ yeşil), önceki `ca6651f` (MEMORY M15), `4ab347f` (M15 ek:
+- Git durumu (11.11.2026, oturum #11): dal ucu `2410c94` (M17: küçük mantık
+  kümesi; CI ✅ yeşil), önceki `3575efe` (MEMORY M16), `10b54ec`
+  (M16: taziye kaldırma; CI ✅ yeşil), `ca6651f` (MEMORY M15), `4ab347f` (M15 ek:
   Gregorian tarih), `cbf355f` (M15: namaz tek kaynak; CANLIDA + CI ✅ yeşil),
   `0c93429` (MEMORY M14), `1607a85` (M14: AuthContext; CI ✅ yeşil),
   `0e67302` (MEMORY M13), `1060f5b` (M13: KVKK;
