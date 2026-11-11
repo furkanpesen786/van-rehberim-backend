@@ -124,7 +124,10 @@ export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
         return {
           success: true,
           city: json.city || 'Van (Diyanet)',
-          date: json.date || new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+          // Sunucudan gelen date bazen Hicri olur ("1 Cemaziyelahir 1448" —
+          // Diyanet sayfasındaki ilk tarih eşleşmesi); ana gösterim için
+          // Gregorian Türkçe tarih istemcide üretilir.
+          date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
           times: json.times,
           activeKey: dynamicStatus.activeKey,
           activeTitle: dynamicStatus.activeTitle,
