@@ -4,11 +4,11 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M22 TAMAMLANDI ✅
-> (servis timeout'ları 60→15 sn + long-polling belgelendi; `2620d2b`: push;
-> CI GitHub Actions kuyruğunda bekliyor — yerel tsc/eslint/build yeşil).
-> Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
-> CI cleanup-commit anti-pattern (12/17).
+> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M23 TAMAMLANDI ✅
+> (CI cleanup-commit kaldırıldı + boot smoke-test eklendi; `ccfef32`: push +
+> CI ✅ yeşil). Ayrıca M22'nin CI'ı da dolaylı doğrulandı (`3be2bce` aynı
+> ağaçla yeşil). Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı —
+> sıradaki: Vitest test altyapısı (13/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -164,9 +164,15 @@ doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 **📋 Durum (12.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
 M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
 (server.ts şişkinliği) ✅ bitti (9/17). M21 (any tip borcu) ✅ bitti (10/17).
-M22 (timeout'lar + long-polling) ✅ bitti (11/17). Sıra: (12) CI
-cleanup-commit anti-pattern → (13-17) mimari işler. M5 en sonda (iyzico vs
-RevenueCat kararı).
+M22 (timeout'lar + long-polling) ✅ bitti (11/17). M23 (CI cleanup-commit) ✅
+bitti (12/17). Sıra: (13) Vitest test altyapısı → (14-17) mimari işler.
+M5 en sonda (iyzico vs RevenueCat kararı).
+
+**12.11.2026 oturumu #11 — M23 ÇÖZÜLDÜ (CI cleanup-commit; 4.3):**
+Ölü "Clean generated files" adımı CI'dan silindi (commit push yetkisi
+olmayan detached checkout'ta çöpe gidiyordu; repoda temizlenecek dosya da
+yok). Yerine M7 dersinden sunucu boot smoke-test'i eklendi — import/boot
+sınıfı hatalar artık CI'da yakalanıyor. Commit `ccfef32`, CI ✅ yeşil.
 
 **12.11.2026 oturumu #11 — M22 ÇÖZÜLDÜ (timeout'lar + long-polling; 4.3):**
 4 serviste 60 sn fetch timeout → 15 sn (news/prayer ile tutarlı).
@@ -380,6 +386,35 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **12.11.2026 — M23 ÇÖZÜLDÜ (CI cleanup-commit anti-pattern; 4.3):**
+>
+> - **Sorun:** ci.yml'deki "Clean generated files (git rm --cached)" adımı
+>   CI içinde `git rm --cached` + `git commit` yapıyordu. (1) Commit çöpe
+>   gidiyordu: checkout push yetkisi olmayan detached state'te çalışır,
+>   oluşturulan commit hiçbir yere itilmez — tamamen ölü kod. (2) Token
+>   yetkisi olsaydı bot commit'leri main geçmişini kirletirdi (gerçek
+>   anti-pattern). (3) Koruduğu hiçbir şey yoktu: M10 temizliğinden sonra
+>   repoda üretilmiş dosya kalmadı (`git ls-files` doğrulaması: yalnızca
+>   `build.gradle` ve `gradle-wrapper.jar` eşleşiyor — ikisi de bilinçli
+>   tracked kaynak dosya).
+> - **Çözüm:**
+>   - Ölü adım ci.yml'den tamamen silindi.
+>   - `.gitignore`'a `*.aab` eklendi (ölü adımın tek benzersiz kalıntı
+>     korumasıydı; diğer desenler zaten vardı).
+>   - **M7 dersinin yerine getirilmesi:** yeni "Server boot smoke test"
+>     adımı — `NODE_ENV=production PORT=3999 timeout 15 node dist/server.cjs
+>     || test $? -eq 124`. EXIT 124 = sunucu ayakta kaldı = geçti. Env
+>     yokken boot güvenli (listings.ts lazy init; /api/listings istek
+>     anında 503 fail-closed). Böylece M7'deki gibi yalnızca ts-node/esbuild
+>     çözümleme farkında görünen import hataları CI'da yakalanır.
+> - **Not (Bölüm 4 maddesinin diğer yarısı):** "npm audit fix build sırasında
+>   lock dosyasını değiştirebilir" kısmı zaten çözülmüş — scriptlerde `npm
+>   audit fix` yok (M10 çevresinde temizlenmiş).
+> - **Doğrulama:** smoke-test komutu YERELDE doğrulandı (EXIT 124, "Server
+>   running on http://localhost:3999"); commit `ccfef32` — push + **CI ✅
+>   yeşil** (yeni workflow ilk kez bu committe çalıştı). Sunucu kodu
+>   değişmedi → Render deploy gerekmedi.
 
 > **12.11.2026 — M22 ÇÖZÜLDÜ (servis timeout'ları + experimentalForceLongPolling; 4.3):**
 >
@@ -1035,8 +1070,12 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
   "My Google AI Studio App" ve `lang="en"`; README AI Studio şablonu~~
   **✅ 10.11.2026 çözüldü (M11)** — `van-rehberim@1.0.0`, başlık "Van Rehberim",
   `lang="tr"`, gerçek README (ayrıntı Bölüm 3'te).
-- **CI anti-pattern'leri:** `npm audit fix` build sırasında lock dosyasını değiştirebilir;
-  CI'dan repoya commit atan "cleanup" adımı git geçmişini kirletir.
+- ~~**CI anti-pattern'leri:** `npm audit fix` build sırasında lock dosyasını değiştirebilir;
+  CI'dan repoya commit atan "cleanup" adımı git geçmişini kirletir.~~
+  **✅ 12.11.2026 çözüldü (M23)** — cleanup adımı silindi (commit zaten çöpe
+  gidiyordu); yerine sunucu boot smoke-test eklendi; `npm audit fix`
+  scriptlerde zaten yoktu. CI artık: npm ci → lint → build → boot test →
+  artifact.
 
 ---
 
@@ -1063,7 +1102,8 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    (`Capacitor.isNativePlatform()`), release imzası `upload.keystore` + `keystore.properties`.
 9. **Firestore'da süre sonu alanı:** `bitisTarihi` timestamp + `where('bitisTarihi','>',now)`
    filtresi ile süresi dolan ilanlar gizlenir; `experimentalForceLongPolling: true`.
-10. **CI:** GitHub Actions — npm ci → lint → build → artifact upload (+ cleanup commit).
+10. **CI:** GitHub Actions — npm ci → lint → build → server boot smoke-test
+    → artifact upload (cleanup-commit adımı M23'te kaldırıldı).
 
 ### 5.2 Önerilen Kararlar (henüz alınmadı — to-be)
 
@@ -1121,10 +1161,12 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (12.11.2026, oturum #11): dal ucu `2620d2b` (M22: timeout'lar
-  + long-polling; CI Actions kuyruğunda bekliyor), önceki `b7aebc2`
-  (MEMORY M21), `a24c93d` (M21: any tip borcu; CI ✅ yeşil), `b82f2ac`
-  (MEMORY M20), `1b49a38` (M20:
+- Git durumu (12.11.2026, oturum #11): dal ucu `ccfef32` (M23: CI cleanup +
+  boot test; CI ✅ yeşil), önceki `3be2bce` (MEMORY M22; CI ✅ yeşil — M22
+  kodunu dolaylı doğruladı), `2620d2b` (M22: timeout'lar + long-polling;
+  run'ı Actions kuyruğunda takıldı, kodu 3be2bce ile doğrulandı),
+  `b7aebc2` (MEMORY M21), `a24c93d` (M21: any tip borcu; CI ✅ yeşil),
+  `b82f2ac` (MEMORY M20), `1b49a38` (M20:
   server.ts şişkinliği; CI ✅ yeşil + CANLIDA), `22006de` (MEMORY M19),
   `acc21ae` (M19: alert → bildirimler; CI ✅ yeşil), `328a03f` (MEMORY M18),
   `130c114` (M18: scraping önbellekleri; CI ✅ yeşil + CANLIDA),
