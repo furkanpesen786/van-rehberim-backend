@@ -1,5 +1,4 @@
 import { Pharmacy } from '../types';
-import { PHARMACIES } from '../data/mockData';
 
 export interface DutyPharmaciesResponse {
   success: boolean;
