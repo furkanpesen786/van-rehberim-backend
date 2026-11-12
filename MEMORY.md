@@ -4,11 +4,11 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M26 TAMAMLANDI ✅
-> (Firestore şema normalizasyonu; `135b131`: RawDealDoc/RawTaxiDoc canonical'e
-> indi, 12 varyant alan silindi, DealsView eşlemesi saf fonksiyona çıktı;
-> tsc + 33 test + build ✅). Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi
-> onayladı — sıradaki: tsconfig strict (16/17).
+> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M27 TAMAMLANDI ✅
+> (tsconfig strict; `7156b76`: @types/react@19 kuruldu — React kodu ilk kez
+> gerçekten tip denetleniyor; strict: true, 31 hata düzeltildi, 41 test ✅).
+> Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
+> state management (17/17, SON).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -168,8 +168,8 @@ M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
 M22 (timeout'lar + long-polling) ✅ bitti (11/17). M23 (CI cleanup-commit) ✅
 bitti (12/17). M24 (Vitest test altyapısı) ✅ bitti (13/17). M25 (HomeView
 monolit bölünmesi) ✅ bitti (14/17). M26 (Firestore şema normalizasyonu)
-✅ bitti (15/17). Sıra: (16) tsconfig strict → (17) state management.
-M5 en sonda (iyzico vs RevenueCat kararı).
+✅ bitti (15/17). M27 (tsconfig strict + @types/react) ✅ bitti (16/17).
+Sıra: (17) state management — SON. M5 en sonda (iyzico vs RevenueCat kararı).
 
 **12.11.2026 oturumu #11 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
 HomeView.tsx 2167 → 960 satır. Hava durumu / nöbetçi eczane / ezan vakitleri
@@ -183,6 +183,23 @@ PHARMACIES import'u silindi (eslint uyarısı 48 → 38). İş arka plan ajanıy
 başladı, kullanıcı ajanı durdurdu; kontrol + doğrulama + commit ana oturumda
 yapıldı. Commit `46eaf9b`. JobsView (1033) / SettingsView (995) bölünmesi
 ayrı görev olarak kaldı (istenirse 17'den sonra).
+
+**12.11.2026 oturumu #11 — M27 ÇÖZÜLDÜ (tsconfig strict; 16/17):**
+EN BÜYÜK BULGU: `@types/react`/`@types/react-dom` HİÇ kurulmamıştı — react
+import'ları `any`'ye çözümleniyordu, yani JSX dahil tüm React kodu proje
+tarihinde hiç tip denetlenmemişti. Kuruldu (React 19 tipleri). tsconfig'e
+`strict: true` eklendi, gereksiz `allowJs` kaldırıldı → 31 hata çıktı,
+tamamı düzeltildi: ~19 catch değişkeni (M21'den ertelenen borç — yeni
+`src/utils/errors.ts` yardımcıları: getErrorMessage/getErrorCode/
+isPurchaseCancelled + 8 test), AuthContext photoURL birlik daraltması
+(firebase `photoURL` vs capacitor `photoUrl`), Deal'e opsiyonel `phone`
+(eski localStorage ilanları). BONUS GERÇEK HATA: NewsView "Yenile" butonu
+MouseEvent'i `silent` parametresine geçiriyordu → spinner hiç görünmüyordu;
+düzeltildi. RevenueCat iptal tespiti SDK'nın resmi yoluna taşındı
+(code === PURCHASE_CANCELLED_ERROR, userCancelled deprecated). Doğrulama:
+tsc strict exit 0; 41/41 test; eslint 0 error / 38 warning; build 3.43 s.
+Commit `7156b76` — push + **CI ✅ yeşil** (check-runs: build / completed /
+success; CI artık strict tsc ile koşuyor).
 
 **12.11.2026 oturumu #11 — M26 ÇÖZÜLDÜ (Firestore şema normalizasyonu; 15/17):**
 Ön denetim (aşağıda) üç koleksiyonun da BOŞ olduğunu gösterince iş kod
@@ -431,6 +448,45 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **12.11.2026 — M27 ÇÖZÜLDÜ (tsconfig strict + @types/react; 4.3):**
+>
+> - **Sorun:** `tsconfig.json`'da `strict` yoktu VE `@types/react`/
+>   `@types/react-dom` hiç kurulmamıştı — react/react-dom import'ları
+>   `any`'ye çözümleniyordu. Yani `tsc --noEmit` geçiyordu ama JSX dahil
+>   hiçbir React kodu gerçekte tip denetlenmiyordu (M21'in any temizliği
+>   bile bu kör noktayı kapatamamıştı).
+> - **Çözüm:**
+>   - `npm i -D @types/react@19 @types/react-dom@19` — React kodu ilk kez
+>     gerçekten tip denetleniyor.
+>   - `tsconfig.json`: `"strict": true` eklendi; gereksiz `allowJs: true`
+>     kaldırıldı (src'de .js dosyası yok; sadece tipli dosyalar).
+>   - `src/utils/errors.ts` (YENİ): strict'te catch değişkenleri `unknown`
+>     gelir — `getErrorMessage` (Error→.message, string→kendisi, diğer→
+>     String()), `getErrorCode` (Firebase Auth kodları), `isPurchaseCancelled`
+>     (RevenueCat: code === PURCHASE_CANCELLED_ERROR="1" resmi yol +
+>     deprecated `userCancelled` legacy). + `src/utils/errors.test.ts`
+>     (8 test).
+>   - 31 strict hatasının tamamı düzeltildi (DealsView ×3, HomeView ×2,
+>     JobsView ×3, LoginModal ×2, NewsView ×1, SettingsView ×2+4,
+>     AuthContext ×6, 5 servis ×1, purchaseService ×1):
+>     - ~19 catch değişkeni → getErrorMessage/getErrorCode (M21'den
+>       ertelenen borç kapandı).
+>     - AuthContext photoURL: `fbUser` birliği `User(firebase) | User
+>       (capacitor)` — alan adları farklı (photoURL vs photoUrl); `'photoURL'
+>       in fbUser` daraltmasıyla güvenli okuma.
+>     - `Deal` tipine opsiyonel `phone` eklendi (yalnızca eski localStorage
+>       `user_deals_van` ilanlarında var; SettingsView "Ara" butonu okur —
+>       Firestore canonical şemasında YOK, M26 kararı değişmedi).
+>   - **Bonus gerçek hata:** NewsView "Yenile" `onClick={loadNewsData}`
+>     MouseEvent'i `silent` parametresi olarak geçiriyordu (truthy) →
+>     manuel tıklamada yükleme spinner'ı HİÇ görünmüyordu. →
+>     `onClick={() => loadNewsData()}`.
+> - **Doğrulama:** `npx tsc --noEmit` (strict config) ✅ exit 0; `npm test`
+>   ✅ 41/41 (7 dosya, 598 ms — errors.ts testleri +8); eslint 0 error /
+>   38 warning (değişiklik yok); build ✅ (vite 3.43 s). Commit `7156b76`.
+>   İstemci tarafı + tip paketleri → Render deploy gerekmedi (sunucu
+>   çalışma kodu değişmedi).
 
 > **12.11.2026 — M26 ÇÖZÜLDÜ (Firestore şema normalizasyonu; 4.3):**
 >
@@ -1218,7 +1274,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
   zaten temizlenmişti.
 - **İki paket yöneticisi:** ~~`bun.lock` VE `package-lock.json` birlikte~~
   **✅ 10.11.2026 çözüldü (M10)** — `bun.lock` silindi; tek lock `package-lock.json`.
-- **`tsconfig.json`:** `strict` yok, `allowJs: true` → tip güvenliği zayıf.
+- ~~**`tsconfig.json`:** `strict` yok, `allowJs: true` → tip güvenliği zayıf.~~
+  **✅ 12.11.2026 çözüldü (M27)** — `strict: true` + `@types/react@19` kuruldu
+  (React kodu ilk kez gerçekten tip denetleniyor); 31 hata düzeltildi;
+  `allowJs` kaldırıldı.
 - **Çift Firebase projesi:** ~~`src/lib/firebase.ts` (`vanrehberim-f181b`) vs
   `firebase-applet-config.json` (`emergent-gift-7x4wp`, AI Studio kalıntısı)~~
   **✅ 10.11.2026 çözüldü (M10)** — `firebase-applet-config.json` silindi;
@@ -1290,7 +1349,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    **✅ 12.11.2026 KISMEN ÇÖZÜLDÜ (M24)** — Vitest + öncelik hedeflerin tamamı
    test ediliyor (29 test, CI'da); RTL bileşen testleri 14/17 monolit
    bölünmesi sonrasına kaldı.
-6. Tek ESLint flat config (`@typescript-eslint/parser` ile) + `tsconfig`'e `strict: true`.
+6. ~~Tek ESLint flat config (`@typescript-eslint/parser` ile) + `tsconfig`'e `strict: true`.~~
+   **✅ ÇÖZÜLDÜ** — ESLint flat config M4'te (06.11); `strict: true` M27'de
+   (12.11, `7156b76`; @types/react@19 ile birlikte).
 7. Firebase config env değişkenlerine taşınmalı (çift proje kalıntısı temizlenmeli).
 8. ~~Firestore şeması tek dilli (İngilizce) normalize edilmeli; `durationDays`/`userId`
    gibi kritik alanlar yazımda doğrulanmalı.~~
@@ -1325,13 +1386,13 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (12.11.2026, oturum #11 — M26 sonrası) |
+| Komut | Sonuç (12.11.2026, oturum #11 — M27 sonrası) |
 |---|---|
-| `npx tsc --noEmit` | ✅ exit 0 — temiz (M26 sonrası doğrulandı) |
+| `npx tsc --noEmit` | ✅ exit 0 — **strict modda** temiz (M27: strict + @types/react@19) |
 | `npx eslint src` | ✅ exit 0 — 0 error, **38 warning** (M25 sonrası; M24'te 48 idi) |
-| `npm test` | ✅ 33/33 geçti (Vitest; 6 dosya, CI'da da koşuyor) |
+| `npm test` | ✅ 41/41 geçti (Vitest; 7 dosya, CI'da da koşuyor) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
-| `npm run build` | ✅ `vite build` (3.46 s) + `esbuild server.ts → dist/server.cjs` |
+| `npm run build` | ✅ `vite build` (3.43 s) + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
 | `npm run lint` | ✅ exit 0 — `tsc --noEmit && eslint src` (M4 sonrası) |
 
@@ -1340,9 +1401,11 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (12.11.2026, oturum #11): dal ucu `135b131` (M26: Firestore
-  şema normalizasyonu; CI ✅ yeşil), önceki `46eaf9b` (M25: HomeView
-  bölünmesi; CI ✅ yeşil), önceki `56ac6b5` (MEMORY M24), `6540bb3` (M24: Vitest
+- Git durumu (12.11.2026, oturum #11): dal ucu `7156b76` (M27: tsconfig
+  strict + @types/react; 31 hata düzeltildi), önceki `00d2e21` (MEMORY
+  M26), `135b131` (M26: Firestore şema normalizasyonu; CI ✅ yeşil),
+  önceki `46eaf9b` (M25: HomeView bölünmesi; CI ✅ yeşil), önceki
+  `56ac6b5` (MEMORY M24), `6540bb3` (M24: Vitest
   altyapısı; CI ✅ yeşil — test adımı ilk kez koştu), önceki `98d3e66`
   (MEMORY M23), `ccfef32` (M23: CI cleanup + boot test; CI ✅ yeşil),
   `3be2bce` (MEMORY M22; CI ✅ yeşil — M22
