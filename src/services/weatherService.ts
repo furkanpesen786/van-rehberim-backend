@@ -1,5 +1,6 @@
 import { VanWeatherData } from '../types';
 import { VAN_WEATHER } from '../data/mockData';
+import { getErrorMessage } from '../utils/errors';
 
 // Rüzgar yönü: derece -> 16 yönlu Türkçe pusula kısaltması.
 // (M12 öncesi windDirection sabit 'KB' idi — API'den gelen derece hiç kullanılmıyordu.)
@@ -126,7 +127,7 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
       console.error(`[weatherService] API Hatası - Status: ${omRes.status}`, errText);
     }
   } catch (err) {
-    console.error(`[weatherService] Ağ/Timeout Hatası:`, err.message || err);
+    console.error(`[weatherService] Ağ/Timeout Hatası:`, getErrorMessage(err));
   }
 
   // Fallback to initial baseline

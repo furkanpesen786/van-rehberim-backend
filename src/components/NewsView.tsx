@@ -106,7 +106,7 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
         </div>
 
         <button
-          onClick={loadNewsData}
+          onClick={() => loadNewsData()}
           title="Yenile"
           className={`p-2 rounded-xl border transition-all active:scale-95 ${isDark ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
             }`}

@@ -1,4 +1,5 @@
 import { PRAYER_TIMES } from '../data/mockData';
+import { getErrorMessage } from '../utils/errors';
 
 export interface LivePrayerTimesResponse {
   success: boolean;
@@ -156,7 +157,7 @@ export async function fetchLivePrayerTimes(): Promise<LivePrayerTimesResponse> {
       console.error(`[prayerService] API Hatası - Status: ${response.status}`, errText);
     }
   } catch (err) {
-    console.error(`[prayerService] Ağ/Timeout Hatası:`, err.message || err);
+    console.error(`[prayerService] Ağ/Timeout Hatası:`, getErrorMessage(err));
   }
 
   // Fallback

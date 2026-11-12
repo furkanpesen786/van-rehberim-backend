@@ -26,6 +26,7 @@ import { PharmacySection } from './home/PharmacySection';
 import { PrayerSection } from './home/PrayerSection';
 import { CurrencySection } from './home/CurrencySection';
 import { BusSection } from './home/BusSection';
+import { getErrorMessage } from '../utils/errors';
 
 interface HomeViewProps {
   theme?: 'light' | 'dark';
@@ -142,7 +143,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
         return;
       }
     } catch (e) {
-      setPayModalError(e.message || 'Ödeme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
+      setPayModalError(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
       setIsProcessingTaksi(false);
       return;
     }
@@ -167,7 +168,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
       }, 3000);
     } catch (err) {
       setIsProcessingTaksi(false);
-      setPayModalError('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
+      setPayModalError('İlan yayımlanırken bir hata oluştu: ' + getErrorMessage(err));
     }
   };
 

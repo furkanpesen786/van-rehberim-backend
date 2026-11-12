@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { subscribeJobListings } from '../lib/firebase';
 import { submitPaidListing } from '../services/listingService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { getErrorMessage } from '../utils/errors';
 import {
   Wrench,
   Sparkles,
@@ -183,7 +184,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     } catch (e) {
       setRcPackages([]);
       setSelectedPackage(null);
-      setPackagesError(e?.message || 'Paketler yüklenemedi.');
+      setPackagesError(getErrorMessage(e) || 'Paketler yüklenemedi.');
     } finally {
       setPackagesLoading(false);
     }
@@ -229,7 +230,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         return;
       }
     } catch (e) {
-      setErrorToast(e.message || 'Ödeme sırasında bir hata oluştu.');
+      setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
       setTimeout(() => setErrorToast(null), 5000);
       setIsProcessing(false);
       return;
@@ -289,7 +290,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       setTimeout(() => setSuccessToast(null), 4000);
     } catch (err) {
       setIsProcessing(false);
-      setErrorToast('İlan yayımlanırken bir hata oluştu: ' + (err.message || err));
+      setErrorToast('İlan yayımlanırken bir hata oluştu: ' + getErrorMessage(err));
       setTimeout(() => setErrorToast(null), 5000);
     }
   };

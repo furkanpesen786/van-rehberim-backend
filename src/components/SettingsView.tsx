@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { auth, deleteAllUserData } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
 import { NotificationService, NotificationSettings } from '../services/notificationService';
+import { getErrorMessage, getErrorCode } from '../utils/errors';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import {
   Bell,
@@ -326,14 +327,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       window.location.href = '/'; // Hard reload — hesap silme sonrası tam sıfırlama gerekli
                     }, 50);
                   } catch (err) {
-                    if (err.code === 'auth/requires-recent-login') {
+                    if (getErrorCode(err) === 'auth/requires-recent-login') {
                       setDeleteError("Güvenlik kuralı: Hesabı silebilmek için oturum tazelemeniz gerekiyor. Lütfen yeniden giriş yapın.");
                       setTimeout(async () => {
                         await logout();
                         window.location.href = '/'; // Hard reload nükleer çözüm
                       }, 2500); // Uyarıyı okuması için süre
                     } else {
-                      setDeleteError(err.message || 'Hesabınız silinirken bir donanımsal ağ hatası oluştu.');
+                      setDeleteError(getErrorMessage(err) || 'Hesabınız silinirken bir donanımsal ağ hatası oluştu.');
                     }
                   } finally {
                     setIsDeletingAccount(false); // KESİNLİKLE kapanması garanti altına alınır

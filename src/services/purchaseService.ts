@@ -1,4 +1,5 @@
 import { Purchases, LOG_LEVEL, type PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { isPurchaseCancelled } from '../utils/errors';
 
 /** Product identifiers matching RevenueCat dashboard and Google Play Console */
 export const PACKAGE_IDS = {
@@ -80,7 +81,9 @@ export class PurchaseService {
             const result = await Purchases.purchasePackage({ aPackage });
             return typeof result?.customerInfo !== 'undefined';
         } catch (e) {
-            if (e?.userCancelled) {
+            // M27: SDK'nın resmi önerisi code === PURCHASE_CANCELLED_ERROR
+            // kontrolü (userCancelled alanı deprecated); ikisi de denetlenir.
+            if (isPurchaseCancelled(e)) {
                 return false;
             }
             console.error('[PurchaseService] Satın alma hatası:', e);

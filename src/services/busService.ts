@@ -1,5 +1,6 @@
 import { BUS_ROUTES } from '../data/mockData';
 import { BusRoute } from '../types';
+import { getErrorMessage } from '../utils/errors';
 
 export interface LiveBusResponse {
   success: boolean;
@@ -25,7 +26,7 @@ export async function fetchLiveBusSchedules(): Promise<LiveBusResponse> {
       console.error(`[busService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
   } catch (err) {
-    console.error(`[busService] Ağ/Timeout Hatası:`, err.message || err);
+    console.error(`[busService] Ağ/Timeout Hatası:`, getErrorMessage(err));
   }
 
   return {

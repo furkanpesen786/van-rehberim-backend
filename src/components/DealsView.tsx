@@ -7,6 +7,7 @@ import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { getDealMetaFromPackage, computeEndDate } from '../utils/listingMeta';
 import { mapDealDoc } from '../utils/dealMapping';
+import { getErrorMessage } from '../utils/errors';
 import {
   Search,
   Bookmark,
@@ -161,7 +162,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     } catch (e) {
       setRcPackages([]);
       setSelectedPackage(null);
-      setPackagesError(e?.message || 'Paketler yüklenemedi.');
+      setPackagesError(getErrorMessage(e) || 'Paketler yüklenemedi.');
     } finally {
       setPackagesLoading(false);
     }
@@ -221,7 +222,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         return;
       }
     } catch (e) {
-      setErrorToast(e.message || 'Ödeme sırasında bir hata oluştu.');
+      setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
       setTimeout(() => setErrorToast(null), 5000);
       setIsProcessing(false);
       return;
@@ -268,7 +269,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err) {
       setIsProcessing(false);
-      setErrorToast('Hata: ' + (err.message || err));
+      setErrorToast('Hata: ' + getErrorMessage(err));
       setTimeout(() => setErrorToast(null), 5000);
     }
   };

@@ -1,4 +1,5 @@
 import { Pharmacy } from '../types';
+import { getErrorMessage } from '../utils/errors';
 
 export interface DutyPharmaciesResponse {
   success: boolean;
@@ -26,7 +27,7 @@ export async function fetchLivePharmacies(): Promise<DutyPharmaciesResponse> {
       console.error(`[pharmacyService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
   } catch (err) {
-    console.error(`[pharmacyService] Ağ/Timeout Hatası:`, err.message || err);
+    console.error(`[pharmacyService] Ağ/Timeout Hatası:`, getErrorMessage(err));
   }
 
   // Fallback

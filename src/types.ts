@@ -121,6 +121,10 @@ export interface Deal {
   address: string;
   description: string;
   isFeatured?: boolean;
+  // Yalnızca eski localStorage ilanlarında (user_deals_van) bulunan opsiyonel
+  // alan — Firestore canonical şemasında yok (M26). SettingsView "Ara" butonu
+  // için okunur.
+  phone?: string;
 }
 
 export interface CurrencyRate {

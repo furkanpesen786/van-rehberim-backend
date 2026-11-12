@@ -1,4 +1,5 @@
 import { CURRENCY_RATES } from '../data/mockData';
+import { getErrorMessage } from '../utils/errors';
 
 export interface CurrencyItem {
   code: string;
@@ -43,7 +44,7 @@ export async function fetchLiveCurrencies(): Promise<LiveCurrencyResponse> {
       console.error(`[currencyService] Backend Yanıt Hatası - Status: ${response.status}`, errText);
     }
   } catch (err) {
-    console.error(`[currencyService] Ağ/Timeout Hatası:`, err.message || err);
+    console.error(`[currencyService] Ağ/Timeout Hatası:`, getErrorMessage(err));
   }
 
   return {

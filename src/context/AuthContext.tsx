@@ -8,6 +8,7 @@ import {
 import { signInWithPopup, signOut as fbSignOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, OAuthProvider } from 'firebase/auth';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
+import { getErrorMessage, getErrorCode } from '../utils/errors';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -98,7 +99,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: fbUser.uid,
           email: fbUser.email,
           displayName: fbUser.displayName || fbUser.email.split('@')[0],
-          photoURL: fbUser.photoURL || undefined,
+          // fbUser: firebase User | capacitor User birliği — alan adları
+          // farklı (photoURL vs photoUrl); 'in' ile daraltıp güvenle okuruz.
+          photoURL: ('photoURL' in fbUser ? fbUser.photoURL : fbUser.photoUrl) || undefined,
           loginMethod: 'google',
           createdAt: new Date().toISOString(),
           lastLoginAt: new Date().toISOString(),
@@ -116,8 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error('Google Sign-In Error:', err);
       // Ignore user cancellation codes
-      if (err.code !== 'auth/popup-closed-by-user' && err.message !== 'signInWithGoogle canceled.') {
-        throw new Error('Google ile giriş yapılamadı: ' + (err.message || 'Lütfen tekrar deneyiniz.'));
+      if (getErrorCode(err) !== 'auth/popup-closed-by-user' && getErrorMessage(err) !== 'signInWithGoogle canceled.') {
+        throw new Error('Google ile giriş yapılamadı: ' + (getErrorMessage(err) || 'Lütfen tekrar deneyiniz.'));
       }
     }
   };
@@ -159,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: fbUser.uid,
           email: email,
           displayName: fbUser.displayName || email.split('@')[0],
-          photoURL: fbUser.photoURL || undefined,
+          photoURL: ('photoURL' in fbUser ? fbUser.photoURL : fbUser.photoUrl) || undefined,
           loginMethod: 'apple',
           createdAt: new Date().toISOString(),
           lastLoginAt: new Date().toISOString(),
@@ -175,8 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error('Apple Sign-In Error:', err);
-      if (err.code !== 'auth/popup-closed-by-user' && err.message !== 'signInWithApple canceled.') {
-        throw new Error('Apple ile giriş yapılamadı: ' + (err.message || 'Lütfen tekrar deneyiniz.'));
+      if (getErrorCode(err) !== 'auth/popup-closed-by-user' && getErrorMessage(err) !== 'signInWithApple canceled.') {
+        throw new Error('Apple ile giriş yapılamadı: ' + (getErrorMessage(err) || 'Lütfen tekrar deneyiniz.'));
       }
     }
   };
