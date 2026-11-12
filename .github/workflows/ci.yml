@@ -26,6 +26,10 @@ jobs:
     - name: Lint (ESLint + TypeScript)
       run: npm run lint
 
+    # M24: unit testler (Vitest) — CI'da her push'ta koşar
+    - name: Unit tests (Vitest)
+      run: npm test
+
     - name: Build Vite app
       run: npm run build
 
