@@ -4,10 +4,12 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M24 TAMAMLANDI ✅
-> (Vitest test altyapısı; `6540bb3`: push + CI ✅ yeşil — 5 dosya / 29 test
-> CI'da koşuyor). Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı —
-> sıradaki: HomeView monolit bölünmesi (14/17).
+> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M25 TAMAMLANDI ✅
+> (HomeView monolit bölünmesi; `46eaf9b`: HomeView 2167 → 960 satır, 5 bölüm
+> `src/components/home/`'a taşındı; tsc + 29 test + build ✅). Kullanıcı kalan
+> 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: Firestore şema
+> normalizasyonu (15/17; ön denetim yapıldı: üç koleksiyon da BOŞ çıktı,
+> iş kod tarafına indi).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -40,7 +42,8 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 **Kritik dosyalar:**
 - `server.ts` — Express API: `/api/weather`, `/api/pharmacies`, `/api/prayer-times`,
   `/api/currencies`, `/api/bus-schedules`, `/api/news`
-- `src/components/HomeView.tsx` — 2.167 satır, ana monolit bileşen
+- `src/components/HomeView.tsx` (~960 satır) + `src/components/home/` — ana ekran
+  ve 5 bölüm bileşeni (M25 bölünmesi)
 - `src/lib/firebase.ts` — Firestore erişim katmanı (config hardcoded: `vanrehberim-f181b`)
 - `firestore.rules` — güvenlik kuralları
 - `android/app/upload.keystore` — Play Store imza anahtarı (⚠️ git'te izleniyor!)
@@ -164,9 +167,33 @@ doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
 (server.ts şişkinliği) ✅ bitti (9/17). M21 (any tip borcu) ✅ bitti (10/17).
 M22 (timeout'lar + long-polling) ✅ bitti (11/17). M23 (CI cleanup-commit) ✅
-bitti (12/17). M24 (Vitest test altyapısı) ✅ bitti (13/17). Sıra: (14)
-HomeView monolit bölünmesi → (15-17) mimari işler. M5 en sonda (iyzico vs
+bitti (12/17). M24 (Vitest test altyapısı) ✅ bitti (13/17). M25 (HomeView
+monolit bölünmesi) ✅ bitti (14/17). Sıra: (15) Firestore şema normalizasyonu
+→ (16) tsconfig strict → (17) state management. M5 en sonda (iyzico vs
 RevenueCat kararı).
+
+**12.11.2026 oturumu #11 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
+HomeView.tsx 2167 → 960 satır. Hava durumu / nöbetçi eczane / ezan vakitleri
+/ döviz kuru / otobüs saatleri kart+modal blokları kendi state/effect'leriyle
+`src/components/home/`'a taşındı (WeatherSection, PharmacySection,
+PrayerSection, CurrencySection, BusSection — uniform prop'lar: isDark,
+searchQuery, isModalOpen, onOpen, onClose). HomeView'da activeModal birlik
+state'i, arama, iş ilanı/hastane/taksi kartları, hastane modalı ve taksi
+akışı kaldı. Davranış değişikliği yok. Bonus: pharmacyService'te ölü
+PHARMACIES import'u silindi (eslint uyarısı 48 → 38). İş arka plan ajanıyla
+başladı, kullanıcı ajanı durdurdu; kontrol + doğrulama + commit ana oturumda
+yapıldı. Commit `46eaf9b`. JobsView (1033) / SettingsView (995) bölünmesi
+ayrı görev olarak kaldı (istenirse 17'den sonra).
+
+**12.11.2026 oturumu #11 — 15/17 ÖN DENETİM (Firestore şema):**
+Salt okunur denetim betiği yazıldı (`scripts/firestore-schema-audit.ts`,
+repoda — `npx tsx` ile koşulur). SONUÇ: `is_ilanlari`, `indirim_ilanlari`,
+`taksiler` koleksiyonlarının ÜÇÜ DE BOŞ (0 doküman; service account +
+istemci config aynı proje `vanrehberim-f181b` doğrulandı). Yani 15/17 =
+migrate edilecek veri YOK; iş kod tarafına indi: RawDealDoc/RawTaxiDoc
+canonical'e indir + bileşen `??` zincirleri sadeleşir + DealsView eşlemesi
+saf fonksiyona çıkar (M24 deseni). Betik henüz commit edilmedi (15/17
+commit'i ile gidecek).
 
 **12.11.2026 oturumu #11 — M24 ÇÖZÜLDÜ (Vitest test altyapısı; 4.3):**
 Vitest kuruldu — 5 test dosyası / 29 test, CI'da her push'ta koşuyor.
@@ -392,6 +419,43 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **12.11.2026 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
+>
+> - **Sorun:** HomeView.tsx 2.167 satırlık monolitti — hava durumu, eczane,
+>   ezan, döviz, otobüs, taksi bölümlerinin TÜM state/handler/JSX'i tek
+>   dosyada; bakım ve test (M24'te RTL ertelenmişti) imkânsızı.
+> - **Yöntem:** Refaktör bir arka plan alt ajana devredildi (ayrıntılı brifing:
+>   saf taşıma, davranış değişikliği yok, uniform prop'lar). Ajan Bash
+>   sınıflandırıcısı arızası nedeniyle kendi kendini doğrulayamadan kullanıcı
+>   tarafından durduruldu; 5 bölüm dosyası oluşmuştu. Ana oturum devraldı:
+>   HomeView'in son hali satır satır gözden geçirildi (kablolama, prop
+>   eşleşmeleri, kalan bölümler), doğrulama + commit ana oturumda yapıldı.
+> - **Sonuç:** HomeView.tsx **2167 → 960 satır**; 5 yeni dosya
+>   `src/components/home/` altında:
+>   - `WeatherSection.tsx` (379 satır) — canlı hava durumu + modal.
+>   - `PharmacySection.tsx` (276) — nöbetçi eczane + modal.
+>   - `PrayerSection.tsx` (312) — ezan vakitleri + 60 sn yeniden hesap
+>     interval'i + modal.
+>   - `CurrencySection.tsx` (293) — döviz/altın + 60 sn tazeleme + modal.
+>   - `BusSection.tsx` (370) — otobüs hatları + arama/kategori filtreleri
+>     + modal.
+>   Her bölüm uniform prop alır: `{ isDark, searchQuery, isModalOpen,
+>   onOpen, onClose }` — modal açık/kapalı tekeli HomeView'daki `activeModal`
+>   union state'inde kaldı (aynı anda tek modal).
+> - **HomeView'da kalan:** arama çubuğu + `showCard` gizleme helper'ı, iş
+>   ilanı promo kartı, hastane kartı + hastane modalı, taksi bölümünün
+>   TAMAMI (Firestore aboneliği + eşleme + ekleme formu + RevenueCat ödeme
+>   modalı — akışlar birbirine bağlı olduğu için bilinçli olarak bölünmedi).
+> - **Bonus temizlik:** `pharmacyService.ts`'te kullanılmayan `PHARMACIES`
+>   import'u silindi — eslint uyarıları 48 → 38.
+> - **Doğrulama:** `npx tsc --noEmit` ✅ exit 0; `npm test` ✅ 29/29
+>   (607 ms); `npm run build` ✅ (vite 10.47 s + server bundle). Commit
+>   `46eaf9b` — push + **CI ✅ yeşil** (check-runs: build / completed /
+>   success). İstemci tarafı değişikliği → Render deploy gerekmedi; etki
+>   yeni APK/web'de.
+> - **Kalan monolitler:** JobsView (1.033) + SettingsView (995) — ayrı görev
+>   (istenirse 17 sorun bittikten sonra; 14/17 maddesi HomeView'ı hedefliyordu).
 
 > **12.11.2026 — M24 ÇÖZÜLDÜ (Vitest test altyapısı; 4.3):**
 >
@@ -1073,8 +1137,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 
 ### 4.3 🏗️ Mimari / Kod Kalitesi
 
-- **Monolit bileşenler:** HomeView 2.167 satır, JobsView 1.033, SettingsView 995 —
+- **Monolit bileşenler:** ~~HomeView 2.167 satır~~, JobsView 1.033, SettingsView 995 —
   bakımı zor, alt bileşenlere bölünmeli.
+  **✅ 12.11.2026 HomeView çözüldü (M25)** — 2167 → 960 satır; hava durumu/eczane/
+  ezan/döviz/otobüs bölümleri `src/components/home/`'a taşındı (5 dosya, uniform
+  prop'lar). JobsView + SettingsView bölünmesi ayrı görev olarak kaldı.
 - ~~**`server.ts` şişkin:** ~1.570 satırın ~700 satırı inline otobüs fallback verisi
   (mockData.ts ile tekrar eden veri).~~
   **✅ 11.11.2026 çözüldü (M20)** — 612 satırlık fallback verisi
@@ -1131,8 +1198,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 
 ### 5.1 Alınmış Kararlar (mevcut durum — as-is)
 
-1. **Monolitik bileşen mimarisi:** Her sekme tek büyük dosya (HomeView, JobsView,
-   DealsView, SettingsView, NewsView, PlacesView); router yok — sekme durumu
+1. **Monolitik bileşen mimarisi:** Her sekme tek büyük dosya (JobsView, DealsView,
+   SettingsView, NewsView, PlacesView); HomeView M25'te bölündü (5 bölüm
+   `src/components/home/` + ~960 satırlık kabuk). Router yok — sekme durumu
    `App.tsx` içinde `useState<TabType>` ile yönetiliyor.
 2. **Express tek sunucu:** `server.ts` hem API hem statik dosya sunar (dev'de Vite
    middleware, prod'da `dist/` static + SPA fallback; `NODE_ENV` ile ayrım).
@@ -1189,7 +1257,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 7 | 🟡 Orta | ~~AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat~~ **✅ 09.11 çözüldü (M9)** (`5542427`, canlıda) | Manifest temiz ✅ (kod düzeyinde; etki yeni APK'da) |
 | 8 | 🟡 Orta | ~~Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal~~ **✅ 10.11 çözüldü (M10)** (`f541f84`) | Kökte yalnız üretim dosyaları ✅ |
 | 9 | 🟡 Orta | ~~Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README~~ **✅ 10.11 çözüldü (M11)** (`4e60ea4`) | Başlık "Van Rehberim" ✅ |
-| 10 | 🟢 İleri | HomeView'u alt bileşenlere böl; Firestore şemasını normalize et; Vitest testleri ekle | Testler CI'da koşuyor |
+| 10 | 🟢 İleri | ~~HomeView'u alt bileşenlere böl~~ **✅ 12.11 çözüldü (M25)** (`46eaf9b`; 5 bölüm `src/components/home/`); Firestore şemasını normalize et (15/17 — ön denetim: koleksiyonlar boş, iş kod tarafında); ~~Vitest testleri ekle~~ **✅ M24** | Testler CI'da koşuyor ✅ |
 
 **Önerilen çalışma düzeni:** Her düzeltme ayrı commit + ayrı oturum; her oturum sonunda
 bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşınmalı).
@@ -1198,12 +1266,13 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (09.11.2026, oturum #9 — M9 sonrası) |
+| Komut | Sonuç (12.11.2026, oturum #11 — M25 sonrası) |
 |---|---|
-| `npx tsc --noEmit` | ✅ exit 0 — temiz (M0–M9 sonrası doğrulandı) |
-| `npx eslint src` | ✅ exit 0 — 0 error, **79 warning** (M8 sonrası; M9 src'yi değiştirmedi) |
+| `npx tsc --noEmit` | ✅ exit 0 — temiz (M25 sonrası doğrulandı) |
+| `npx eslint src` | ✅ exit 0 — 0 error, **38 warning** (M25 sonrası; M24'te 48 idi) |
+| `npm test` | ✅ 29/29 geçti (Vitest; 5 dosya, CI'da da koşuyor) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
-| `npm run build` | `vite build` + `esbuild server.ts → dist/server.cjs` |
+| `npm run build` | ✅ `vite build` (10.47 s) + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
 | `npm run lint` | ✅ exit 0 — `tsc --noEmit && eslint src` (M4 sonrası) |
 
@@ -1212,7 +1281,8 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (12.11.2026, oturum #11): dal ucu `6540bb3` (M24: Vitest
+- Git durumu (12.11.2026, oturum #11): dal ucu `46eaf9b` (M25: HomeView
+  bölünmesi; CI ✅ yeşil), önceki `56ac6b5` (MEMORY M24), `6540bb3` (M24: Vitest
   altyapısı; CI ✅ yeşil — test adımı ilk kez koştu), önceki `98d3e66`
   (MEMORY M23), `ccfef32` (M23: CI cleanup + boot test; CI ✅ yeşil),
   `3be2bce` (MEMORY M22; CI ✅ yeşil — M22
