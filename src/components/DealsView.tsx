@@ -6,6 +6,7 @@ import { submitPaidListing } from '../services/listingService';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { getDealMetaFromPackage, computeEndDate } from '../utils/listingMeta';
+import { mapDealDoc } from '../utils/dealMapping';
 import {
   Search,
   Bookmark,
@@ -41,30 +42,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   useEffect(() => {
     const unsub = subscribeDeals((firestoreDeals) => {
       if (Array.isArray(firestoreDeals)) {
-        const mappedDeals = firestoreDeals.map((d) => {
-          // KORUMA KALKANI: Firebase Timestamp objelerini (seconds, nanoseconds) bulup düz metne çevirir
-          const safeData = { ...d };
-          Object.keys(safeData).forEach(key => {
-            if (safeData[key] && typeof safeData[key] === 'object' && 'seconds' in safeData[key]) {
-              safeData[key] = new Date(safeData[key].seconds * 1000).toLocaleDateString('tr-TR');
-            }
-          });
-
-          return {
-            ...safeData,
-            storeName: safeData?.isletmeAdi ?? safeData?.storeName ?? safeData?.name ?? safeData?.title ?? 'Van İşletmesi',
-            dealTitle: safeData?.indirimKodu ?? safeData?.dealTitle ?? safeData?.baslik ?? safeData?.title ?? safeData?.indirimDegeri ?? 'Özel Fırsat',
-            discountRate: safeData?.indirimDegeri ?? safeData?.discountRate ?? safeData?.indirimMiktari ?? safeData?.oran ?? '%20',
-            category: safeData?.kategori ?? safeData?.category ?? 'Kafe & Restoran',
-            image: safeData?.image ?? (safeData?.images && safeData?.images[0]) ?? safeData?.photoUrl ?? 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80',
-            locationName: safeData?.locationName ?? safeData?.district ?? safeData?.ilce ?? safeData?.konum ?? 'İpekyolu, Van',
-            description: safeData?.description ?? safeData?.aciklama ?? safeData?.detay ?? '',
-          };
-        });
-        // Ham dokümanın startDate/endDate/address alanları koleksiyonda
-        // tutarsız — normalizasyon (denetim maddesi 15) tamamlanana kadar
-        // tek cast noktası burası.
-        setDealsList(mappedDeals as Deal[]);
+        // M26: ham doküman → Deal eşlemesi saf fonksiyonda (utils/dealMapping)
+        setDealsList(firestoreDeals.map(mapDealDoc));
       }
       setIsLoading(false);
     });

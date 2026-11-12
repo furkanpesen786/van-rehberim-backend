@@ -23,32 +23,38 @@ import {
 } from 'firebase/firestore';
 import type { JobListing } from '../types';
 
-// M21: Firestore ham doküman tipleri. Koleksiyonlarda şema normalizasyonu
-// (denetim maddesi 15) tamamlanana kadar Türkçe/İngilizce alan karışımı var;
-// bileşenler bu ham tipleri alıp kendi mapping'inde normalize ediyor. Bu
-// arayüzler bilinen tüm alan varyantlarını belgeler — bilinmeyen bir alan
-// adı kullanılırsa artık derleme hatası verir.
+// M21+M26: Firestore ham doküman tipleri — CANONICAL şema. Tek yazma yolu
+// (server/listings.ts LISTING_TYPES) yalnızca bu alan adlarını yazar.
+// 12.11.2026 salt okunur denetim (scripts/firestore-schema-audit.ts): üç
+// koleksiyon da BOŞ çıktı — eski istemci-tarafı yazımlardan kalma alan adı
+// varyantlarına (storeName/baslik/oran/soforAdi/plaka/...) artık rastlanmaz,
+// bu yüzden varyant toleransı kaldırıldı. Ham doküman → uygulama modeli
+// dönüşümü: utils/dealMapping.ts (deal) ve HomeView taksi eşlemesi.
 export interface RawDealDoc {
   id: string;
-  isletmeAdi?: string; storeName?: string; name?: string; title?: string;
-  indirimKodu?: string; dealTitle?: string; baslik?: string;
-  indirimDegeri?: string; discountRate?: string; indirimMiktari?: string; oran?: string;
-  kategori?: string; category?: string;
-  image?: string; images?: string[]; photoUrl?: string;
-  locationName?: string; district?: string; ilce?: string; konum?: string;
-  description?: string; aciklama?: string; detay?: string;
-  startDate?: string; endDate?: string; address?: string;
+  isletmeAdi?: string;
+  kategori?: string;
+  indirimKodu?: string;
+  indirimDegeri?: string;
+  image?: string;
+  locationName?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  isFeatured?: boolean;
 }
 
 export interface RawTaxiDoc {
   id: string;
-  name?: string; isim?: string; title?: string;
-  driverName?: string; soforAdi?: string;
-  phone?: string; telefon?: string; tel?: string;
-  plate?: string; plaka?: string; taxiPlate?: string;
-  operatingRegions?: string; calismaBolgeleri?: string; bolgeler?: string; regions?: string;
-  district?: string; ilce?: string; mahalle?: string;
-  monthlyFee?: string; aylikUcret?: string; fee?: string;
+  name?: string;
+  driverName?: string;
+  phone?: string;
+  plate?: string;
+  operatingRegions?: string;
+  district?: string;
+  subscriptionPlan?: 'FIRST_MONTH_FREE' | 'PAID';
+  monthlyFee?: string;
+  createdAt?: string;
 }
 
 const firebaseConfig = {

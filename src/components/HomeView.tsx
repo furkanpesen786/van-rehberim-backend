@@ -49,18 +49,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   useEffect(() => {
     const unsub = subscribeTaxis((firestoreTaxis) => {
       if (firestoreTaxis) {
-        const mappedTaxis = firestoreTaxis.map((t) => ({
-          ...t,
+        // M26: ham doküman → TaxiStand eşlemesi yalnızca canonical alanları
+        // okur (server/listings.ts taksiler şeması); eksiklere varsayılanlar.
+        const mappedTaxis: TaxiStand[] = firestoreTaxis.map((t) => ({
           id: t.id,
-          name: t.name || t.isim || t.title || 'Taksi',
-          driverName: t.driverName || t.soforAdi || t.name || t.isim || 'Taksi Sürücüsü',
-          phone: t.phone || t.telefon || t.tel || '',
-          plate: t.plate || t.plaka || t.taxiPlate || '',
-          operatingRegions: t.operatingRegions || t.calismaBolgeleri || t.bolgeler || t.regions || 'Van İçi',
-          district: t.district || t.ilce || t.mahalle || 'İpekyolu',
-          monthlyFee: t.monthlyFee || t.aylikUcret || t.fee || '',
+          name: t.name || 'Taksi',
+          driverName: t.driverName || t.name || 'Taksi Sürücüsü',
+          phone: t.phone || '',
+          plate: t.plate || '',
+          operatingRegions: t.operatingRegions || 'Van İçi',
+          district: t.district || 'İpekyolu',
+          subscriptionPlan: t.subscriptionPlan,
+          monthlyFee: t.monthlyFee || '',
+          createdAt: t.createdAt,
         }));
-        setTaxis(mappedTaxis as TaxiStand[]);
+        setTaxis(mappedTaxis);
       }
       setIsLoadingTaxis(false);
     });
