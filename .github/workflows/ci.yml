@@ -29,14 +29,12 @@ jobs:
     - name: Build Vite app
       run: npm run build
 
-    - name: Clean generated files (git rm --cached)
-      run: |
-        git rm -r --cached android/app/build || true
-        git rm -r --cached "node_modules/**/vendor/**" || true
-        git rm -r --cached *.apk *.aab *.dex *.class *.jar *.aar || true
-        git rm -r --cached "node_modules/**/build/**/*.dll" "node_modules/**/build/**/*.so" || true
-        git add .gitignore
-        git commit -m "CI cleanup: remove generated large files" || true
+    # M23 + M7 dersi: sunucu dist'ten ayağa kalkıyor mu, ayakta kalıyor mu
+    # kontrol edilir. EXIT 124 = timeout sunucuyu öldürdü = ayakta kaldı
+    # (başarı). Env değişkeni yokken de boot güvenlidir: listings.ts lazy
+    # init kullanır, /api/listings istek anında 503 fail-closed döner.
+    - name: Server boot smoke test
+      run: NODE_ENV=production PORT=3999 timeout 15 node dist/server.cjs || test $? -eq 124
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4

@@ -11,6 +11,7 @@ android/app/build/
 *.dex
 *.jar
 *.apk
+*.aab
 *.aar
 *.so
 # System files
