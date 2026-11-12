@@ -4,10 +4,11 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 11.11.2026 (gece, oturum #11 sürüyor) — M21 TAMAMLANDI ✅
-> (any tip borcu; `a24c93d`: push + CI yeşil; no-explicit-any 29 → 0).
+> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M22 TAMAMLANDI ✅
+> (servis timeout'ları 60→15 sn + long-polling belgelendi; `2620d2b`: push;
+> CI GitHub Actions kuyruğunda bekliyor — yerel tsc/eslint/build yeşil).
 > Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
-> experimentalForceLongPolling + 60 sn timeout'lar (11/17).
+> CI cleanup-commit anti-pattern (12/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -160,11 +161,19 @@ APK + 3 eski yedek `Desktop/van-rehberim-arsiv/`'e taşındı, tsconfig include
 düzeltildi. Commit `f541f84` (41 dosya, -9.535 satır). tsc + build + boot
 doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 
-**📋 Durum (11.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
+**📋 Durum (12.11 gece, oturum #11): KALAN 17 SORUN TEK TEK ÇÖZÜLÜYOR.**
 M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
 (server.ts şişkinliği) ✅ bitti (9/17). M21 (any tip borcu) ✅ bitti (10/17).
-Sıra: (11) experimentalForceLongPolling + 60 sn timeout'lar → (12-17)
-mimari işler. M5 en sonda (iyzico vs RevenueCat kararı).
+M22 (timeout'lar + long-polling) ✅ bitti (11/17). Sıra: (12) CI
+cleanup-commit anti-pattern → (13-17) mimari işler. M5 en sonda (iyzico vs
+RevenueCat kararı).
+
+**12.11.2026 oturumu #11 — M22 ÇÖZÜLDÜ (timeout'lar + long-polling; 4.3):**
+4 serviste 60 sn fetch timeout → 15 sn (news/prayer ile tutarlı).
+`experimentalForceLongPolling` KALDI ama bilinçli karar olarak belgelendi:
+CapacitorHttp açık → Firestore WebChannel (XHR streaming) Android'de
+çalışmaz; onSnapshot long-polling'e muhtaç. Commit `2620d2b` (CI Actions
+kuyruğunda bekledi — platform gecikmesi; yerel doğrulama tamamdı).
 
 **11.11.2026 oturumu #11 — M21 ÇÖZÜLDÜ (any tip borcu; 4.3):**
 29 explicit `any`'nin TAMAMI temizlendi (eslint no-explicit-any 29 → 0;
@@ -371,6 +380,34 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **12.11.2026 — M22 ÇÖZÜLDÜ (servis timeout'ları + experimentalForceLongPolling; 4.3):**
+>
+> - **Sorun (iki parça):** (1) 4 servis (weatherService, pharmacyService,
+>   currencyService, busService) fetch timeout'u 60 sn'ydi — mobilde çok
+>   uzun; kullanıcı yarım dakika boş bekleyebilir. (2)
+>   `experimentalForceLongPolling: true` firebase.ts'te açıklamasız duruyordu
+>   (denetim: "performans kısıtı, kalmış").
+> - **Çözüm (1) — timeout'lar:** dördünde de 60000 → 15000 ms
+>   (newsService/prayerService ile tutarlı). Tüm bu servislerin catch
+>   blokları zarif fallback'e düşüyor (M12+ çalışması) — abort durumunda
+>   uygulama çökmüyor, yerel/önbellek veriye dönüyor.
+> - **Çözüm (2) — long-polling KALDIRILMADI, belgelendi:** araştırma
+>   sonucu flag yük taşıyor: `capacitor.config.ts`'te **CapacitorHttp
+>   açık**; o WebView'daki tüm fetch/XHR'yi native katmana yönlendirir ve
+>   akış yanıtlarını tamponlar. Firestore'un varsayılan WebChannel
+>   transport'u XHR streaming'e dayanır → CapacitorHttp altında onSnapshot
+>   canlı dinleyicileri Android'de ÇALIŞMAZ. Long-polling her istekte tam
+>   yanıt aldığı için bu kombinasyonda güvenilir tek yol. Flag'in yanına
+>   tam gerekçe yorumu eklendi ("CapacitorHttp kapatılırsa bu flag de
+>   kaldırılmalı"). Flag'i kaldırmak uygulamanın TEK mobil platformundaki
+>   canlı ilan akışını bozabilirdi — yeni APK + cihaz testi olmadan
+>   kaldırılmaz (bilinçli karar).
+> - **Doğrulama:** tsc exit 0; eslint 0 error / 48 warning (değişiklik yok);
+>   `npm run build` OK. Commit `2620d2b` — push edildi; CI run'ı GitHub
+>   Actions kuyruğunda uzun süre `queued` takıldı (platform gecikmesi —
+>   hemen önceki run'lar sorunsuz tamamlanmıştı; sonuç bir sonraki
+>   kontrolde doğrulanacak). İstemci tarafı: etki yeni APK/web'de.
 
 > **11.11.2026 — M21 ÇÖZÜLDÜ (any tip borcu; 4.3):**
 >
@@ -981,8 +1018,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
   `firebase-applet-config.json` (`emergent-gift-7x4wp`, AI Studio kalıntısı)~~
   **✅ 10.11.2026 çözüldü (M10)** — `firebase-applet-config.json` silindi;
   tek config `src/lib/firebase.ts`'te.
-- **`experimentalForceLongPolling: true`** kalmış (performans kısıtı); servis fetch
-  timeout'ları 60 sn (mobil için çok uzun).
+- ~~**`experimentalForceLongPolling: true`** kalmış (performans kısıtı); servis fetch
+  timeout'ları 60 sn (mobil için çok uzun).~~
+  **✅ 12.11.2026 çözüldü (M22)** — timeout'lar 60 → 15 sn; long-polling flag'i
+  bilinçli karar olarak BELGELENDİ (CapacitorHttp açık → WebChannel Android'de
+  çalışmaz; flag kaldırılmamalı, CapacitorHttp kapatılırsa kaldırılmalı).
 - **State yönetimi yok:** localStorage + özel window event (`van_saved_deals_changed`)
   ile bileşenler arası senkronizasyon.
 
@@ -1081,8 +1121,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (11.11.2026, oturum #11): dal ucu `a24c93d` (M21: any tip
-  borcu; CI ✅ yeşil), önceki `b82f2ac` (MEMORY M20), `1b49a38` (M20:
+- Git durumu (12.11.2026, oturum #11): dal ucu `2620d2b` (M22: timeout'lar
+  + long-polling; CI Actions kuyruğunda bekliyor), önceki `b7aebc2`
+  (MEMORY M21), `a24c93d` (M21: any tip borcu; CI ✅ yeşil), `b82f2ac`
+  (MEMORY M20), `1b49a38` (M20:
   server.ts şişkinliği; CI ✅ yeşil + CANLIDA), `22006de` (MEMORY M19),
   `acc21ae` (M19: alert → bildirimler; CI ✅ yeşil), `328a03f` (MEMORY M18),
   `130c114` (M18: scraping önbellekleri; CI ✅ yeşil + CANLIDA),
