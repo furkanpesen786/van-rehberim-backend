@@ -4,11 +4,10 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M23 TAMAMLANDI ✅
-> (CI cleanup-commit kaldırıldı + boot smoke-test eklendi; `ccfef32`: push +
-> CI ✅ yeşil). Ayrıca M22'nin CI'ı da dolaylı doğrulandı (`3be2bce` aynı
-> ağaçla yeşil). Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı —
-> sıradaki: Vitest test altyapısı (13/17).
+> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M24 TAMAMLANDI ✅
+> (Vitest test altyapısı; `6540bb3`: push + CI ✅ yeşil — 5 dosya / 29 test
+> CI'da koşuyor). Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı —
+> sıradaki: HomeView monolit bölünmesi (14/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -165,8 +164,15 @@ doğrulandı; CI ✅ yeşil. Render deploy kontrolü bekliyor.
 M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
 (server.ts şişkinliği) ✅ bitti (9/17). M21 (any tip borcu) ✅ bitti (10/17).
 M22 (timeout'lar + long-polling) ✅ bitti (11/17). M23 (CI cleanup-commit) ✅
-bitti (12/17). Sıra: (13) Vitest test altyapısı → (14-17) mimari işler.
-M5 en sonda (iyzico vs RevenueCat kararı).
+bitti (12/17). M24 (Vitest test altyapısı) ✅ bitti (13/17). Sıra: (14)
+HomeView monolit bölünmesi → (15-17) mimari işler. M5 en sonda (iyzico vs
+RevenueCat kararı).
+
+**12.11.2026 oturumu #11 — M24 ÇÖZÜLDÜ (Vitest test altyapısı; 4.3):**
+Vitest kuruldu — 5 test dosyası / 29 test, CI'da her push'ta koşuyor.
+DealsView süre mantığı `src/utils/listingMeta.ts`'e çıkarıldı (saf
+fonksiyonlar). KVKK silme yolu (deleteAllUserData) artık regresyon
+testiyle korunuyor. Commit `6540bb3`, CI ✅ yeşil.
 
 **12.11.2026 oturumu #11 — M23 ÇÖZÜLDÜ (CI cleanup-commit; 4.3):**
 Ölü "Clean generated files" adımı CI'dan silindi (commit push yetkisi
@@ -386,6 +392,44 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **12.11.2026 — M24 ÇÖZÜLDÜ (Vitest test altyapısı; 4.3):**
+>
+> - **Sorun:** Test altyapısı YOKTU — hiçbir test çerçevesi, hiçbir test
+>   yoktu; her doğrulama elle tsc/build/boot ile yapılıyordu.
+> - **Çözüm (altyapı):** `vitest` devDependency olarak eklendi (v5.1.0);
+>   `vitest.config.ts` (environment: 'node'; src + server test dosyaları);
+>   `package.json`'a `"test": "vitest run"`; ci.yml'e "Unit tests (Vitest)"
+>   adımı lint sonrası. CI akışı artık: npm ci → lint → test → build →
+>   boot smoke-test → artifact.
+> - **Kapsam kararı:** React Testing Library ŞİMDİLİK eklenmedi — bileşen
+>   render testleri HomeView bölünmesinden (14/17) sonra anlamlı; monolit
+>   bileşenleri render etmek kırılgan testler üretirdi. Öncelik 5.2.5'teki
+>   saf/mocked hedefler alındı.
+> - **Refactor (test edilebilirlik):** DealsView'ın süre mantığı saf
+>   fonksiyon modülüne taşındı — `src/utils/listingMeta.ts`
+>   (`getDealMetaFromPackage` + `computeEndDate`; ikincisine opsiyonel
+>   `from: Date` parametresi eklendi, çağıranlar değişmedi). Bu modül
+>   14/17 bölünmesine de zemin hazırlar.
+> - **Test dosyaları (5 dosya / 29 test):**
+>   - `src/utils/listingMeta.test.ts` — ürün→süre/meta eşlemesi, gg.aa.yyyy
+>     üretimi, ay taşıma, artık yıl (2028/2027).
+>   - `src/services/prayerService.test.ts` — `calculatePrayerStatus` 5
+>     senaryo (sahte sistem saatiyle: imsak/öğle/yatsı-sonrası/gece-öncesi,
+>     sınır dakikaları).
+>   - `src/services/purchaseService.test.ts` — mock'lu RevenueCat: paket
+>     arama (bulma/boş/aktif offering yok), satın alma (başarı/kullanıcı
+>     iptali false/hata mesajı/geçersiz paket).
+>   - `src/lib/firebase.test.ts` — mock'lu firestore ile
+>     `deleteAllUserData` (M13 KVKK kritik yolu: profil + favoriler + 3
+>     koleksiyon sorgusu + ilan silme sayıları). Regresyon = KVKK ihlali
+>     riski olduğu için en değerli test.
+>   - `server/busFallbackData.test.ts` — M20 çıkarımının şekil sözleşmesi:
+>     30 hat, benzersiz id/lineNo, tüm saatler ss:dd regex, zorunlu alanlar.
+> - **Doğrulama:** `npm test` → **29/29 geçti** (830 ms); tsc exit 0; eslint
+>   48 warning (değişiklik yok); build OK. Commit `6540bb3` — push + **CI ✅
+>   yeşil** (test adımı CI'da ilk kez bu committe koştu). Sunucu çalışma
+>   kodu değişmedi → Render deploy gerekmedi.
 
 > **12.11.2026 — M23 ÇÖZÜLDÜ (CI cleanup-commit anti-pattern; 4.3):**
 >
@@ -1045,7 +1089,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 - ~~**Ödeme/hata akışlarında `alert()`** (JobsView, DealsView, HomeView, SettingsView).~~
   **✅ 11.11.2026 çözüldü (M19)** — 10 alert'in tamamı uygulama içi bildirimlere
   çevrildi; sahte "kopyalandı" iddiası gerçek clipboard kopyalaması oldu.
-- **Test altyapısı YOK:** Vitest/Jest yok; kökte geçici `test_*.js` scriptleri duruyor.
+- ~~**Test altyapısı YOK:** Vitest/Jest yok; kökte geçici `test_*.js` scriptleri duruyor.~~
+  **✅ 12.11.2026 çözüldü (M24)** — Vitest kuruldu; 5 dosya / 29 test CI'da
+  koşuyor (`npm test`). RTL bileşen testleri bilinçli olarak 14/17 sonrasına
+  ertelendi (monolit bileşenler). Kökteki `test_*.js` artıkları M10'da
+  zaten temizlenmişti.
 - **İki paket yöneticisi:** ~~`bun.lock` VE `package-lock.json` birlikte~~
   **✅ 10.11.2026 çözüldü (M10)** — `bun.lock` silindi; tek lock `package-lock.json`.
 - **`tsconfig.json`:** `strict` yok, `allowJs: true` → tip güvenliği zayıf.
@@ -1114,8 +1162,11 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    ve rate-limit eklenmeli.
 4. HomeView alt bileşenlere bölünmeli; ortak veri akışı için Context/Zustand benzeri
    state yönetimi alınmalı.
-5. Test altyapısı kurulmalı: **Vitest + React Testing Library** (öncelik: purchaseService,
-   prayerService hesaplamaları, firestore yazım fonksiyonları, DealsView süre mantığı).
+5. ~~Test altyapısı kurulmalı: **Vitest + React Testing Library** (öncelik: purchaseService,
+   prayerService hesaplamaları, firestore yazım fonksiyonları, DealsView süre mantığı).~~
+   **✅ 12.11.2026 KISMEN ÇÖZÜLDÜ (M24)** — Vitest + öncelik hedeflerin tamamı
+   test ediliyor (29 test, CI'da); RTL bileşen testleri 14/17 monolit
+   bölünmesi sonrasına kaldı.
 6. Tek ESLint flat config (`@typescript-eslint/parser` ile) + `tsconfig`'e `strict: true`.
 7. Firebase config env değişkenlerine taşınmalı (çift proje kalıntısı temizlenmeli).
 8. Firestore şeması tek dilli (İngilizce) normalize edilmeli; `durationDays`/`userId`
@@ -1161,8 +1212,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (12.11.2026, oturum #11): dal ucu `ccfef32` (M23: CI cleanup +
-  boot test; CI ✅ yeşil), önceki `3be2bce` (MEMORY M22; CI ✅ yeşil — M22
+- Git durumu (12.11.2026, oturum #11): dal ucu `6540bb3` (M24: Vitest
+  altyapısı; CI ✅ yeşil — test adımı ilk kez koştu), önceki `98d3e66`
+  (MEMORY M23), `ccfef32` (M23: CI cleanup + boot test; CI ✅ yeşil),
+  `3be2bce` (MEMORY M22; CI ✅ yeşil — M22
   kodunu dolaylı doğruladı), `2620d2b` (M22: timeout'lar + long-polling;
   run'ı Actions kuyruğunda takıldı, kodu 3be2bce ile doğrulandı),
   `b7aebc2` (MEMORY M21), `a24c93d` (M21: any tip borcu; CI ✅ yeşil),
