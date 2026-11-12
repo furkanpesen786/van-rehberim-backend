@@ -4,12 +4,11 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M25 TAMAMLANDI ✅
-> (HomeView monolit bölünmesi; `46eaf9b`: HomeView 2167 → 960 satır, 5 bölüm
-> `src/components/home/`'a taşındı; tsc + 29 test + build ✅). Kullanıcı kalan
-> 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki: Firestore şema
-> normalizasyonu (15/17; ön denetim yapıldı: üç koleksiyon da BOŞ çıktı,
-> iş kod tarafına indi).
+> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M26 TAMAMLANDI ✅
+> (Firestore şema normalizasyonu; `135b131`: RawDealDoc/RawTaxiDoc canonical'e
+> indi, 12 varyant alan silindi, DealsView eşlemesi saf fonksiyona çıktı;
+> tsc + 33 test + build ✅). Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi
+> onayladı — sıradaki: tsconfig strict (16/17).
 > **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
 > (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
 > AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
@@ -168,9 +167,9 @@ M12-M18 ✅ bitti (7/17). M19 (alert() → bildirimler) ✅ bitti (8/17). M20
 (server.ts şişkinliği) ✅ bitti (9/17). M21 (any tip borcu) ✅ bitti (10/17).
 M22 (timeout'lar + long-polling) ✅ bitti (11/17). M23 (CI cleanup-commit) ✅
 bitti (12/17). M24 (Vitest test altyapısı) ✅ bitti (13/17). M25 (HomeView
-monolit bölünmesi) ✅ bitti (14/17). Sıra: (15) Firestore şema normalizasyonu
-→ (16) tsconfig strict → (17) state management. M5 en sonda (iyzico vs
-RevenueCat kararı).
+monolit bölünmesi) ✅ bitti (14/17). M26 (Firestore şema normalizasyonu)
+✅ bitti (15/17). Sıra: (16) tsconfig strict → (17) state management.
+M5 en sonda (iyzico vs RevenueCat kararı).
 
 **12.11.2026 oturumu #11 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
 HomeView.tsx 2167 → 960 satır. Hava durumu / nöbetçi eczane / ezan vakitleri
@@ -185,6 +184,19 @@ başladı, kullanıcı ajanı durdurdu; kontrol + doğrulama + commit ana oturum
 yapıldı. Commit `46eaf9b`. JobsView (1033) / SettingsView (995) bölünmesi
 ayrı görev olarak kaldı (istenirse 17'den sonra).
 
+**12.11.2026 oturumu #11 — M26 ÇÖZÜLDÜ (Firestore şema normalizasyonu; 15/17):**
+Ön denetim (aşağıda) üç koleksiyonun da BOŞ olduğunu gösterince iş kod
+tarafına indi. `src/lib/firebase.ts`'te RawDealDoc/RawTaxiDoc canonical'e
+indirildi (12 varyant alan silindi; server/listings.ts whitelists'leri tek
+doğruluk kaynağı). DealsView'daki satır içi eşleme (Timestamp kalkanı +
+`??` zincirleri + `as Deal[]` cast'i) saf fonksiyona çıktı:
+`src/utils/dealMapping.ts` + 4 regresyon testi. HomeView'daki taksi eşlemesi
+canonical-only oldu; `as TaxiStand[]` cast'i kalktı. `Deal`/`TaxiStand`
+uygulama-modeli tiplerine DOKUNULMADI (eşleme katmanı meşru normalizasyon
+noktası; SettingsView/testlere domino etkisini önlemek için bilinçli karar).
+Denetim betiği `scripts/firestore-schema-audit.ts` repoya girdi. Commit
+`135b131`. İstemci tarafı → Render deploy gerekmedi.
+
 **12.11.2026 oturumu #11 — 15/17 ÖN DENETİM (Firestore şema):**
 Salt okunur denetim betiği yazıldı (`scripts/firestore-schema-audit.ts`,
 repoda — `npx tsx` ile koşulur). SONUÇ: `is_ilanlari`, `indirim_ilanlari`,
@@ -192,8 +204,8 @@ repoda — `npx tsx` ile koşulur). SONUÇ: `is_ilanlari`, `indirim_ilanlari`,
 istemci config aynı proje `vanrehberim-f181b` doğrulandı). Yani 15/17 =
 migrate edilecek veri YOK; iş kod tarafına indi: RawDealDoc/RawTaxiDoc
 canonical'e indir + bileşen `??` zincirleri sadeleşir + DealsView eşlemesi
-saf fonksiyona çıkar (M24 deseni). Betik henüz commit edilmedi (15/17
-commit'i ile gidecek).
+saf fonksiyona çıkar (M24 deseni). Betik M26 commit'iyle (`135b131`) repoya
+girdi.
 
 **12.11.2026 oturumu #11 — M24 ÇÖZÜLDÜ (Vitest test altyapısı; 4.3):**
 Vitest kuruldu — 5 test dosyası / 29 test, CI'da her push'ta koşuyor.
@@ -419,6 +431,45 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **12.11.2026 — M26 ÇÖZÜLDÜ (Firestore şema normalizasyonu; 4.3):**
+>
+> - **Sorun:** Firestore ham doküman tipleri (`RawDealDoc`/`RawTaxiDoc`)
+>   eski şema varyantlarını (storeName/baslik/oran/vs.) da içeriyordu ve
+>   bileşenler veriyi 5-6 alternatiflı `??` zincirleriyle "KORUMA KALKANI"
+>   yorumlarıyla okuyordu — yazma yolu (server/listings.ts) zaten tek
+>   (canonical) şemaya bağlıyken okuma tarafı gereksiz tolerans taşıyordu.
+> - **Ön denetim:** `scripts/firestore-schema-audit.ts` (salt okunur,
+>   firebase-admin ile; repoya commit edildi, `npx tsx` ile yeniden
+>   koşulabilir) — `is_ilanlari`, `indirim_ilanlari`, `taksiler`
+>   koleksiyonlarının ÜÇÜ DE BOŞ (0 doküman; service account + istemci
+>   config aynı proje `vanrehberim-f181b` doğrulandı). Migrate edilecek
+>   veri yok → iş kod tarafına indi.
+> - **Çözüm:**
+>   - `src/lib/firebase.ts`: RawDealDoc 10 canonical alan + RawTaxiDoc 9
+>     canonical alan; 12 varyant alan silindi. Başlıkta canonical kararın
+>     (M21+M26) ve boş-DB denetiminin (12.11.2026) belgesi.
+>   - `src/utils/dealMapping.ts` (YENİ): `mapDealDoc(doc) → Deal` saf
+>     fonksiyonu — eski DealsView satır içi eşlemesinin tek noktaya
+>     çıkarılmış hali; eksik alanlara akıllı varsayılanlar.
+>   - `src/utils/dealMapping.test.ts` (YENİ): 4 test — tam canonical
+>     eşleme (toEqual), boş doküman varsayılanları, indirimKodu→
+>     indirimDegeri fallback'i, isFeatured tanımsız geçişi.
+>   - `src/components/DealsView.tsx`: satır içi eşleme + Timestamp kalkanı
+>     + `as Deal[]` cast'i kaldırıldı → `firestoreDeals.map(mapDealDoc)`.
+>   - `src/components/HomeView.tsx`: taksi eşlemesi canonical-only sabit
+>     eşleme; `as TaxiStand[]` cast'i kaldırıldı.
+> - **Bilinçli kararla DOKUNULMADI:** `Deal`/`TaxiStand`/`JobListing`
+>   uygulama-modeli tipleri (eşleme katmanı DB→model normalizasyonunun
+>   meşru noktası; SettingsView + testlere domino etkisini önler);
+>   `experimentalForceLongPolling` (M22 belgeli kısıtı); JobsView/SettingsView
+>   eşlemeleri (ayrı görev — monolit bölünmeleri).
+> - **Doğrulama:** `npx tsc --noEmit` ✅ exit 0; `npm test` ✅ 33/33
+>   (6 dosya, 358 ms); eslint 0 error / 38 warning (değişiklik yok);
+>   `npm run build` ✅ (vite 3.46 s + server bundle). Commit `135b131` —
+>   push; **CI ✅ yeşil** (check-runs: build / completed / success).
+>   İstemci tarafı değişikliği → Render deploy gerekmedi; etki yeni
+>   APK/web'de.
 
 > **12.11.2026 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
 >
@@ -1151,8 +1202,12 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
   (no-explicit-any 29 → 0); Firestore sınırı tipli; ölü firestoreFetchData.ts
   silindi. Catch değişkenleri strict kapalıyken implicit any olarak kaldı —
   `unknown` işleyişi 16/17 (strict) maddesinde.
-- **Tutarsız Firestore şeması:** Türkçe/İngilizce alan karışımı (`isletmeAdi`/`storeName`/
-  `name`) → bileşenlerde 5-6 alternatiflı `??` zincirleri ("KORUMA KALKANI" yorumları).
+- ~~**Tutarsız Firestore şeması:** Türkçe/İngilizce alan karışımı (`isletmeAdi`/`storeName`/
+  `name`) → bileşenlerde 5-6 alternatiflı `??` zincirleri ("KORUMA KALKANI" yorumları).~~
+  **✅ 12.11.2026 çözüldü (M26)** — ham doküman tipleri + bileşen okumaları
+  canonical'e indirildi (server/listings.ts whitelists'leri tek kaynak);
+  `mapDealDoc` saf fonksiyonu + 4 test. Koleksiyonlar boş çıktığı için veri
+  taşıma gerekmedi (denetim betiği repoda: `scripts/firestore-schema-audit.ts`).
 - ~~**Ödeme/hata akışlarında `alert()`** (JobsView, DealsView, HomeView, SettingsView).~~
   **✅ 11.11.2026 çözüldü (M19)** — 10 alert'in tamamı uygulama içi bildirimlere
   çevrildi; sahte "kopyalandı" iddiası gerçek clipboard kopyalaması oldu.
@@ -1237,8 +1292,12 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
    bölünmesi sonrasına kaldı.
 6. Tek ESLint flat config (`@typescript-eslint/parser` ile) + `tsconfig`'e `strict: true`.
 7. Firebase config env değişkenlerine taşınmalı (çift proje kalıntısı temizlenmeli).
-8. Firestore şeması tek dilli (İngilizce) normalize edilmeli; `durationDays`/`userId`
-   gibi kritik alanlar yazımda doğrulanmalı.
+8. ~~Firestore şeması tek dilli (İngilizce) normalize edilmeli; `durationDays`/`userId`
+   gibi kritik alanlar yazımda doğrulanmalı.~~
+   **✅ 12.11.2026 KISMEN ÇÖZÜLDÜ (M26)** — okuma tarafı canonical'e indi
+   (RawDealDoc/RawTaxiDoc + saf eşleme); yazma tarafı zaten whitelist'liydi
+   (server/listings.ts). Alan adları Türkçe kaldı (canonical bunlar);
+   İngilizce'ye çevirme koleksiyonlar dolmadan önce gereksiz risk.
 
 ---
 
@@ -1257,7 +1316,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 7 | 🟡 Orta | ~~AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat~~ **✅ 09.11 çözüldü (M9)** (`5542427`, canlıda) | Manifest temiz ✅ (kod düzeyinde; etki yeni APK'da) |
 | 8 | 🟡 Orta | ~~Kök temizliği: scriptler `scripts/` klasörüne, dump/debug dosyaları sil; tek lock dosyası kal~~ **✅ 10.11 çözüldü (M10)** (`f541f84`) | Kökte yalnız üretim dosyaları ✅ |
 | 9 | 🟡 Orta | ~~Markalaşma: `package.json` adı, `index.html` başlığı + `lang="tr"`, gerçek README~~ **✅ 10.11 çözüldü (M11)** (`4e60ea4`) | Başlık "Van Rehberim" ✅ |
-| 10 | 🟢 İleri | ~~HomeView'u alt bileşenlere böl~~ **✅ 12.11 çözüldü (M25)** (`46eaf9b`; 5 bölüm `src/components/home/`); Firestore şemasını normalize et (15/17 — ön denetim: koleksiyonlar boş, iş kod tarafında); ~~Vitest testleri ekle~~ **✅ M24** | Testler CI'da koşuyor ✅ |
+| 10 | 🟢 İleri | ~~HomeView'u alt bileşenlere böl~~ **✅ 12.11 çözüldü (M25)** (`46eaf9b`; 5 bölüm `src/components/home/`); ~~Firestore şemasını normalize et~~ **✅ 12.11 çözüldü (M26)** (`135b131`; koleksiyonlar boş çıktı → kod tarafında çözüldü); ~~Vitest testleri ekle~~ **✅ M24** | Testler CI'da koşuyor ✅ |
 
 **Önerilen çalışma düzeni:** Her düzeltme ayrı commit + ayrı oturum; her oturum sonunda
 bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşınmalı).
@@ -1266,13 +1325,13 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (12.11.2026, oturum #11 — M25 sonrası) |
+| Komut | Sonuç (12.11.2026, oturum #11 — M26 sonrası) |
 |---|---|
-| `npx tsc --noEmit` | ✅ exit 0 — temiz (M25 sonrası doğrulandı) |
+| `npx tsc --noEmit` | ✅ exit 0 — temiz (M26 sonrası doğrulandı) |
 | `npx eslint src` | ✅ exit 0 — 0 error, **38 warning** (M25 sonrası; M24'te 48 idi) |
-| `npm test` | ✅ 29/29 geçti (Vitest; 5 dosya, CI'da da koşuyor) |
+| `npm test` | ✅ 33/33 geçti (Vitest; 6 dosya, CI'da da koşuyor) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
-| `npm run build` | ✅ `vite build` (10.47 s) + `esbuild server.ts → dist/server.cjs` |
+| `npm run build` | ✅ `vite build` (3.46 s) + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
 | `npm run lint` | ✅ exit 0 — `tsc --noEmit && eslint src` (M4 sonrası) |
 
@@ -1281,7 +1340,8 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (12.11.2026, oturum #11): dal ucu `46eaf9b` (M25: HomeView
+- Git durumu (12.11.2026, oturum #11): dal ucu `135b131` (M26: Firestore
+  şema normalizasyonu; CI ✅ yeşil), önceki `46eaf9b` (M25: HomeView
   bölünmesi; CI ✅ yeşil), önceki `56ac6b5` (MEMORY M24), `6540bb3` (M24: Vitest
   altyapısı; CI ✅ yeşil — test adımı ilk kez koştu), önceki `98d3e66`
   (MEMORY M23), `ccfef32` (M23: CI cleanup + boot test; CI ✅ yeşil),
