@@ -4,19 +4,12 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 12.11.2026 (gece, oturum #11 sürüyor) — M27 TAMAMLANDI ✅
-> (tsconfig strict; `7156b76`: @types/react@19 kuruldu — React kodu ilk kez
-> gerçekten tip denetleniyor; strict: true, 31 hata düzeltildi, 41 test ✅).
-> Kullanıcı kalan 17 sorunun TÜMÜNÜ tek tek çözmeyi onayladı — sıradaki:
-> state management (17/17, SON).
-> **Özet:** 09–10.11 oturumu (M8 + M9 + M10): (1) `6ca3a1a` CI ✅. (2) **M8**
-> (`b3acdd8`): `/api/currencies` önbelleği — canlıda. (3) **M9** (`5542427`):
-> AndroidManifest cleartext/allowBackup kapatıldı — canlıda, etki yeni APK'da.
-> (4) **M10** (`f541f84`): kök temizlik — 29 çöp dosya silindi (9.535 satır),
-> 10 ikon scripti `scripts/`'e, APK + 3 eski yedek `Desktop/van-rehberim-arsiv/`'e
-> taşındı, tsconfig düzeltildi. Önce yedek alındı:
-> `Desktop/van-rehberim-YEDEK-2026-11-09.tar.gz` (66 MB). Kalan görev: D
-> (markalaşma); M5 donduruldu.
+> **Son güncelleme:** 13.11.2026 (oturum #11 sürüyor) — **M29 ÇÖZÜLDÜ ✅**
+> (kritik ödeme/ilan akışı + favori hayalet id'ler; commit `e8e4abd`, push'lu —
+> CI/Render kontrolü bekliyor). 17/17 ana liste bitti; yeni döngüde sonraki
+> parti **M30** (server fetch timeout'ları, abonelik hata callback'leri,
+> sıralama, ilçe filtresi vb.). Kalan tek büyük iş: M5 (iyzico vs RevenueCat
+> kararı — dondurulmuş).
 
 ---
 
@@ -169,7 +162,16 @@ M22 (timeout'lar + long-polling) ✅ bitti (11/17). M23 (CI cleanup-commit) ✅
 bitti (12/17). M24 (Vitest test altyapısı) ✅ bitti (13/17). M25 (HomeView
 monolit bölünmesi) ✅ bitti (14/17). M26 (Firestore şema normalizasyonu)
 ✅ bitti (15/17). M27 (tsconfig strict + @types/react) ✅ bitti (16/17).
-Sıra: (17) state management — SON. M5 en sonda (iyzico vs RevenueCat kararı).
+**M28 (state management) ✅ bitti (17/17) — LİSTE TAMAMLANDI.** Kalan:
+M5 (iyzico vs RevenueCat kararı — dondurulmuş).
+
+**📋 YENİ DÖNGÜ (13.11, oturum #11): TAM PROJE İNCELEMESİ + M29-M32.**
+Kullanıcı "tüm projeyi en ince ayrıntısına kadar incele" istedi → kapsamlı
+rapor teslim edildi (3 kritik + 13 orta + hafif; ayrıca JobsView+DealsView
+derin inceleme ajanı ~28 bulgu more). Kullanıcı **"tamam sırayla çöz bunları"**
+dedi. **M29 ✅ ÇÖZÜLDÜ — commit `e8e4abd`** (12 dosya, +469/−104, push'lu;
+CI + Render deploy kontrolü bekliyor — server/listings.ts değişti → deploy
+tetiklendi). Ayrıntı aşağıdaki M29 kaydında. Sonraki parti **M30**.
 
 **12.11.2026 oturumu #11 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
 HomeView.tsx 2167 → 960 satır. Hava durumu / nöbetçi eczane / ezan vakitleri
@@ -183,6 +185,130 @@ PHARMACIES import'u silindi (eslint uyarısı 48 → 38). İş arka plan ajanıy
 başladı, kullanıcı ajanı durdurdu; kontrol + doğrulama + commit ana oturumda
 yapıldı. Commit `46eaf9b`. JobsView (1033) / SettingsView (995) bölünmesi
 ayrı görev olarak kaldı (istenirse 17'den sonra).
+
+**13.11.2026 oturumu #11 — M29 ÇÖZÜLDÜ (kritik ödeme/ilan akışı +
+favori hayalet id'ler; inceleme raporu kritik #1 + #2):**
+
+Kapsam: inceleme raporunun kritik bulguları + ajan bulguları. Commit
+`e8e4abd` (12 dosya, +469/−104). Oturum bilgisayara restart nedeniyle
+bölündü — ilk yarı (imageCompress, server whitelist, DealsView) restart
+önce diskte yazılmıştı; ikinci yarı (JobsView retry akışı + favori
+hayalet id'ler + testler) restart sonrası tamamlandı.
+
+- `src/utils/imageCompress.ts` (YENİ): compressImageFile — canvas ile
+  aşamalı JPEG sıkıştırma (1024/0.72 → 900/0.55 → 720/0.4),
+  MAX_IMAGE_DATAURL_CHARS=150_000, createImageBitmap + `<img>` fallback.
+  Base64 fotoğraflar sunucuda 5000 karakterde kesilip bozuluyordu (kritik #1).
+- `server/listings.ts`: IMAGE_FIELDS{image,photo} / IMAGE_LIST_FIELDS{images}
+  / MAX_IMAGE_FIELD_LENGTH=150_000 / MAX_IMAGE_COUNT=5 (5×150K=750K <
+  Firestore 1MB); deal whitelist += `indirimMetni`, `images`, `phone`;
+  pickFields görsel alanlarında büyük limit + `images` string[] doğrulaması.
+- `src/lib/firebase.ts`: RawDealDoc += indirimMetni?/images?/phone?.
+- `src/utils/dealMapping.ts`: image = doc.image || images[0] || default;
+  images/indirimMetni/phone eşlenir. `src/types.ts`: Deal.indirimMetni?
+  eklendi, phone yorumu güncellendi.
+- `DealsView.tsx`: fotoğraf yükleme artık sıkıştırılmış; paket fallback'i
+  (`usable = packages`) KALDIRILDI (taksi paketi deal formunda satılabilir →
+  para alınırdı, sunucu 400 verirdi); `purchaseCompleted` state — ödeme sonrası
+  yazım hatasında "TEKRAR DENE (ÜCRET ALINMAZ)" akışı (yeniden
+  purchasePackage ÇAĞIRMAZ; sunucunun 15 dk tazelik penceresi retry'a izin
+  verir — çift ücret engellendi); payload += images[]/phone/indirimMetni
+  (contactNumber ve discountText eskiden ÇÖPE GİDİYORDU); "Özel Kampanya"
+  tipinde % öneki zorlanmaz; discountAmount 1-99 doğrulaması; başarıda TÜM
+  form sıfırlanır; geri butonu formError+purchaseCompleted temizler; ödeme
+  modalı ✕'i isProcessing'te disabled; liste kartında ÖNE ÇIKAN rozeti (ücretli
+  özellik görünmezdi); detayda phone "Ara" + indirimMetni çipi + images
+  galerisi + img onError; indirim kodu etiketi tema duyarlı; pricePaid →
+  Number(price) (JobsView ile tutarlı).
+- `JobsView.tsx`: paket fallback'i kaldırıldı; purchaseCompleted state;
+  handlePostSubmit'te sıfırlama; handleFinalPurchase purchaseCompleted ise
+  satın alma adımını atlıyor; catch bloğunda kalıcı "Ödemeniz alındı ancak
+  ilan yayımlanamadı: ... Tekrar Dene — yeniden ücret alınmaz" mesajı
+  (setTimeout'suz); başarı yolunda setPurchaseCompleted(false); ödeme modalı
+  ✕ disabled={isProcessing}; buton etiketi "TEKRAR DENE (ÜCRET ALINMAZ)";
+  her iki modalın ✕'i kalıcı hata toast'unu temizler.
+- **Favori hayalet id'ler (kritik #2):** `savedItemsStorage.ts`:
+  DEFAULT_SAVED_DEAL_IDS=[] (d-1/d-4 hayalet — DEALS mock boş),
+  DEFAULT_SAVED_PLACE_IDS=['p-1','p-3'] (GERÇEK id'ler: p-1=Akdamar Adası,
+  p-3=Edremit Sahili) + filterGhostDealIds/filterGhostPlaceIds
+  (GHOST: d-1..d-4, place-1, place-3). `SavedItemsContext.tsx`: mount'ta VE
+  storage event'te hayalet süzme (persistence effect temiz hali depoya yazar
+  — tek seferlik geçiş); setSavedDeals API'si KALDIRILDI. `SettingsView.tsx`:
+  Favorilerim > İşletmeler sekmesi artık `subscribeDeals` + `mapDealDoc` ile
+  CANLI Firestore ilanlarını gösteriyor (DealsView ile aynı kaynak; önceden
+  boş DEALS mock'u + legacy user_deals_van okunuyordu → favoriye eklenen ilan
+  ASLA görünmüyordu); yükleniyor spinner'ı eklendi; addSampleBusinesses +
+  "Örnek Van İşletmelerini Ekle" düğmesi SİLİNDİ (hayalet id'leri gerçek
+  favorilerin ÜZERİNE yazıyordu — veri kaybı); kullanılmayan DEALS/Sparkles
+  import'ları temizlendi.
+- **Bonus:** DealsView'daki kalıcı hata toast'u (M29 retry mesajı) hiçbir
+  yerde temizlenmiyordu → ödeme modalı ✕ ve form geri düğmesi artık
+  setErrorToast(null) yapıyor.
+- **Testler:** dealMapping.test.ts M29 sözleşmesine güncellendi (+2:
+  images/indirimMetni/phone eşlemesi, kapak fallback'i) ve
+  savedItemsStorage.test.ts'ye hayalet temizliği regresyonu (+6). 54/54 ✅.
+- **Doğrulama:** tsc strict exit 0; eslint 0 error / 36 warning (37→36);
+  build ✅ (vite 11.71 s + server bundle). Push `6a2790c..e8e4abd`.
+  CI + Render deploy kontrolü BEKLİYOR (server/listings.ts değişti).
+- **Bash sınıflandırıcısı** oturum boyunca aralıklı arızalıydı (bir ara
+  tamamen kapalı — model kullanılamıyor hatası); test/lint/build/commit/push
+  komutlarını kullanıcı `!` önekiyle çalıştırdı.
+
+**Sonraki partiler (kullanıcı zaten "sırayla çöz" onayı verdi):**
+- **M30 (orta):** server.ts fetch timeout'ları (weather ×4 MGM, pharmacies,
+  prayer-times — asılı bağlantı route'u bloklar); subscribeJobs/subscribeDeals/
+  subscribeTaxis hata callback'ine isLoading=false + hata mesajı (şu an
+  sonsuz iskelet/yükleniyor — callback imzasına error parametresi ekle,
+  bileşenlerde setIsLoading(false)); "En Yeni İlanlar Üstte" için client-side
+  sort (createdAtTimestamp desc; Firestore orderBy composite index ister);
+  ilçe filtresi/form uyumsuzluğu (Özalp formda yok → ölü filtre; "Tüm Van
+  Geneli" ilanları ilçe filtresinde gizleniyor); DealsView tarih input'ları
+  readOnly; JobsView toast setTimeout unmount koruması; py-0.2/py-4.5
+  geçersiz Tailwind sınıfları; JobsView payload ölü alanları (createdAt/
+  durationDays/isFeatured/userEmail/userId/productId sunucu override ediyor).
+- **M31:** SettingsView (isInitialLoad koruması çalışmıyor — her girişte
+  bildirim yeniden planlanıyor + fetchLivePrayerTimes; requestPermissions
+  mount'ta koşulsuz; hesap silme: currentUser null → sahte başarı mesajı,
+  deleteAllUserData→deleteUser sırası yanıltıcı, spinner erken kapanıyor;
+  toggle alt başlıkları state'e bağlanmamış + "Baskı"→"Bas" typo; hata
+  toast'u otomatik kapanmıyor); notificationService (on:{hour,minute} günlük
+  tekrar → tam tarih + let:false, ASCII başlıklar "Ogle"→"Öğle"); server.ts
+  veri dürüstlüğü (otobüs uydurma duraklar 'Merkez Garaj'... + sabit 15 TL
+  tarife; haber pubDate parse yok — hepsi "bugün"; Diyanet regex fallback
+  sabit eski vakitler "canlı" etiketiyle; eczane sabit fallback telefon);
+  rateLimiter Map uid temizliği; catch(error:any) ×4.
+- **M32:** Android geri tuşu modalları kapatmıyor (App.tsx listener her zaman
+  home'a atar); mailto/market:// WebView'de güvenilmez (https fallback);
+  36 eslint uyarısı (ölü importlar: SettingsView 11, firebase.ts 5, BusSection
+  4, AuthContext 4, HomeView 3, JobsView 3, PlacesView 3, App 1, DealsView 2,
+  currencyService 1); ölü kod (firebase.ts saveUserFavoritesToFirestore/
+  getUserFavoritesFromFirestore; JobsView getJobMetaFromPackage =
+  getDealMetaFromPackage kopyası → utils/listingMeta kullan); kullanılmayan
+  deps: motion + @google/genai KALDIR, jimp → devDependencies; vite.config
+  AI Studio kalıntısı + manualChunks 'react' lucide-react'i yanlış chunk'a
+  koyuyor; tsconfig/eslint kapsamına server/ + scripts/ ekle;
+  eslint-plugin-react devDep'te ama kullanılmıyor.
+- **Kullanıcı eylemi bekleyen:** firestore.rules ÜRETİME DEPLOY
+  (`firebase deploy --only firestore:rules` — kritik #3, login gerekli);
+  android/keystore.properties (release imza — şifreler kullanıcıda);
+  versionCode 1/versionName 1.0 artırımı (Play Store öncesi); M5 kararı
+  (iyzico vs RevenueCat) hâlâ dondurulmuş — kullanıcıdan haber bekle.
+
+APK: debug APK günceldi — `android/app/build/outputs/apk/debug/app-debug.apk`
+(23 MB, 13.11 13:49, M28 dahil; M29 sonrası yeniden üretilecek).
+
+**13.11.2026 oturumu #11 — M28 ÇÖZÜLDÜ (state management; 17/17 — SON):**
+Favori ilan/yer state'i React Context'e taşındı (yeni bağımlılık YOK —
+Zustand yerine): `src/context/SavedItemsContext.tsx` (SavedItemsProvider +
+useSavedItems; localStorage kalıcılığı + sekmeler arası `storage` senkronu
+provider'da tek noktada) + `src/utils/savedItemsStorage.ts` (saf yükleme/
+kaydetme; anahtarlar aynı → kullanıcı favorileri korunur) + 5 test.
+`van_saved_deals_changed` özel window event'i ve 3 bileşendeki dağınık
+dinleyiciler kaldırıldı — bonus: PlacesView yanlışlıkla İLAN event'ini
+dinleyerek YERleri senkronluyordu (isim benzerliği tuzağı). DealsView/
+PlacesView/SettingsView yerel useState kopyaları + elle localStorage
+yazmaları → useSavedItems(). Doğrulama: tsc strict exit 0; 46/46 test;
+eslint 0 error / 37 warning (38→37); build OK. Commit `6a2790c`.
 
 **12.11.2026 oturumu #11 — M27 ÇÖZÜLDÜ (tsconfig strict; 16/17):**
 EN BÜYÜK BULGU: `@types/react`/`@types/react-dom` HİÇ kurulmamıştı — react
@@ -448,6 +574,44 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 >   3/7/15 günlük seçenek artık YOK (bilinçli karar). Farklı süreler istenirse
 >   Play Console + RevenueCat'te yeni ürün oluşturulup `PACKAGE_IDS` +
 >   `getDealMetaFromPackage` genişletilmeli.
+
+> **13.11.2026 — M28 ÇÖZÜLDÜ (state management; 4.3 — 17/17 SON SORUN):**
+>
+> - **Sorun:** Bileşenler arası senkronizasyon localStorage + özel window
+>   event'iyle yapılıyordu: her bileşen kendi `useState` kopyasını
+>   `saved_deals_van`/`saved_places_van`'dan okuyor, `van_saved_deals_changed`
+>   event'i dağıtıp dinliyordu. (Bonus kusur: PlacesView YER senkronu için
+>   yanlışlıkla İLAN event'ini dinliyordu — isim benzerliği tuzağı.)
+> - **Karar:** Zustand yerine React Context — yeni bağımlılık yok, uygulama
+>   ölçeği için yeterli, React-idiomatik (5.2.4 önerisi böyle karşılandı).
+> - **Çözüm:**
+>   - `src/context/SavedItemsContext.tsx` (YENİ): SavedItemsProvider +
+>     `useSavedItems()` — savedDealIds/savedPlaceIds state'i, kalıcılık
+>     effect'leri ve sekmeler arası `storage` dinleyicisi TEK provider'da.
+>     API: isDealSaved/isPlaceSaved/toggleSaveDeal/toggleSavePlace/setSavedDeals.
+>   - `src/utils/savedItemsStorage.ts` (YENİ): `loadSavedIds` (bozuk JSON /
+>     dizi olmayan / string olmayan eleman koruması) + `saveSavedIds` (saf;
+>     +5 test `savedItemsStorage.test.ts` — sahte localStorage ile).
+>     Anahtarlar ve varsayılanlar değişmedi (saved_deals_van → ['d-1','d-4'],
+>     saved_places_van → ['place-1','place-3']): mevcut kullanıcı verisi
+>     aynen taşınır.
+>   - `src/main.tsx`: SavedItemsProvider, AuthProvider'ın içine eklendi.
+>   - DealsView: yerel savedDeals state'i + persistence effect'i →
+>     `useSavedItems()` (JSX aynı kalsın diye `savedDealIds: savedDeals`
+>     takma adıyla).
+>   - PlacesView: state + yanlış-event dinleyicisi → `useSavedItems()`.
+>   - SettingsView: 2 state + sync effect + toggleSaveDeal/toggleSavePlace/
+>     addSampleBusinesses'in elle localStorage yazmaları → context çağrıları.
+>   - `van_saved_deals_changed` event'i TAMAMEN kaldırıldı (yalnızca
+>     yorumlarda anılıyor).
+> - **Kapsam dışı (bilinçli):** `app_theme` (App.tsx prop akışıyla zaten
+>   düzgün — event hack'i yok); `user_deals_van` salt-okunur eski veri.
+> - **Doğrulama:** `npx tsc --noEmit` (strict) ✅ exit 0; `npm test` ✅
+>   46/46 (8 dosya, 309 ms — savedItemsStorage testleri +5); eslint 0 error /
+>   37 warning (38→37 — kaldırılan kod bir uyarıyı götürdü); build ✅.
+>   Commit `6a2790c` — push + **CI ✅ yeşil** (check-runs: build / completed /
+>   success). İstemci tarafı → Render deploy gerekmedi; etki yeni
+>   APK/web'de.
 
 > **12.11.2026 — M27 ÇÖZÜLDÜ (tsconfig strict + @types/react; 4.3):**
 >
@@ -1287,8 +1451,12 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
   **✅ 12.11.2026 çözüldü (M22)** — timeout'lar 60 → 15 sn; long-polling flag'i
   bilinçli karar olarak BELGELENDİ (CapacitorHttp açık → WebChannel Android'de
   çalışmaz; flag kaldırılmamalı, CapacitorHttp kapatılırsa kaldırılmalı).
-- **State yönetimi yok:** localStorage + özel window event (`van_saved_deals_changed`)
-  ile bileşenler arası senkronizasyon.
+- ~~**State yönetimi yok:** localStorage + özel window event (`van_saved_deals_changed`)
+  ile bileşenler arası senkronizasyon.~~
+  **✅ 13.11.2026 çözüldü (M28)** — favori state'i SavedItemsContext'e
+  taşındı; `van_saved_deals_changed` event'i ve dağınık `storage`
+  dinleyicileri kaldırıldı; localStorage kalıcılık katmanı olarak kaldı
+  (anahtarlar aynı — kullanıcı verisi korunur).
 
 ### 4.4 📁 Proje Hijyeni
 
@@ -1342,8 +1510,10 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 2. Firestore kuralları **owner-based + alan doğrulamalı** olmalı (`userId` zorunlu alan).
 3. Scraping yerine mümkünse resmi API'ler; zorunluysa **sunucu tarafı önbellek (5–10 dk)**
    ve rate-limit eklenmeli.
-4. HomeView alt bileşenlere bölünmeli; ortak veri akışı için Context/Zustand benzeri
-   state yönetimi alınmalı.
+4. ~~HomeView alt bileşenlere bölünmeli; ortak veri akışı için Context/Zustand benzeri
+   state yönetimi alınmalı.~~
+   **✅ ÇÖZÜLDÜ** — HomeView bölünmesi M25 (12.11); favori state'i Context'e
+   taşındı M28'de (13.11, `6a2790c`).
 5. ~~Test altyapısı kurulmalı: **Vitest + React Testing Library** (öncelik: purchaseService,
    prayerService hesaplamaları, firestore yazım fonksiyonları, DealsView süre mantığı).~~
    **✅ 12.11.2026 KISMEN ÇÖZÜLDÜ (M24)** — Vitest + öncelik hedeflerin tamamı
@@ -1386,13 +1556,13 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (12.11.2026, oturum #11 — M27 sonrası) |
+| Komut | Sonuç (13.11.2026, oturum #11 — M28 sonrası) |
 |---|---|
 | `npx tsc --noEmit` | ✅ exit 0 — **strict modda** temiz (M27: strict + @types/react@19) |
-| `npx eslint src` | ✅ exit 0 — 0 error, **38 warning** (M25 sonrası; M24'te 48 idi) |
-| `npm test` | ✅ 41/41 geçti (Vitest; 7 dosya, CI'da da koşuyor) |
+| `npx eslint src` | ✅ exit 0 — 0 error, **37 warning** (M28 sonrası; M24'te 48 idi) |
+| `npm test` | ✅ 46/46 geçti (Vitest; 8 dosya, CI'da da koşuyor) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
-| `npm run build` | ✅ `vite build` (3.43 s) + `esbuild server.ts → dist/server.cjs` |
+| `npm run build` | ✅ `vite build` + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
 | `npm run lint` | ✅ exit 0 — `tsc --noEmit && eslint src` (M4 sonrası) |
 
@@ -1401,9 +1571,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (12.11.2026, oturum #11): dal ucu `7156b76` (M27: tsconfig
-  strict + @types/react; 31 hata düzeltildi), önceki `00d2e21` (MEMORY
-  M26), `135b131` (M26: Firestore şema normalizasyonu; CI ✅ yeşil),
+- Git durumu (13.11.2026, oturum #11): dal ucu `6a2790c` (M28: state
+  management — 17/17 SON SORUN), önceki `ff65be7` (MEMORY M27), `7156b76`
+  (M27: tsconfig strict + @types/react; CI ✅ yeşil), önceki `00d2e21`
+  (MEMORY M26), `135b131` (M26: Firestore şema normalizasyonu; CI ✅ yeşil),
   önceki `46eaf9b` (M25: HomeView bölünmesi; CI ✅ yeşil), önceki
   `56ac6b5` (MEMORY M24), `6540bb3` (M24: Vitest
   altyapısı; CI ✅ yeşil — test adımı ilk kez koştu), önceki `98d3e66`
