@@ -8,6 +8,7 @@ import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { getDealMetaFromPackage, computeEndDate } from '../utils/listingMeta';
 import { mapDealDoc } from '../utils/dealMapping';
 import { getErrorMessage } from '../utils/errors';
+import { useSavedItems } from '../context/SavedItemsContext';
 import {
   Search,
   Bookmark,
@@ -53,28 +54,9 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Tümü');
 
-  // LocalStorage Array Koruması
-  const [savedDeals, setSavedDeals] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('saved_deals_van');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {
-      console.error('LocalStorage Okuma Hatası:', e);
-    }
-    return ['d-1', 'd-4'];
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('saved_deals_van', JSON.stringify(savedDeals));
-      window.dispatchEvent(new Event('van_saved_deals_changed'));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [savedDeals]);
+  // M28: favori ilan state'i SavedItemsContext'te — localStorage kalıcılığı
+  // ve `van_saved_deals_changed` event dağıtımı orada tek noktada.
+  const { savedDealIds: savedDeals, toggleSaveDeal } = useSavedItems();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -185,7 +167,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const toggleBookmark = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!id) return;
-    setSavedDeals(prev => Array.isArray(prev) ? (prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]) : [id]);
+    toggleSaveDeal(id);
   };
 
   // Arama & Filtreleme Kalkanı (toLowerCase hataları giderildi)

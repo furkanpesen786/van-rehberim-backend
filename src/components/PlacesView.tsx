@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PLACES_TO_VISIT } from '../data/mockData';
 import { PlaceToVisit } from '../types';
 import { Search, MapPin, ChevronRight, X, Star, Calendar, Clock, Compass, Heart } from 'lucide-react';
+import { useSavedItems } from '../context/SavedItemsContext';
 
 interface PlacesViewProps {
   theme?: 'light' | 'dark';
@@ -11,46 +12,13 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceToVisit | null>(null);
 
-  const [savedPlaceIds, setSavedPlaceIds] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('saved_places_van');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.error(e);
-    }
-    return ['place-1', 'place-3'];
-  });
-
-  useEffect(() => {
-    const syncSavedPlaces = () => {
-      try {
-        const stored = localStorage.getItem('saved_places_van');
-        if (stored) {
-          setSavedPlaceIds(JSON.parse(stored));
-        }
-      } catch (e) { }
-    };
-    window.addEventListener('van_saved_deals_changed', syncSavedPlaces);
-    window.addEventListener('storage', syncSavedPlaces);
-    return () => {
-      window.removeEventListener('van_saved_deals_changed', syncSavedPlaces);
-      window.removeEventListener('storage', syncSavedPlaces);
-    };
-  }, []);
+  // M28: favori yer state'i SavedItemsContext'te — eskiden yanlışlıkla
+  // `van_saved_deals_changed` (ilan) event'ini dinleyerek senkron oluyordu.
+  const { savedPlaceIds, toggleSavePlace: toggleSavedPlace } = useSavedItems();
 
   const toggleSavePlace = (placeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = savedPlaceIds.includes(placeId)
-      ? savedPlaceIds.filter(id => id !== placeId)
-      : [...savedPlaceIds, placeId];
-
-    setSavedPlaceIds(updated);
-    try {
-      localStorage.setItem('saved_places_van', JSON.stringify(updated));
-      window.dispatchEvent(new Event('van_saved_deals_changed'));
-    } catch (err) {
-      console.error(err);
-    }
+    toggleSavedPlace(placeId);
   };
 
   const isDark = theme === 'dark';

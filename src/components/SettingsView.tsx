@@ -6,6 +6,7 @@ import { auth, deleteAllUserData } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
 import { NotificationService, NotificationSettings } from '../services/notificationService';
 import { getErrorMessage, getErrorCode } from '../utils/errors';
+import { useSavedItems } from '../context/SavedItemsContext';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import {
   Bell,
@@ -93,44 +94,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [favoritesTab, setFavoritesTab] = useState<'businesses' | 'places'>('businesses');
   const [selectedBusiness, setSelectedBusiness] = useState<Deal | null>(null);
 
-  const [savedDealIds, setSavedDealIds] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('saved_deals_van');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.error(e);
-    }
-    return ['d-1', 'd-4']; // Default favorite sample businesses
-  });
-
-  const [savedPlaceIds, setSavedPlaceIds] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('saved_places_van');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.error(e);
-    }
-    return ['place-1', 'place-3'];
-  });
-
-  useEffect(() => {
-    const syncSavedDeals = () => {
-      try {
-        const stored = localStorage.getItem('saved_deals_van');
-        if (stored) setSavedDealIds(JSON.parse(stored));
-        const storedPlaces = localStorage.getItem('saved_places_van');
-        if (storedPlaces) setSavedPlaceIds(JSON.parse(storedPlaces));
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    window.addEventListener('van_saved_deals_changed', syncSavedDeals);
-    window.addEventListener('storage', syncSavedDeals);
-    return () => {
-      window.removeEventListener('van_saved_deals_changed', syncSavedDeals);
-      window.removeEventListener('storage', syncSavedDeals);
-    };
-  }, []);
+  // M28: favori state'i SavedItemsContext'te — bileşen yerel kopyası,
+  // `van_saved_deals_changed` dinleyicileri ve elle localStorage yazmaları
+  // kalktı.
+  const {
+    savedDealIds,
+    savedPlaceIds,
+    toggleSaveDeal: toggleSavedDeal,
+    toggleSavePlace: toggleSavedPlace,
+    setSavedDeals,
+  } = useSavedItems();
 
   const allDeals = useMemo(() => {
     try {
@@ -157,40 +130,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const toggleSaveDeal = (dealId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const updated = savedDealIds.includes(dealId)
-      ? savedDealIds.filter(id => id !== dealId)
-      : [...savedDealIds, dealId];
-    setSavedDealIds(updated);
-    try {
-      localStorage.setItem('saved_deals_van', JSON.stringify(updated));
-      window.dispatchEvent(new Event('van_saved_deals_changed'));
-    } catch (err) {
-      console.error(err);
-    }
+    toggleSavedDeal(dealId);
   };
 
   const toggleSavePlace = (placeId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const updated = savedPlaceIds.includes(placeId)
-      ? savedPlaceIds.filter(id => id !== placeId)
-      : [...savedPlaceIds, placeId];
-    setSavedPlaceIds(updated);
-    try {
-      localStorage.setItem('saved_places_van', JSON.stringify(updated));
-    } catch (err) {
-      console.error(err);
-    }
+    toggleSavedPlace(placeId);
   };
 
   const addSampleBusinesses = () => {
-    const sampleIds = ['d-1', 'd-2', 'd-3', 'd-4'];
-    setSavedDealIds(sampleIds);
-    try {
-      localStorage.setItem('saved_deals_van', JSON.stringify(sampleIds));
-      window.dispatchEvent(new Event('van_saved_deals_changed'));
-    } catch (err) {
-      console.error(err);
-    }
+    setSavedDeals(['d-1', 'd-2', 'd-3', 'd-4']);
   };
 
   const currentTheme = propsTheme || localTheme;
