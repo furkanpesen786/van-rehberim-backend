@@ -126,6 +126,10 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packagesError, setPackagesError] = useState<string | null>(null);
+  // M29: ödeme TAMAMLANDI ama ilan yazılamadı durumu. true iken "Tekrar Dene"
+  // yeniden purchasePackage çağırmaz — sunucunun 15 dk'lık satın alma tazelik
+  // penceresi içinde yalnızca ilan yazımı yeniden denenir (çift ücret engeli).
+  const [purchaseCompleted, setPurchaseCompleted] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -164,19 +168,21 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     setPackagesError(null);
     try {
       const packages = await PurchaseService.getPackages();
+      // M29: yalnızca BU ilan tipi için geçerli ürünler sunulur. Eskiden
+      // filtre boş çıkarsa TÜM paketler (ör. taksi paketi) listeleniyordu;
+      // kullanıcı öder, sunucu 400 verir, para iadesiz kalırdı.
       const jobPackages = packages.filter((pkg) =>
         pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN ||
         pkg.product.identifier === PACKAGE_IDS.ONE_CIKAN_30_GUN
       );
-      const usable = jobPackages.length > 0 ? jobPackages : packages;
-      setRcPackages(usable);
+      setRcPackages(jobPackages);
 
-      if (usable.length === 0) {
+      if (jobPackages.length === 0) {
         setSelectedPackage(null);
         setPackagesError('Satın alma paketleri henüz yapılandırılmamış. Lütfen daha sonra tekrar deneyin.');
       } else {
         const preferred =
-          usable.find((pkg) => pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN) || usable[0];
+          jobPackages.find((pkg) => pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN) || jobPackages[0];
         setSelectedPackage(preferred);
         const meta = getJobMetaFromPackage(preferred);
         setFormData((prev) => ({ ...prev, durationDays: meta.durationDays }));
@@ -211,6 +217,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       return;
     }
 
+    setPurchaseCompleted(false);
     setShowPlayModal(true);
   };
 
@@ -223,17 +230,22 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
 
     setIsProcessing(true);
 
-    try {
-      const purchased = await PurchaseService.purchasePackage(selectedPackage);
-      if (!purchased) {
+    // M29: ödeme yalnızca bir kez alınır. Ödeme sonrası ilan yazımı
+    // başarısız olursa "Tekrar Dene" yalnızca yazımı yeniden dener.
+    if (!purchaseCompleted) {
+      try {
+        const purchased = await PurchaseService.purchasePackage(selectedPackage);
+        if (!purchased) {
+          setIsProcessing(false);
+          return;
+        }
+        setPurchaseCompleted(true);
+      } catch (e) {
+        setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
+        setTimeout(() => setErrorToast(null), 5000);
         setIsProcessing(false);
         return;
       }
-    } catch (e) {
-      setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
-      setTimeout(() => setErrorToast(null), 5000);
-      setIsProcessing(false);
-      return;
     }
 
     const meta = getJobMetaFromPackage(selectedPackage);
@@ -270,6 +282,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       setIsProcessing(false);
       setShowPlayModal(false);
       setIsPostModalOpen(false);
+      setPurchaseCompleted(false);
 
       setFormData({
         title: '',
@@ -290,8 +303,12 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       setTimeout(() => setSuccessToast(null), 4000);
     } catch (err) {
       setIsProcessing(false);
-      setErrorToast('İlan yayımlanırken bir hata oluştu: ' + getErrorMessage(err));
-      setTimeout(() => setErrorToast(null), 5000);
+      // M29: ödeme alındı — kullanıcıya net söylenir ve repurchase'sız
+      // retry yolu gösterilir (sunucu 15 dk tazelik penceresi tanır).
+      setErrorToast(
+        'Ödemeniz alındı ancak ilan yayımlanamadı: ' + getErrorMessage(err) +
+        ' Lütfen "Tekrar Dene" düğmesine basın — yeniden ücret alınmaz.'
+      );
     }
   };
 
@@ -641,7 +658,10 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
               </div>
               <button
                 type="button"
-                onClick={() => setIsPostModalOpen(false)}
+                onClick={() => {
+                  setIsPostModalOpen(false);
+                  setErrorToast(null);
+                }}
                 className="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors"
               >
                 ✕
@@ -1075,10 +1095,17 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 </div>
                 <span className="text-base font-bold tracking-wider text-[#F5E6D3] uppercase">Güvenli Ödeme</span>
               </div>
+              {/* M29: ödeme sürerken kapatma engellenir — arka planda tamamlanan
+                  işlemin sonucu kullanıcıya kaybolmasın; kapatınca kalıcı hata
+                  toast'u da temizlenir */}
               <button
                 type="button"
-                onClick={() => setShowPlayModal(false)}
-                className="w-8 h-8 rounded-full bg-[#4E342E] flex items-center justify-center text-[#D4AF37] hover:bg-[#5D4037] transition-colors"
+                onClick={() => {
+                  setShowPlayModal(false);
+                  setErrorToast(null);
+                }}
+                disabled={isProcessing}
+                className="w-8 h-8 rounded-full bg-[#4E342E] flex items-center justify-center text-[#D4AF37] hover:bg-[#5D4037] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 title="İptal"
               >
                 ✕
@@ -1126,6 +1153,11 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
             >
               {isProcessing ? (
                 <span>İşlem Yapılıyor...</span>
+              ) : purchaseCompleted ? (
+                <>
+                  <span>TEKRAR DENE (ÜCRET ALINMAZ)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               ) : (
                 <>
                   <span>Ödemeyi Tamamla</span>

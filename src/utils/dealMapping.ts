@@ -18,7 +18,12 @@ export function mapDealDoc(doc: RawDealDoc): Deal {
     category: doc.kategori || 'Kafe & Restoran',
     dealTitle: doc.indirimKodu || doc.indirimDegeri || 'Özel Fırsat',
     discountRate: doc.indirimDegeri || '%20',
-    image: doc.image || DEFAULT_DEAL_IMAGE,
+    // M29: kapak görseli — eskiden yalnızca `image` (tek fotoğraf) vardı;
+    // artık `images` listesi de yazılıyor, kapak ilk fotoğraftır.
+    image: doc.image || doc.images?.[0] || DEFAULT_DEAL_IMAGE,
+    images: doc.images && doc.images.length > 0 ? doc.images : undefined,
+    indirimMetni: doc.indirimMetni || '',
+    phone: doc.phone || '',
     startDate: doc.startDate || '',
     endDate: doc.endDate || '',
     locationName: doc.locationName || 'İpekyolu, Van',

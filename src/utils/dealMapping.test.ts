@@ -27,6 +27,10 @@ describe('mapDealDoc', () => {
       dealTitle: 'VAN50',
       discountRate: '%50',
       image: 'https://ornek.com/gorsel.jpg',
+      // M29: yeni opsiyonel alanlar — yoklukta undefined / boş string
+      images: undefined,
+      indirimMetni: '',
+      phone: '',
       startDate: '12.11.2026',
       endDate: '12.12.2026',
       locationName: 'İpekyolu',
@@ -34,6 +38,28 @@ describe('mapDealDoc', () => {
       description: 'Açıklama',
       isFeatured: true,
     });
+  });
+
+  // M29: görsel listesi, kampanya metni ve telefon artık eşleniyor.
+  it('M29: images listesi, indirimMetni ve phone eşlenir', () => {
+    const deal = mapDealDoc({
+      id: 'deal-5',
+      isletmeAdi: 'Van Pastanesi',
+      images: ['https://ornek.com/f1.jpg', 'https://ornek.com/f2.jpg'],
+      indirimMetni: 'Tüm baklavalarda geçerli',
+      phone: '0555 111 22 33',
+    });
+    expect(deal.images).toEqual(['https://ornek.com/f1.jpg', 'https://ornek.com/f2.jpg']);
+    expect(deal.indirimMetni).toBe('Tüm baklavalarda geçerli');
+    expect(deal.phone).toBe('0555 111 22 33');
+  });
+
+  it('M29: kapak görseli image yoksa images[0] olur; boş listede varsayılan', () => {
+    const withList = mapDealDoc({ id: 'deal-6', images: ['https://ornek.com/kapak.jpg'] });
+    expect(withList.image).toBe('https://ornek.com/kapak.jpg');
+    const emptyList = mapDealDoc({ id: 'deal-7', images: [] });
+    expect(emptyList.image).toContain('images.unsplash.com');
+    expect(emptyList.images).toBeUndefined();
   });
 
   it('boş dokümanda akıllı varsayılanlar koyar', () => {

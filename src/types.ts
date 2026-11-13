@@ -115,15 +115,16 @@ export interface Deal {
   discountRate: string;
   image: string;
   images?: string[];
+  // M29: kullanıcının girdiği indirim kodu / kampanya metni (indirimMetni)
+  indirimMetni?: string;
   startDate: string;
   endDate: string;
   locationName: string;
   address: string;
   description: string;
   isFeatured?: boolean;
-  // Yalnızca eski localStorage ilanlarında (user_deals_van) bulunan opsiyonel
-  // alan — Firestore canonical şemasında yok (M26). SettingsView "Ara" butonu
-  // için okunur.
+  // İşletme telefonu. M29'dan beri Firestore canonical şemasında da yazılır
+  // (server/listings.ts deal whitelist'indeki `phone`). "Ara" butonu için okunur.
   phone?: string;
 }
 

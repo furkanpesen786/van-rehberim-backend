@@ -57,7 +57,8 @@ const LISTING_TYPES: Record<ListingType, {
     allowedProducts: ['ilan_30_gun', 'one_cikan_30_gun'],
     fields: [
       'isletmeAdi', 'kategori', 'indirimKodu', 'indirimDegeri',
-      'image', 'locationName', 'description', 'pricePaid',
+      'indirimMetni', 'image', 'images', 'phone', 'locationName',
+      'description', 'pricePaid',
     ],
   },
   taxi: {
@@ -78,6 +79,15 @@ const PURCHASE_FRESHNESS_MS = 15 * 60 * 1000;
 const SUBSCRIBER_CACHE_TTL_MS = 60 * 1000;
 const RATE_LIMIT_MAX_PER_HOUR = 10;
 const MAX_FIELD_LENGTH = 5000;
+
+// M29: görsel alanları için ayrı üst sınır. İstemci fotoğrafları canvas ile
+// ~150K karaktere sıkıştırıp base64 JPEG olarak gönderir (imageCompress.ts).
+// 5 fotoğraf × 150K = 750K karakter → Firestore'un 1MB doküman sınırının
+// altında kalır. URL girişleri (JobsView modeli) bu sınıra çok uzaktan uyar.
+const IMAGE_FIELDS = new Set(['image', 'photo']);
+const IMAGE_LIST_FIELDS = new Set(['images']);
+const MAX_IMAGE_FIELD_LENGTH = 150_000;
+const MAX_IMAGE_COUNT = 5;
 
 // --- Firebase Admin (lazy init, fail-closed) ---------------------------------
 
@@ -195,11 +205,19 @@ function pickFields(data: Record<string, unknown>, fields: string[]): Record<str
     const value = data[key];
     if (value === undefined || value === null) continue;
     if (typeof value === 'string') {
-      out[key] = value.slice(0, MAX_FIELD_LENGTH);
+      const limit = IMAGE_FIELDS.has(key) ? MAX_IMAGE_FIELD_LENGTH : MAX_FIELD_LENGTH;
+      out[key] = value.slice(0, limit);
     } else if (typeof value === 'number' || typeof value === 'boolean') {
       out[key] = value;
+    } else if (Array.isArray(value) && IMAGE_LIST_FIELDS.has(key)) {
+      // M29: görsel listesi (string[]) — yalnızca images alanında, en fazla
+      // MAX_IMAGE_COUNT adet, her biri görsel üst sınırıyla kırpılır.
+      out[key] = value
+        .filter((item): item is string => typeof item === 'string' && item.length > 0)
+        .slice(0, MAX_IMAGE_COUNT)
+        .map((item) => item.slice(0, MAX_IMAGE_FIELD_LENGTH));
     }
-    // Nesne/dizi değerleri bilinçli olarak reddedilir (enjeksiyon riski).
+    // Diğer nesne/dizi değerleri bilinçli olarak reddedilir (enjeksiyon riski).
   }
   return out;
 }

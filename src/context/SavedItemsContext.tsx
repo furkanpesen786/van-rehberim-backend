@@ -6,6 +6,8 @@ import {
   SAVED_PLACES_KEY,
   DEFAULT_SAVED_DEAL_IDS,
   DEFAULT_SAVED_PLACE_IDS,
+  filterGhostDealIds,
+  filterGhostPlaceIds,
 } from '../utils/savedItemsStorage';
 
 // M28 (17/17): favori ilan/yer state'inin tek sahibi. Önceden her bileşen
@@ -25,18 +27,18 @@ interface SavedItemsContextType {
   isPlaceSaved: (id: string) => boolean;
   toggleSaveDeal: (id: string) => void;
   toggleSavePlace: (id: string) => void;
-  /** Doğrudan liste atar (SettingsView "örnek işletmeler ekle" akışı). */
-  setSavedDeals: (ids: string[]) => void;
 }
 
 const SavedItemsContext = createContext<SavedItemsContextType | null>(null);
 
 export function SavedItemsProvider({ children }: { children: React.ReactNode }) {
   const [savedDealIds, setSavedDealIds] = useState<string[]>(() =>
-    loadSavedIds(SAVED_DEALS_KEY, DEFAULT_SAVED_DEAL_IDS)
+    // M29: eski sürümlerin bıraktığı hayalet ilan id'leri (d-1..d-4) süzülür;
+    // kalıcılık effect'i temiz hali depoya yazar (tek seferlik geçiş).
+    filterGhostDealIds(loadSavedIds(SAVED_DEALS_KEY, DEFAULT_SAVED_DEAL_IDS))
   );
   const [savedPlaceIds, setSavedPlaceIds] = useState<string[]>(() =>
-    loadSavedIds(SAVED_PLACES_KEY, DEFAULT_SAVED_PLACE_IDS)
+    filterGhostPlaceIds(loadSavedIds(SAVED_PLACES_KEY, DEFAULT_SAVED_PLACE_IDS))
   );
 
   // Kalıcılık: state değişince depoya yaz (provider mount'unda varsayılanlar
@@ -54,9 +56,9 @@ export function SavedItemsProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === SAVED_DEALS_KEY) {
-        setSavedDealIds(loadSavedIds(SAVED_DEALS_KEY, DEFAULT_SAVED_DEAL_IDS));
+        setSavedDealIds(filterGhostDealIds(loadSavedIds(SAVED_DEALS_KEY, DEFAULT_SAVED_DEAL_IDS)));
       } else if (e.key === SAVED_PLACES_KEY) {
-        setSavedPlaceIds(loadSavedIds(SAVED_PLACES_KEY, DEFAULT_SAVED_PLACE_IDS));
+        setSavedPlaceIds(filterGhostPlaceIds(loadSavedIds(SAVED_PLACES_KEY, DEFAULT_SAVED_PLACE_IDS)));
       }
     };
     window.addEventListener('storage', onStorage);
@@ -92,7 +94,6 @@ export function SavedItemsProvider({ children }: { children: React.ReactNode }) 
     isPlaceSaved,
     toggleSaveDeal,
     toggleSavePlace,
-    setSavedDeals: setSavedDealIds,
   };
 
   return <SavedItemsContext.Provider value={value}>{children}</SavedItemsContext.Provider>;

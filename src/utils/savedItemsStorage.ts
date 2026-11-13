@@ -6,10 +6,29 @@
 export const SAVED_DEALS_KEY = 'saved_deals_van';
 export const SAVED_PLACES_KEY = 'saved_places_van';
 
-// Depoda kayıt yoksa gösterilen örnek favoriler (eski bileşen
-// davranışıyla aynı — d-1/d-4 işletmeler, place-1/place-3 yerler).
-export const DEFAULT_SAVED_DEAL_IDS = ['d-1', 'd-4'];
-export const DEFAULT_SAVED_PLACE_IDS = ['place-1', 'place-3'];
+// M29: depoda kayıt yoksa ilan favorisi varsayılanı BOŞ — eski sürümler
+// 'd-1'/'d-4' hayalet id'leri yazıyordu (DEALS mock'u boş; bu id'lere
+// karşılık gelen ilan hiç yoktu → favoriye eklenen ilan asla görünmüyor,
+// hayalet id birikiyordu). Yer varsayılanları GERÇEK id'ler: p-1 = Akdamar
+// Adası, p-3 = Edremit Sahili (PLACES_TO_VISIT mock'unda mevcutlar).
+export const DEFAULT_SAVED_DEAL_IDS: string[] = [];
+export const DEFAULT_SAVED_PLACE_IDS = ['p-1', 'p-3'];
+
+// M29: eski sürümlerin bıraktığı hayalet favori id'leri. Provider mount
+// edilirken listelerden süzülür; kalıcılık effect'i temiz hali depoya
+// yazar (tek seferlik geçiş temizliği).
+export const GHOST_DEAL_IDS = new Set(['d-1', 'd-2', 'd-3', 'd-4']);
+export const GHOST_PLACE_IDS = new Set(['place-1', 'place-3']);
+
+/** Hayalet ilan id'lerini süzer (bilinen hayalet id yoksa aynı dizi döner). */
+export function filterGhostDealIds(ids: string[]): string[] {
+  return GHOST_DEAL_IDS.size === 0 ? ids : ids.filter((id) => !GHOST_DEAL_IDS.has(id));
+}
+
+/** Hayalet yer id'lerini süzer (bilinen hayalet id yoksa aynı dizi döner). */
+export function filterGhostPlaceIds(ids: string[]): string[] {
+  return GHOST_PLACE_IDS.size === 0 ? ids : ids.filter((id) => !GHOST_PLACE_IDS.has(id));
+}
 
 /**
  * Anahtardan string[] okur. Bozuk/eksik veride fallback döner.

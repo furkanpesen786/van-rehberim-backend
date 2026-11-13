@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DEALS, PLACES_TO_VISIT } from '../data/mockData';
+import { PLACES_TO_VISIT } from '../data/mockData';
 import { Deal, PlaceToVisit } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { auth, deleteAllUserData } from '../lib/firebase';
+import { auth, deleteAllUserData, subscribeDeals } from '../lib/firebase';
+import { mapDealDoc } from '../utils/dealMapping';
 import { deleteUser } from 'firebase/auth';
 import { NotificationService, NotificationSettings } from '../services/notificationService';
 import { getErrorMessage, getErrorCode } from '../utils/errors';
@@ -35,7 +36,6 @@ import {
   PhoneCall,
   ExternalLink,
   Bookmark,
-  Sparkles,
   Store,
   Calendar,
   Tag,
@@ -102,27 +102,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     savedPlaceIds,
     toggleSaveDeal: toggleSavedDeal,
     toggleSavePlace: toggleSavedPlace,
-    setSavedDeals,
   } = useSavedItems();
 
-  const allDeals = useMemo(() => {
-    try {
-      const stored = localStorage.getItem('user_deals_van');
-      if (stored) {
-        const customDeals: Deal[] = JSON.parse(stored);
-        const existingIds = new Set(DEALS.map(d => d.id));
-        const filtered = customDeals.filter(d => !existingIds.has(d.id));
-        return [...filtered, ...DEALS];
+  // M29: İşletmeler sekmesi artık canlı Firestore ilanlarını gösterir.
+  // Eskiden boş DEALS mock'u + legacy user_deals_van localStorage'ı
+  // okunuyordu → favoriye eklenen gerçek ilanlar ASLA görünmüyor, hayalet
+  // id'ler birikiyordu. DealsView ile aynı kaynak + aynı eşleme.
+  const [firestoreDeals, setFirestoreDeals] = useState<Deal[]>([]);
+  const [dealsLoading, setDealsLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = subscribeDeals((rawDeals) => {
+      if (Array.isArray(rawDeals)) {
+        setFirestoreDeals(rawDeals.map(mapDealDoc));
       }
-    } catch (e) {
-      console.error(e);
-    }
-    return DEALS;
+      setDealsLoading(false);
+    });
+    return () => unsub();
   }, []);
 
   const savedBusinesses = useMemo(() => {
-    return allDeals.filter(deal => savedDealIds.includes(deal.id));
-  }, [allDeals, savedDealIds]);
+    return firestoreDeals.filter(deal => savedDealIds.includes(deal.id));
+  }, [firestoreDeals, savedDealIds]);
 
   const savedPlaces = useMemo(() => {
     return PLACES_TO_VISIT.filter(place => savedPlaceIds.includes(place.id));
@@ -136,10 +137,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const toggleSavePlace = (placeId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     toggleSavedPlace(placeId);
-  };
-
-  const addSampleBusinesses = () => {
-    setSavedDeals(['d-1', 'd-2', 'd-3', 'd-4']);
   };
 
   const currentTheme = propsTheme || localTheme;
@@ -784,7 +781,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {/* TAB 1: KAYDEDİLEN İŞLETMELER */}
               {favoritesTab === 'businesses' && (
                 <>
-                  {savedBusinesses.length === 0 ? (
+                  {dealsLoading ? (
+                    <div className="text-center py-10">
+                      <div className="w-10 h-10 border-3 border-rose-500/30 border-t-rose-500 rounded-full animate-spin mx-auto" />
+                      <p className={`text-xs mt-3 font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Favoriler yükleniyor...
+                      </p>
+                    </div>
+                  ) : savedBusinesses.length === 0 ? (
                     <div className="text-center py-10 px-4 space-y-3">
                       <div className="w-16 h-16 rounded-3xl bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center">
                         <Building2 className="w-8 h-8" />
@@ -793,14 +797,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'} max-w-xs mx-auto leading-relaxed`}>
                         İşletmeler ve esnaf indirimleri sayfasında beğendiğiniz dükkanları kaydederek burada hızlıca erişebilirsiniz.
                       </p>
-                      <button
-                        type="button"
-                        onClick={addSampleBusinesses}
-                        className="mt-2 inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-2.5 px-4 rounded-full shadow-md transition-all active:scale-95"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>Örnek Van İşletmelerini Ekle</span>
-                      </button>
                     </div>
                   ) : (
                     <div className="space-y-3">

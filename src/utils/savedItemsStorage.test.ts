@@ -3,7 +3,11 @@ import {
   loadSavedIds,
   saveSavedIds,
   SAVED_DEALS_KEY,
+  SAVED_PLACES_KEY,
   DEFAULT_SAVED_DEAL_IDS,
+  DEFAULT_SAVED_PLACE_IDS,
+  filterGhostDealIds,
+  filterGhostPlaceIds,
 } from './savedItemsStorage';
 
 // M28 (17/17): favori ID listelerinin kalıcılığı SavedItemsContext'in
@@ -60,5 +64,45 @@ describe('saveSavedIds', () => {
       'x-1',
       'x-2',
     ]);
+  });
+});
+
+// M29: eski sürümler DEALS mock'undaki (boş) d-1..d-4 hayalet id'lerini ve
+// gerçek p-1/p-3 yerine place-1/place-3 yazıyordu — favoriye eklenen ilan
+// asla görünmüyordu. Varsayılanlar + hayalet süzme regresyonu.
+describe('M29 hayalet id temizliği', () => {
+  it('ilan varsayılanı boştur (d-1/d-4 hayaletleri yok)', () => {
+    expect(DEFAULT_SAVED_DEAL_IDS).toEqual([]);
+  });
+
+  it('yer varsayılanları GERÇEK place id\'leridir (p-1, p-3)', () => {
+    expect(DEFAULT_SAVED_PLACE_IDS).toEqual(['p-1', 'p-3']);
+  });
+
+  it('filterGhostDealIds hayalet ilan id\'lerini süzer, gerçekleri korur', () => {
+    expect(filterGhostDealIds(['d-1', 'fs-1', 'd-4', 'fs-2', 'd-2'])).toEqual([
+      'fs-1',
+      'fs-2',
+    ]);
+  });
+
+  it('filterGhostPlaceIds hayalet place-* id\'lerini süzer, gerçek p-* korur', () => {
+    expect(filterGhostPlaceIds(['place-1', 'p-1', 'place-3', 'p-3', 'p-5'])).toEqual([
+      'p-1',
+      'p-3',
+      'p-5',
+    ]);
+  });
+
+  it('hayalet içermeyen liste değişmeden geçer', () => {
+    expect(filterGhostDealIds(['fs-9'])).toEqual(['fs-9']);
+    expect(filterGhostPlaceIds(['p-9'])).toEqual(['p-9']);
+  });
+
+  it('eski hayalet varsayılanlar depodayken süzülmüş liste yüklenir', () => {
+    saveSavedIds(SAVED_DEALS_KEY, ['d-1', 'd-4']);
+    expect(filterGhostDealIds(loadSavedIds(SAVED_DEALS_KEY, []))).toEqual([]);
+    saveSavedIds(SAVED_PLACES_KEY, ['place-1', 'place-3']);
+    expect(filterGhostPlaceIds(loadSavedIds(SAVED_PLACES_KEY, []))).toEqual([]);
   });
 });

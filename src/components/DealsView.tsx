@@ -9,6 +9,8 @@ import { getDealMetaFromPackage, computeEndDate } from '../utils/listingMeta';
 import { mapDealDoc } from '../utils/dealMapping';
 import { getErrorMessage } from '../utils/errors';
 import { useSavedItems } from '../context/SavedItemsContext';
+import { compressImageFile } from '../utils/imageCompress';
+import { Sparkles, PhoneCall } from 'lucide-react';
 import {
   Search,
   Bookmark,
@@ -78,22 +80,25 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const [description, setDescription] = useState('');
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // M29: fotoğraflar ham base64 yerine canvas ile sıkıştırılır (imageCompress).
+  // Eskiden 500KB-5MB'lık data-URL'ler gönderiliyor, sunucudaki alan limiti
+  // görseli kesiyor ve yayınlanan ilanda bozuk görsel kalıyordu.
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files) as File[];
     const availableSlots = 5 - uploadedPhotos.length;
     const selectedFiles = files.slice(0, availableSlots);
-
-    selectedFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setUploadedPhotos((prev) => (prev.length >= 5 ? prev : [...prev, reader.result as string]));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
     e.target.value = '';
+
+    for (const file of selectedFiles) {
+      try {
+        const dataUrl = await compressImageFile(file);
+        setUploadedPhotos((prev) => (prev.length >= 5 ? prev : [...prev, dataUrl]));
+      } catch (err) {
+        setErrorToast(getErrorMessage(err) || 'Fotoğraf eklenemedi.');
+        setTimeout(() => setErrorToast(null), 5000);
+      }
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -119,25 +124,31 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const [packagesError, setPackagesError] = useState<string | null>(null);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  // M29: ödeme TAMAMLANDI ama ilan yazılamadı durumu. true iken "Tekrar Dene"
+  // yeniden purchasePackage çağırmaz — sunucunun 15 dk'lık satın alma tazelik
+  // penceresi içinde yalnızca ilan yazımı yeniden denenir (çift ücret engeli).
+  const [purchaseCompleted, setPurchaseCompleted] = useState(false);
 
   const loadRevenueCatPackages = async () => {
     setPackagesLoading(true);
     setPackagesError(null);
     try {
       const packages = await PurchaseService.getPackages();
+      // M29: yalnızca BU ilan tipi için geçerli ürünler sunulur. Eskiden
+      // filtre boş çıkarsa TÜM paketler (ör. taksi paketi) listeleniyordu;
+      // kullanıcı öder, sunucu 400 verir, para iadesiz kalırdı.
       const dealPackages = packages.filter((pkg) =>
         pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN ||
         pkg.product.identifier === PACKAGE_IDS.ONE_CIKAN_30_GUN
       );
-      const usable = dealPackages.length > 0 ? dealPackages : packages;
-      setRcPackages(usable);
+      setRcPackages(dealPackages);
 
-      if (usable.length === 0) {
+      if (dealPackages.length === 0) {
         setSelectedPackage(null);
         setPackagesError('Satın alma paketleri henüz yapılandırılmamış. Lütfen daha sonra tekrar deneyin.');
       } else {
         const preferred =
-          usable.find((pkg) => pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN) || usable[0];
+          dealPackages.find((pkg) => pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN) || dealPackages[0];
         setSelectedPackage(preferred);
         setEndDate(computeEndDate(getDealMetaFromPackage(preferred).durationDays));
       }
@@ -197,17 +208,22 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
 
     setIsProcessing(true);
 
-    try {
-      const purchased = await PurchaseService.purchasePackage(selectedPackage);
-      if (!purchased) {
+    // M29: ödeme yalnızca bir kez alınır. Ödeme sonrası ilan yazımı
+    // başarısız olursa "Tekrar Dene" yalnızca yazımı yeniden dener.
+    if (!purchaseCompleted) {
+      try {
+        const purchased = await PurchaseService.purchasePackage(selectedPackage);
+        if (!purchased) {
+          setIsProcessing(false);
+          return;
+        }
+        setPurchaseCompleted(true);
+      } catch (e) {
+        setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
+        setTimeout(() => setErrorToast(null), 5000);
         setIsProcessing(false);
         return;
       }
-    } catch (e) {
-      setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
-      setTimeout(() => setErrorToast(null), 5000);
-      setIsProcessing(false);
-      return;
     }
 
     const meta = getDealMetaFromPackage(selectedPackage);
@@ -219,21 +235,37 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     // Saf String Koruması
     const safeStoreName = String(storeName || '').trim() || 'Yeni Van Esnafı';
     const safeDealTitle = String(dealTitle || '').trim() || 'İndirim Fırsatı';
-    const safeDiscountAmount = String(discountAmount || '');
+    const safeDiscountAmount = String(discountAmount || '').replace('%', '').trim();
+
+    // M29: "Özel Kampanya" seçilirse % öneki zorlanmaz; indirim kodu/metni
+    // ve iletişim numarası da artık gerçekten kaydedilir (eskiden çöpe gidiyordu).
+    const isPercentDiscount = discountType === 'Yüzde (%) İndirim';
+    const discountValue = isPercentDiscount ? `%${safeDiscountAmount || '20'}` : safeDiscountAmount;
+
+    // M29: tüm fotoğraflar (sıkıştırılmış) images listesine yazılır; kapak
+    // alanı (image) yalnızca URL girişlerinde ayrıca gönderilir.
+    const firstPhoto = uploadedPhotos[0] || '';
+    const coverImage = firstPhoto && !firstPhoto.startsWith('data:')
+      ? firstPhoto
+      : (uploadedPhotos.length === 0 ? defaultImage : '');
 
     const dealPayload = {
       isletmeAdi: safeStoreName,
       kategori: String(category || 'Diğer'),
       indirimKodu: safeDealTitle,
-      indirimDegeri: safeDiscountAmount.includes('%') ? safeDiscountAmount : `%${safeDiscountAmount}`,
-      image: uploadedPhotos.length > 0 ? uploadedPhotos[0] : defaultImage,
+      indirimDegeri: discountValue,
+      indirimMetni: String(discountText || '').trim(),
+      image: coverImage,
+      images: uploadedPhotos,
+      phone: String(contactNumber || '').trim(),
       locationName: String(location || 'İpekyolu, Van'),
       startDate: finalStartDate,
       endDate: finalEndDate,
       description: String(description || '').trim() || `${safeStoreName} işletmesinde geçerli özel kampanya.`,
       durationDays: meta.durationDays,
       isFeatured: meta.isFeatured,
-      pricePaid: selectedPackage.product.priceString,
+      // M29: JobsView ile tutarlı — sayısal fiyat (priceString değil)
+      pricePaid: Number(selectedPackage.product.price) || 0,
       userEmail: String(currentUser?.email || 'anonim@van.rehberim'),
       userId: String(currentUser?.uid || ''),
     };
@@ -243,16 +275,32 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       setIsProcessing(false);
       setShowPlayModal(false);
       setIsPublishing(false);
+      setPurchaseCompleted(false);
+      // M29: tüm form alanları sıfırlanır (eskiden yalnızca fotoğraflar
+      // temizleniyordu, diğerleri eski değerlerle kalıyordu).
       setUploadedPhotos([]);
       setSelectedPackage(null);
+      setStoreName('');
+      setDealTitle('');
+      setDescription('');
+      setDiscountText('');
+      setContactNumber('');
+      setCategory('Kafe & Restoran');
+      setLocation('İpekyolu, Van');
+      setDiscountAmount('% 20');
+      setDiscountType('Yüzde (%) İndirim');
       setStartDate(todayTR());
       setEndDate(computeEndDate(30));
       setToastMessage(`🎉 İlanınız ${meta.durationDays} gün boyunca yayınlandı!`);
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err) {
       setIsProcessing(false);
-      setErrorToast('Hata: ' + getErrorMessage(err));
-      setTimeout(() => setErrorToast(null), 5000);
+      // M29: ödeme alındı — kullanıcıya net söylenir ve repurchase'suz
+      // retry yolu gösterilir (sunucu 15 dk tazelik penceresi tanır).
+      setErrorToast(
+        'Ödemeniz alındı ancak ilan yayımlanamadı: ' + getErrorMessage(err) +
+        ' Lütfen "Tekrar Dene" düğmesine basın — yeniden ücret alınmaz.'
+      );
     }
   };
 
@@ -276,7 +324,17 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       {isPublishing ? (
         <div className={`max-w-md mx-auto min-h-screen pb-32 ${isDark ? 'bg-[#121316] text-white' : 'bg-slate-50 text-slate-800'}`}>
           <div className={`px-5 py-4 flex items-center gap-3 border-b sticky top-0 z-30 backdrop-blur-md ${isDark ? 'border-slate-800 bg-[#121316]/95' : 'border-slate-200 bg-white/95'}`}>
-            <button onClick={() => setIsPublishing(false)} className="p-1.5 rounded-full">
+            <button
+              onClick={() => {
+                // M29: geri dönünce eski form hatası, ödeme-durumu ve kalıcı
+                // hata toast'u temizlenir
+                setFormError(null);
+                setPurchaseCompleted(false);
+                setIsPublishing(false);
+                setErrorToast(null);
+              }}
+              className="p-1.5 rounded-full"
+            >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
             <h1 className="text-xl font-bold">İndirim İlanı Ver</h1>
@@ -407,15 +465,15 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
               </div>
 
               <div>
-                <label className="font-bold block mb-2 text-sm text-slate-300">İndirim Kodu / Metni</label>
-                <div className={`flex items-center gap-2 rounded-2xl p-4 bg-[#392518] text-[#D8B498]`}>
+                <label className={`font-bold block mb-2 text-sm ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>İndirim Kodu / Metni</label>
+                <div className={`flex items-center gap-2 rounded-2xl p-4 ${isDark ? 'bg-[#392518] text-[#D8B498]' : 'bg-amber-50 border border-amber-100 text-amber-900'}`}>
                   <span className="font-bold">#</span>
                   <input
                     type="text"
                     value={discountText}
                     onChange={(e) => setDiscountText(e.target.value)}
                     placeholder="Örn: REHBERİM20 veya Kış Fırsatı"
-                    className="w-full bg-transparent font-bold text-sm focus:outline-none placeholder:text-[#8D6F59]"
+                    className={`w-full bg-transparent font-bold text-sm focus:outline-none ${isDark ? 'placeholder:text-[#8D6F59]' : 'placeholder:text-amber-700/50'}`}
                   />
                 </div>
               </div>
@@ -518,6 +576,17 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                       setFormError('Lütfen geçerli bir yayın paketi seçiniz.');
                       return;
                     }
+                    // M29: yüzde indirimde değer 1-99 arası sayı olmalı
+                    const amount = String(discountAmount || '').replace('%', '').trim();
+                    if (discountType === 'Yüzde (%) İndirim' && (!/^\d+$/.test(amount) || Number(amount) < 1 || Number(amount) > 99)) {
+                      setFormError('İndirim değeri olarak 1-99 arası bir sayı giriniz.');
+                      return;
+                    }
+                    if (discountType === 'Özel Kampanya' && !discountText.trim()) {
+                      setFormError('Özel kampanya için lütfen bir kampanya metni/kodu giriniz.');
+                      return;
+                    }
+                    setPurchaseCompleted(false);
                     setShowPlayModal(true);
                   }}
                   className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-colors bg-emerald-600 hover:bg-emerald-500 text-white`}
@@ -538,18 +607,58 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
               <button onClick={(e) => toggleBookmark(selectedDeal.id, e)} className="p-2"><Bookmark className={`w-5 h-5 ${Array.isArray(savedDeals) && savedDeals.includes(selectedDeal.id) ? 'fill-emerald-600 text-emerald-600' : ''}`} /></button>
             </div>
             <div className="relative w-full h-72 bg-black">
-              <img src={selectedDeal.image} alt="" className="w-full h-full object-cover" />
+              <img
+                src={selectedDeal.image}
+                alt=""
+                onError={(e) => {
+                  // M29: detay görünümünde de kırık görsel fallback'i (listede vardı)
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80';
+                }}
+                className="w-full h-full object-cover"
+              />
               <div className="absolute top-4 left-4 bg-red-600 text-white font-bold text-xs px-3 py-1 rounded-full uppercase">
                 {selectedDeal.discountRate}
               </div>
+              {selectedDeal.isFeatured && (
+                <div className="absolute top-4 right-4 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-lg">
+                  <Sparkles className="w-3 h-3 fill-white" />
+                  <span>ÖNE ÇIKAN</span>
+                </div>
+              )}
             </div>
             <div className="p-5 space-y-3">
               <h1 className="text-2xl font-bold">{selectedDeal.storeName}</h1>
               <p className="text-sm font-semibold uppercase">{selectedDeal.dealTitle}</p>
+              {selectedDeal.indirimMetni && (
+                <p className="inline-block text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                  #{selectedDeal.indirimMetni}
+                </p>
+              )}
               <p className="text-xs text-slate-400">{selectedDeal.description}</p>
+
+              {/* M29: ek fotoğraflar (varsa) */}
+              {selectedDeal.images && selectedDeal.images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {selectedDeal.images.slice(0, 5).map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt=""
+                      className="w-20 h-20 rounded-xl object-cover shrink-0 border border-slate-200"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="p-5">
+          <div className="p-5 space-y-2">
+            {selectedDeal.phone && (
+              <a href={`tel:${selectedDeal.phone.replace(/\s+/g, '')}`} className="w-full bg-slate-800 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
+                <PhoneCall className="w-5 h-5" /> İŞLETMEYİ ARA
+              </a>
+            )}
             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(selectedDeal.storeName || '') + ' Van')}`} target="_blank" rel="noreferrer" className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
               <Navigation className="w-5 h-5" /> KONUMA GİT
             </a>
@@ -603,7 +712,14 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             {isLoading ? (
               <div className="text-center py-10 text-xs font-bold">Yükleniyor...</div>
             ) : filteredDeals.map((deal) => (
-              <div key={deal.id} onClick={() => setSelectedDeal(deal)} className={`rounded-3xl p-4 border cursor-pointer flex gap-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div key={deal.id} onClick={() => setSelectedDeal(deal)} className={`relative rounded-3xl p-4 border cursor-pointer flex gap-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
+                {/* M29: öne çıkan ilan rozeti — bu ücretli özellik artık görünür */}
+                {deal.isFeatured && (
+                  <div className="absolute top-0 right-0 z-10 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 fill-white" />
+                    <span>ÖNE ÇIKAN</span>
+                  </div>
+                )}
                 <div className="relative w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-slate-200">
                   <img src={deal.image} alt="" onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -647,7 +763,16 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       {showPlayModal && (
         <div className="fixed inset-0 z-50 bg-[#3c2a21]/90 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
           <div className="w-full h-auto max-w-md bg-[#3F2B20] border-t-2 sm:border-2 border-[#584033] sm:rounded-[40px] rounded-t-[40px] p-8 text-white space-y-6 shadow-2xl relative pt-10">
-            <button onClick={() => setShowPlayModal(false)} className="absolute top-6 right-6 p-2 bg-[#4D372A] rounded-full text-[#B58A6C] hover:text-white transition-colors">
+            {/* M29: ödeme sürerken kapatma engellenir — arka planda tamamlanan
+                işlemin sonucu kullanıcıya kaybolmasın */}
+            <button
+              onClick={() => {
+                setShowPlayModal(false);
+                setErrorToast(null);
+              }}
+              disabled={isProcessing}
+              className="absolute top-6 right-6 p-2 bg-[#4D372A] rounded-full text-[#B58A6C] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <X className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-3">
@@ -686,7 +811,9 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             </p>
 
             <button onClick={handleFinalPurchase} disabled={isProcessing} className="w-full bg-gradient-to-r from-[#D7A75C] to-[#C18C44] text-[#3F2B20] font-black tracking-wide py-4.5 rounded-[24px] flex justify-center items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 text-[15px] h-[60px]">
-              {isProcessing ? 'İşleniyor...' : <>ÖDEMEYİ TAMAMLA <ArrowRight className="w-4 h-4" /></>}
+              {isProcessing ? 'İşleniyor...' : purchaseCompleted
+                ? <>TEKRAR DENE (ÜCRET ALINMAZ) <ArrowRight className="w-4 h-4" /></>
+                : <>ÖDEMEYİ TAMAMLA <ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
         </div>

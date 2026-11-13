@@ -36,7 +36,10 @@ export interface RawDealDoc {
   kategori?: string;
   indirimKodu?: string;
   indirimDegeri?: string;
+  indirimMetni?: string;
   image?: string;
+  images?: string[];
+  phone?: string;
   locationName?: string;
   description?: string;
   startDate?: string;
