@@ -41,6 +41,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const { currentUser, setShowAuthModal } = useAuth();
   const [dealsList, setDealsList] = useState<Deal[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // M30: abonelik hatası — önceden sonsuz "Yükleniyor..." kalıyordu
+  const [listingsError, setListingsError] = useState<string | null>(null);
 
   // Subscribe to Firebase Firestore live deals
   useEffect(() => {
@@ -49,7 +51,11 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         // M26: ham doküman → Deal eşlemesi saf fonksiyonda (utils/dealMapping)
         setDealsList(firestoreDeals.map(mapDealDoc));
       }
+      setListingsError(null);
       setIsLoading(false);
+    }, () => {
+      setIsLoading(false);
+      setListingsError('İlanlar yüklenemedi. Bağlantınızı kontrol edip sayfayı yenileyin.');
     });
     return () => unsub();
   }, []);
@@ -412,14 +418,18 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 <label className="font-bold block mb-2 text-sm text-slate-500">Başlangıç</label>
                 <div className={`flex items-center gap-2 p-3.5 rounded-2xl ${isDark ? 'bg-[#24262c]' : 'bg-slate-50 border border-slate-100'}`}>
                   <Calendar className="w-4 h-4 text-slate-400" />
-                  <input type="text" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent w-full font-bold text-sm outline-none" />
+                  {/* M30: tarihler satın alınan paketten hesaplanır (submit'te
+                      finalStartDate/finalEndDate) — düzenleme yanıltıcıydı */}
+                  <input type="text" value={startDate} readOnly className="bg-transparent w-full font-bold text-sm outline-none cursor-default text-slate-500" />
                 </div>
               </div>
               <div className="flex-1">
                 <label className="font-bold block mb-2 text-sm text-slate-500">Bitiş</label>
                 <div className={`flex items-center gap-2 p-3.5 rounded-2xl ${isDark ? 'bg-[#24262c]' : 'bg-slate-50 border border-slate-100'}`}>
                   <Calendar className="w-4 h-4 text-slate-400" />
-                  <input type="text" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent w-full font-bold text-sm outline-none" />
+                  {/* M30: tarihler satın alınan paketten hesaplanır — düzenleme
+                      yanıltıcıydı */}
+                  <input type="text" value={endDate} readOnly className="bg-transparent w-full font-bold text-sm outline-none cursor-default text-slate-500" />
                 </div>
               </div>
             </div>
@@ -711,6 +721,11 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
           <div className="space-y-4">
             {isLoading ? (
               <div className="text-center py-10 text-xs font-bold">Yükleniyor...</div>
+            ) : listingsError ? (
+              <div className="text-center p-8 border rounded-3xl text-xs font-bold space-y-2">
+                <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+                <div>{listingsError}</div>
+              </div>
             ) : filteredDeals.map((deal) => (
               <div key={deal.id} onClick={() => setSelectedDeal(deal)} className={`relative rounded-3xl p-4 border cursor-pointer flex gap-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
                 {/* M29: öne çıkan ilan rozeti — bu ücretli özellik artık görünür */}

@@ -47,6 +47,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   // User Taxi Listings & Subscription State (Live from Firestore)
   const [taxis, setTaxis] = useState<TaxiStand[]>([]);
   const [isLoadingTaxis, setIsLoadingTaxis] = useState<boolean>(true);
+  // M30: abonelik hatası — önceden sonsuz iskelet kalıyordu
+  const [taxisError, setTaxisError] = useState<string | null>(null);
   useEffect(() => {
     const unsub = subscribeTaxis((firestoreTaxis) => {
       if (firestoreTaxis) {
@@ -66,7 +68,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
         }));
         setTaxis(mappedTaxis);
       }
+      setTaxisError(null);
       setIsLoadingTaxis(false);
+    }, () => {
+      setIsLoadingTaxis(false);
+      setTaxisError('Taksi ilanları yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.');
     });
     return () => unsub();
   }, []);
@@ -275,7 +281,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
               <div className={`w-20 h-20 shrink-0 flex items-center justify-center rounded-2xl ${isDark ? 'bg-indigo-900/60 text-amber-400 border border-indigo-700/50' : 'bg-indigo-600 text-white shadow-md'
                 } border relative overflow-hidden`}>
                 <Briefcase className="w-10 h-10" />
-                <span className="absolute bottom-1 bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full shadow-xs uppercase">
+                <span className="absolute bottom-1 bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-xs uppercase">
                   YENİ
                 </span>
               </div>
@@ -577,6 +583,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                     </div>
                   ))}
                 </>
+              ) : taxisError ? (
+                <div className={`p-8 rounded-3xl text-center border space-y-3 ${isDark ? 'bg-[#1e2029] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="w-16 h-16 rounded-3xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+                    <CarTaxiFront className="w-8 h-8" />
+                  </div>
+                  <h4 className={`font-extrabold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    Taksi İlanları Yüklenemedi
+                  </h4>
+                  <p className={`text-xs mt-1.5 max-w-sm mx-auto ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {taxisError}
+                  </p>
+                </div>
               ) : taxis.length === 0 ? (
                 <div className={`p-8 rounded-3xl text-center border space-y-4 ${isDark ? 'bg-[#1e2029] border-slate-800' : 'bg-slate-50 border-slate-200'
                   }`}>

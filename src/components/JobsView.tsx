@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { JOB_CATEGORIES, JOB_LISTINGS } from '../data/mockData';
 import { JobListing } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -56,6 +56,13 @@ function getJobMetaFromPackage(pkg: PurchasesPackage): { durationDays: 1 | 3 | 7
   return { durationDays: 30, isFeatured: false };
 }
 
+// M30: ilçe listesinin TEK kaynağı — önceden filtre seçenekleriyle form
+// seçenekleri ayrıydı (Özalp filtrede vardı ama formda yoktu → ölü filtre;
+// form "İpekyolu / Van" gibi sonekli değerler yazıyordu). Artık her iki
+// select de bu listeyi kullanır; eski sonekli değerler filtredeki
+// includes() eşleşmesiyle uyumlu kalır.
+const VAN_DISTRICTS = ['İpekyolu', 'Edremit', 'Tuşba', 'Erciş', 'Gevaş', 'Muradiye', 'Özalp'];
+
 // Icon helper function for 10 categories
 const renderCategoryIcon = (categoryName: string, className = "w-4 h-4") => {
   switch (categoryName) {
@@ -100,6 +107,8 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   // State
   const [jobsList, setJobsList] = useState<JobListing[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // M30: abonelik hatası — önceden sonsuz iskelet kalıyordu
+  const [listingsError, setListingsError] = useState<string | null>(null);
 
   // Subscribe to Firebase Firestore live jobListings
   useEffect(() => {
@@ -107,7 +116,11 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       if (firestoreJobs) {
         setJobsList(firestoreJobs);
       }
+      setListingsError(null);
       setIsLoading(false);
+    }, () => {
+      setIsLoading(false);
+      setListingsError('İlanlar yüklenemedi. Bağlantınızı kontrol edip sayfayı yenileyin.');
     });
     return () => unsub();
   }, []);
@@ -122,6 +135,24 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // M30: toast temizleme zamanlayıcıları unmount'ta iptal edilir — önceden
+  // bileşen kapandıktan sonra da setState çağrılıyordu.
+  const toastTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  useEffect(() => {
+    const timers = toastTimers.current;
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+    };
+  }, []);
+  const scheduleToastClear = (setter: (v: null) => void, ms: number) => {
+    const t = setTimeout(() => {
+      toastTimers.current.delete(t);
+      setter(null);
+    }, ms);
+    toastTimers.current.add(t);
+  };
   const [rcPackages, setRcPackages] = useState<PurchasesPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [packagesLoading, setPackagesLoading] = useState(false);
@@ -136,7 +167,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     title: '',
     providerName: '',
     category: JOB_CATEGORIES[0].name,
-    district: 'İpekyolu / Van',
+    district: 'İpekyolu',
     address: '',
     phone: '',
     description: '',
@@ -150,7 +181,13 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   // Filtered Jobs
   const filteredJobs = jobsList.filter((job) => {
     const matchesCategory = selectedCategory === 'Tümü' || job.category === selectedCategory;
-    const matchesDistrict = selectedDistrict === 'Tümü' || job.district.toLowerCase().includes(selectedDistrict.toLowerCase());
+    // M30: "Tüm Van Geneli" ilanları her ilçe filtresinde görünür (tüm
+    // Van'a hizmet veriyorlar); eski sonekli değerler ("İpekyolu / Van")
+    // includes() eşleşmesiyle uyumlu kalır.
+    const matchesDistrict =
+      selectedDistrict === 'Tümü' ||
+      job.district === 'Tüm Van Geneli' ||
+      job.district.toLowerCase().includes(selectedDistrict.toLowerCase());
     const query = searchQuery.toLowerCase();
     const matchesSearch =
       job.title.toLowerCase().includes(query) ||
@@ -224,7 +261,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const handleFinalPurchase = async () => {
     if (!selectedPackage) {
       setErrorToast('Geçerli bir satın alma paketi seçilmedi.');
-      setTimeout(() => setErrorToast(null), 4000);
+      scheduleToastClear(setErrorToast, 4000);
       return;
     }
 
@@ -242,7 +279,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         setPurchaseCompleted(true);
       } catch (e) {
         setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
-        setTimeout(() => setErrorToast(null), 5000);
+        scheduleToastClear(setErrorToast, 5000);
         setIsProcessing(false);
         return;
       }
@@ -251,6 +288,9 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     const meta = getJobMetaFromPackage(selectedPackage);
     const pricePaid = Number(selectedPackage.product.price) || 0;
 
+    // M30: sunucunun ezip yazdığı alanlar (userId/userEmail/productId/
+    // durationDays/isFeatured/createdAt/createdAtTimestamp/bitisTarihi)
+    // payload'tan çıkarıldı — gönderilseler bile çöpe gidiyordu.
     const jobPayload = {
       title: formData.title.trim(),
       providerName: formData.providerName.trim(),
@@ -260,22 +300,20 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       phone: formData.phone.trim(),
       description: formData.description.trim(),
       photo: formData.photo || customPhotoInput || undefined,
-      durationDays: meta.durationDays,
-      pricePaid,
-      createdAt: new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      isFeatured: meta.isFeatured,
       experienceYears: formData.experienceYears,
-      userEmail: currentUser?.email || 'anonim@van.rehberim',
-      userId: currentUser?.uid || '',
-      productId: selectedPackage.product.identifier,
+      pricePaid,
     };
 
     try {
       const result = await submitPaidListing('job', selectedPackage.product.identifier, jobPayload);
 
+      // Yerel liste güncellemesi: sunucunun yazdığı değerlerle tutarlı
       const newJob: JobListing = {
         id: result.id,
         ...jobPayload,
+        durationDays: meta.durationDays,
+        isFeatured: meta.isFeatured,
+        createdAt: new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       };
       setJobsList((prev) => [newJob, ...prev]);
 
@@ -288,7 +326,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         title: '',
         providerName: '',
         category: JOB_CATEGORIES[0].name,
-        district: 'İpekyolu / Van',
+        district: 'İpekyolu',
         address: '',
         phone: '',
         description: '',
@@ -300,7 +338,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       setCustomPhotoInput('');
 
       setSuccessToast(`Tebrikler! İlanınız Firebase bulut veri tabanına kaydedildi ve ${newJob.durationDays} gün yayınlandı.`);
-      setTimeout(() => setSuccessToast(null), 4000);
+      scheduleToastClear(setSuccessToast, 4000);
     } catch (err) {
       setIsProcessing(false);
       // M29: ödeme alındı — kullanıcıya net söylenir ve repurchase'sız
@@ -405,13 +443,9 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
           className={`w-full py-3 px-3 rounded-2xl text-xs sm:text-sm font-bold border focus:outline-none focus:ring-2 focus:ring-indigo-500 ${inputBg}`}
         >
           <option value="Tümü">📍 Tüm Van İlçeleri</option>
-          <option value="İpekyolu">📍 İpekyolu</option>
-          <option value="Edremit">📍 Edremit</option>
-          <option value="Tuşba">📍 Tuşba</option>
-          <option value="Erciş">📍 Erciş</option>
-          <option value="Gevaş">📍 Gevaş</option>
-          <option value="Muradiye">📍 Muradiye</option>
-          <option value="Özalp">📍 Özalp</option>
+          {VAN_DISTRICTS.map((d) => (
+            <option key={d} value={d}>📍 {d}</option>
+          ))}
         </select>
       </div>
 
@@ -467,7 +501,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                   {renderCategoryIcon(cat.name, "w-3.5 h-3.5")}
                 </span>
                 <span>{cat.name}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${isSelected ? 'bg-white/30 text-white' : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${isSelected ? 'bg-white/30 text-white' : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
                   }`}>
                   {count}
                 </span>
@@ -503,6 +537,14 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 <div className="h-10 bg-slate-200 dark:bg-slate-700/50 rounded-2xl mt-2"></div>
               </div>
             ))}
+          </div>
+        ) : listingsError ? (
+          <div className={`${cardBg} rounded-3xl p-8 text-center space-y-3 border`}>
+            <div className="w-16 h-16 rounded-3xl bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h3 className={`text-base font-extrabold ${textPrimary}`}>İlanlar Yüklenemedi</h3>
+            <p className={`text-xs ${textSecondary} max-w-xs mx-auto`}>{listingsError}</p>
           </div>
         ) : filteredJobs.length === 0 ? (
           <div className={`${cardBg} rounded-3xl p-8 text-center space-y-3 border`}>
@@ -741,12 +783,9 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                     onChange={(e) => setFormData({ ...formData, district: e.target.value })}
                     className={`w-full p-3 rounded-2xl border text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${inputBg}`}
                   >
-                    <option value="İpekyolu / Van">📍 İpekyolu / Van</option>
-                    <option value="Edremit / Van">📍 Edremit / Van</option>
-                    <option value="Tuşba / Van">📍 Tuşba / Van</option>
-                    <option value="Erciş / Van">📍 Erciş / Van</option>
-                    <option value="Gevaş / Van">📍 Gevaş / Van</option>
-                    <option value="Muradiye / Van">📍 Muradiye / Van</option>
+                    {VAN_DISTRICTS.map((d) => (
+                      <option key={d} value={d}>📍 {d}</option>
+                    ))}
                     <option value="Tüm Van Geneli">📍 Tüm Van Geneli</option>
                   </select>
                 </div>
@@ -1066,7 +1105,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                       // şey kopyalanmıyordu — gerçek panoya kopyalama yap.
                       navigator.clipboard?.writeText(window.location.href).then(() => {
                         setSuccessToast('İlan bağlantısı panoya kopyalandı!');
-                        setTimeout(() => setSuccessToast(null), 3000);
+                        scheduleToastClear(setSuccessToast, 3000);
                       }).catch(() => { });
                     }
                   }}

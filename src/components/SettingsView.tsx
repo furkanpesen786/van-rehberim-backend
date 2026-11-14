@@ -110,13 +110,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // id'ler birikiyordu. DealsView ile aynı kaynak + aynı eşleme.
   const [firestoreDeals, setFirestoreDeals] = useState<Deal[]>([]);
   const [dealsLoading, setDealsLoading] = useState(true);
+  // M30: abonelik hatası — önceden sonsuz spinner kalıyordu
+  const [dealsError, setDealsError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = subscribeDeals((rawDeals) => {
       if (Array.isArray(rawDeals)) {
         setFirestoreDeals(rawDeals.map(mapDealDoc));
       }
+      setDealsError(null);
       setDealsLoading(false);
+    }, () => {
+      setDealsLoading(false);
+      setDealsError('Favoriler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.');
     });
     return () => unsub();
   }, []);
@@ -752,7 +758,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 <Building2 className="w-4 h-4" />
                 <span>KAYDEDİLEN İŞLETMELER</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${favoritesTab === 'businesses' ? 'bg-white/30 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${favoritesTab === 'businesses' ? 'bg-white/30 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}>
                   {savedBusinesses.length}
                 </span>
@@ -768,7 +774,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 <MapPin className="w-4 h-4" />
                 <span>GEZİLECEK YERLER</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${favoritesTab === 'places' ? 'bg-white/30 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${favoritesTab === 'places' ? 'bg-white/30 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}>
                   {savedPlaces.length}
                 </span>
@@ -786,6 +792,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <div className="w-10 h-10 border-3 border-rose-500/30 border-t-rose-500 rounded-full animate-spin mx-auto" />
                       <p className={`text-xs mt-3 font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         Favoriler yükleniyor...
+                      </p>
+                    </div>
+                  ) : dealsError ? (
+                    <div className="text-center py-10 px-4 space-y-2">
+                      <div className="w-16 h-16 rounded-3xl bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center">
+                        <ShieldAlert className="w-8 h-8" />
+                      </div>
+                      <p className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'} max-w-xs mx-auto leading-relaxed`}>
+                        {dealsError}
                       </p>
                     </div>
                   ) : savedBusinesses.length === 0 ? (
