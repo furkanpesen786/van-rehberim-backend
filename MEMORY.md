@@ -4,12 +4,13 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 14.11.2026 (oturum #11 sürüyor) — **M31 ÇÖZÜLDÜ ✅**
-> (commit `6885559`, **CI ✅ yeşil + Render `live`**). Önceki: M30
-> (`6d6cf65`: CI ✅ + Render `live`), M29 (`e8e4abd`: kritik ödeme/ilan akışı +
-> favori hayalet id'ler — CI ✅ + Render `live`). 17/17 ana liste bitti; yeni
-> döngüde sonraki parti **M32** (Android geri tuşu, ölü importlar, deps
-> temizliği). Kalan tek büyük iş: M5 (iyzico vs RevenueCat kararı — dondurulmuş).
+> **Son güncelleme:** 14.11.2026 (oturum #11 sürüyor) — **M32 ÇÖZÜLDÜ ✅**
+> (commit `c4bd63e`, 23 dosya +292/−2012, **CI ✅ yeşil + Render `live`**).
+> Önceki: M31 (`6885559`: CI ✅ + Render `live`), M30 (`6d6cf65`:
+> CI ✅ + Render `live`), M29 (`e8e4abd`: kritik ödeme/ilan akışı — CI ✅ +
+> Render `live`). **M29-M32 inceleme döngüsü TAMAMLANDI** — tespit edilen
+> tüm partiler çözüldü. Kalan tek büyük iş: M5 (iyzico vs RevenueCat kararı
+> — dondurulmuş).
 
 ---
 
@@ -173,8 +174,11 @@ dedi. **M29 ✅ ÇÖZÜLDÜ — commit `e8e4abd`** (12 dosya, +469/−104; **CI 
 yeşil + Render `live`**, 13.11 akşamı API'den doğrulandı). **M30 ✅ ÇÖZÜLDÜ
 — commit `6d6cf65`** (7 dosya, +223/−40; **CI ✅ + Render `live`**).
 **M31 ✅ ÇÖZÜLDÜ — commit `6885559`** (5 dosya, +185/−86; **CI ✅ + Render
-`live`**, 14.11 API'den doğrulandı). Ayrıntı aşağıdaki M29/M30/M31
-kayıtlarında. Sonraki parti **M32**.
+`live`**, 14.11 API'den doğrulandı). **M32 ✅ ÇÖZÜLDÜ — commit `c4bd63e`**
+(23 dosya, +292/−2012; **CI ✅ + Render `live`**, 14.11 API'den doğrulandı).
+Ayrıntı aşağıdaki
+M29/M30/M31/M32 kayıtlarında. **İnceleme döngüsü bitti — sıradaki bekleyen
+parti yok.**
 
 **12.11.2026 oturumu #11 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
 HomeView.tsx 2167 → 960 satır. Hava durumu / nöbetçi eczane / ezan vakitleri
@@ -257,6 +261,62 @@ hayalet id'ler + testler) restart sonrası tamamlandı.
 - **Bash sınıflandırıcısı** oturum boyunca aralıklı arızalıydı (bir ara
   tamamen kapalı — model kullanılamıyor hatası); test/lint/build/commit/push
   komutlarını kullanıcı `!` önekiyle çalıştırdı.
+
+**14.11.2026 oturumu #11 — M32 ÇÖZÜLDÜ (geri tuşu + ölü kod/uyarı temizliği +
+deps; commit `c4bd63e`, 23 dosya +292/−2012):**
+
+1. **Android geri tuşu artık modalları kapatıyor:** yeni
+   `src/utils/backButtonStack.ts` — modül seviyesinde LIFO kapatıcı yığını +
+   `useBackButtonClose(isOpen, onClose)` hook'u (onClose ref'te, effect
+   yalnızca isOpen'a bağımlı; modal başka yolla kapanırsa cleanup yığından
+   düşürür). App.tsx backButton dinleyicisi önce `closeTopModal()` dener,
+   yığın boşsa eski davranış (sekme→home, home'da çıkış). Bağlanan 14 nokta:
+   LoginModal, 5 home bölümü (Weather/Pharmacy/Prayer/Currency/Bus —
+   isModalOpen prop'uyla), HomeView (activeModal + taksi ekleme + taksi
+   ödeme), JobsView (detay + ilan formu + ödeme), DealsView (detay + ödeme),
+   NewsView, PlacesView, SettingsView (politikalar + favoriler + işletme
+   detayı — iç içe modaller LIFO sırayla kapanır).
+2. **mailto/market:// dürüstleştirme:** "Uygulamayı Değerlendir"
+   `market://` (WebView'de güvenilmez) → `https://play.google.com/store/apps/
+   details?id=com.vanrehberim.app` (tarayıcıda + Android'de Play Store
+   açar). "Yardım & Destek" alt yazısı "Bize ulaşın" → görünür e-posta
+   adresi (mailto sessizce başarısız olursa kullanıcı kopyalayabilir).
+3. **36 eslint uyarısı → 0 (src):** ölü importlar 10 dosyada (App,
+   HomeView, JobsView, PlacesView, SettingsView, BusSection, AuthContext,
+   firebase, currencyService, DealsView'ta gereksiz eslint-disable);
+   BusSection'da hiç okunmayan 3 state (busSource/busIsLive/
+   selectedBusCategory); SettingsView'da ölü isLoggedOut; loginWithEmail'in
+   devre dışı akış için anlamsız parametreleri; AuthContext'te 2 boş catch
+   değişkeni.
+4. **Ölü kod:** firebase.ts'te çağıransız
+   saveUserFavoritesToFirestore/getUserFavoritesFromFirestore silindi
+   (userFavorites dokümanı hesap silmede yine temizleniyor); JobsView'taki
+   getJobMetaFromPackage (listingMeta.getDealMetaFromPackage'ın kopyası, ölü
+   ILAN_30_GUN dalıyla) silindi — 5 çağrı noktası test'li tek kaynağa geçti;
+   HomeView'daki boş handleDeleteTaxi + ona bağlı no-op "İlanı Sil" düğmesi
+   kaldırıldı (gerçek silme akışı istenirse deleteDoc + owner kuralıyla
+   ayrıca eklenmeli). `JobListing.durationDays` tipi `1|3|7|15|30`
+   birliğinden `number`'a genişletildi (gerçekte yalnızca 30 var).
+5. **deps temizliği:** `motion` + `@google/genai` (hiç import edilmiyor) ve
+   `eslint-plugin-react` (config'te yok) kaldırıldı; `jimp` →
+   devDependencies (yalnızca scripts/ ikon araçları kullanıyor). npm
+   install 108 paket kaldırdı; lockfile senkron (CI `npm ci` kullanıyor —
+   package.json değişikliğinden sonra npm install ŞART).
+6. **vite.config:** AI Studio kalıntısı DISABLE_HMR sunucu bloğu kaldırıldı;
+   manualChunks `id.includes('react')` → yol sınırlı regex (react/react-dom/
+   scheduler) — lucide-react artık yanlışlıkla vendor-react chunk'ında
+   değil (250 KB → 223 KB).
+7. **Kapsam genişletme:** tsconfig include'a `server/` +
+   `scripts/firestore-schema-audit.ts`; eslint hem config `files`'ına hem
+   `lint:eslint` script'ine aynı yolları aldı. Server kodu ilk kez tip
+   denetiminden geçti — tsc strict temiz; eslint 0 error / 9 uyarı
+   (server.ts'teki bilinen `any` borcu, uyarı seviyesinde bilinçli).
+
+**Doğrulama:** npm install (lockfile) + tsc strict ✅ exit 0; eslint 0 error /
+9 warning (src: **0**); **59/59 test** ✅; build ✅ (vendor-react 223 KB).
+Push `6059374..c4bd63e`. **CI ✅ yeşil + Render `live`** (14.11 15:03 UTC'den
+itibaren). Bash sınıflandırıcısı oturum boyunca aralıklı arızalı — doğrulama
+ve commit kullanıcı `!` önekiyle çalıştırdı.
 
 **14.11.2026 oturum #11 — M31 ÇÖZÜLDÜ (veri dürüstlüğü + bildirim/hesap-silme;
 commit `6885559`, 5 dosya +185/−86):**
@@ -355,17 +415,10 @@ Bash sınıflandırıcısı oturum boyunca aralıklı arızalı — doğrulama v
 kullanıcı `!` önekiyle çalıştırdı.
 
 **Sonraki partiler (kullanıcı zaten "sırayla çöz" onayı verdi):**
-- **M32:** Android geri tuşu modalları kapatmıyor (App.tsx listener her zaman
-  home'a atar); mailto/market:// WebView'de güvenilmez (https fallback);
-  36 eslint uyarısı (ölü importlar: SettingsView 11, firebase.ts 5, BusSection
-  4, AuthContext 4, HomeView 3, JobsView 3, PlacesView 3, App 1, DealsView 2,
-  currencyService 1); ölü kod (firebase.ts saveUserFavoritesToFirestore/
-  getUserFavoritesFromFirestore; JobsView getJobMetaFromPackage =
-  getDealMetaFromPackage kopyası → utils/listingMeta kullan); kullanılmayan
-  deps: motion + @google/genai KALDIR, jimp → devDependencies; vite.config
-  AI Studio kalıntısı + manualChunks 'react' lucide-react'i yanlış chunk'a
-  koyuyor; tsconfig/eslint kapsamına server/ + scripts/ ekle;
-  eslint-plugin-react devDep'te ama kullanılmıyor.
+- ~~**M32:** Android geri tuşu, mailto/market, 36 eslint uyarısı, ölü kod,
+  deps temizliği, vite.config, kapsam genişletme~~ **✅ 14.11.2026 çözüldü**
+  (commit `c4bd63e`; ayrıntı yukarıdaki M32 kaydında). **M29-M32 döngüsü
+  bitti — bekleyen parti kalmadı.**
 - **Kullanıcı eylemi bekleyen:** firestore.rules ÜRETİME DEPLOY
   (`firebase deploy --only firestore:rules` — kritik #3, login gerekli);
   android/keystore.properties (release imza — şifreler kullanıcıda);
@@ -1649,8 +1702,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (14.11.2026, oturum #11): dal ucu `6885559` (M31: veri
-  dürüstlüğü + bildirim/hesap-silme; **CI ✅ + Render `live`**), önceki
+- Git durumu (14.11.2026, oturum #11): dal ucu `c4bd63e` (M32: geri tuşu +
+  ölü kod temizliği + deps; **CI ✅ + Render `live`**), önceki `6059374`
+  (MEMORY M31), `6885559` (M31; **CI ✅ + Render `live`**), önceki
   `38e9556` (MEMORY M30), `6d6cf65` (M30; CI ✅ + Render `live`), `d7fc81d`
   (MEMORY M29), `e8e4abd` (M29; CI ✅ + Render `live`), `6a2790c` (M28: state
   management — 17/17 SON SORUN), önceki `ff65be7` (MEMORY M27), `7156b76`
