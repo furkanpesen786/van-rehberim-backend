@@ -183,10 +183,31 @@ function hasValidPurchase(subscriber: RcSubscriber | null, productId: string): b
 // --- Basit rate limit (uid başına saatlik) -----------------------------------
 
 const rateLimiter = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+let rateLimiterLastPrune = 0;
+
+// M31: pencere dışına çıkmış uid'leri Map'ten sil — eskiden her benzersiz uid
+// bir kez girdikten sonra sonsuza kadar bellekte kalıyordu (uzun ömürlü
+// süreçte sızıntı). Süpürme dakikada bir yapılır (her istekte değil).
+function pruneRateLimiter(now: number): void {
+  const windowStart = now - RATE_LIMIT_WINDOW_MS;
+  for (const [uid, stamps] of rateLimiter) {
+    const fresh = stamps.filter((t) => t > windowStart);
+    if (fresh.length === 0) {
+      rateLimiter.delete(uid);
+    } else if (fresh.length !== stamps.length) {
+      rateLimiter.set(uid, fresh);
+    }
+  }
+}
 
 function isRateLimited(uid: string): boolean {
   const now = Date.now();
-  const windowStart = now - 60 * 60 * 1000;
+  if (now - rateLimiterLastPrune > 60 * 1000) {
+    rateLimiterLastPrune = now;
+    pruneRateLimiter(now);
+  }
+  const windowStart = now - RATE_LIMIT_WINDOW_MS;
   const stamps = (rateLimiter.get(uid) || []).filter((t) => t > windowStart);
   if (stamps.length >= RATE_LIMIT_MAX_PER_HOUR) {
     rateLimiter.set(uid, stamps);

@@ -63,27 +63,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(false);
   const [vibrationDisabled, setVibrationDisabled] = useState(false);
 
+  // M31: bildirim ayarları artık yalnızca kullanıcı toggle'ı değiştirdiğinde
+  // kaydediliyor. Eskiden (isInitialLoad bekçili effect) her Settings
+  // ziyaretinde ayarlar geri yazılıp bildirimler yeniden planlanıyordu ve
+  // mount'ta koşulsuz izin isteniyordu.
   useEffect(() => {
     const settings = NotificationService.getSettings();
     setNotificationsEnabled(settings.newsEnabled);
     setDailyRemindersEnabled(settings.prayerEnabled);
     setVibrationDisabled(!settings.vibrationEnabled);
-    NotificationService.requestPermissions();
   }, []);
 
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  useEffect(() => {
-    if (isInitialLoad) {
-      setIsInitialLoad(false);
-      return;
-    }
-    const settings: NotificationSettings = {
-      newsEnabled: notificationsEnabled,
-      prayerEnabled: dailyRemindersEnabled,
-      vibrationEnabled: !vibrationDisabled
+  const handleNotificationToggle = async (patch: Partial<NotificationSettings>) => {
+    const next: NotificationSettings = {
+      newsEnabled: patch.newsEnabled ?? notificationsEnabled,
+      prayerEnabled: patch.prayerEnabled ?? dailyRemindersEnabled,
+      vibrationEnabled: patch.vibrationEnabled ?? !vibrationDisabled,
     };
-    NotificationService.saveSettings(settings);
-  }, [notificationsEnabled, dailyRemindersEnabled, vibrationDisabled, isInitialLoad]);
+    // İzin yalnızca bir bildirim türü AÇILIRKEN istenir — kapatma veya
+    // titreşim değişikliği izin istemez.
+    if (patch.newsEnabled || patch.prayerEnabled) {
+      await NotificationService.requestPermissions();
+    }
+    setNotificationsEnabled(next.newsEnabled);
+    setDailyRemindersEnabled(next.prayerEnabled);
+    setVibrationDisabled(!next.vibrationEnabled);
+    await NotificationService.saveSettings(next);
+  };
 
   const [isLoggedOut, setIsLoggedOut] = useState(false);
   const [isPoliciesOpen, setIsPoliciesOpen] = useState(true);
@@ -259,37 +265,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   setDeleteError(null);
                   setIsDeletingAccount(true);
                   try {
-                    // Yalnızca auth.currentUser varsa native silme işlemi dene, yoksa (mock auth) uyarı ile sil
-                    if (auth.currentUser) {
-                      // M13 (KVKK): önce Firestore'daki tüm kullanıcı verisi
-                      // (profil, favoriler, ilanlar) — güvenlik kuralları sahibin
-                      // silmesine izin verir; Auth kaydı silindikten sonra reddederdi.
-                      // Sonra Auth kaydı silinir.
-                      await deleteAllUserData(auth.currentUser.uid);
-                      await deleteUser(auth.currentUser);
+                    // M31: auth.currentUser yoksa eskiden sessizce "başarılı"
+                    // davranıyordu — hesap silinmediği halde başarı mesajı
+                    // gösteriliyordu. Artık dürüst hata veriyor.
+                    if (!auth.currentUser) {
+                      throw new Error('Oturum bulunamadı. Lütfen yeniden giriş yapıp tekrar deneyin.');
                     }
 
-                    // React state'inin güvenle render edilebilmesi için bloklayan işlemleri biraz erteliyoruz.
-                    setTimeout(async () => {
-                      // M19: alert() yerine yeşil başarı bildirimi — kullanıcı
-                      // okuyabilsin diye çıkış/yenileme 2,5 sn gecikmeli.
-                      setDeleteSuccess("Hesabınız ve ona bağlı tüm verileriniz başarıyla silinmiştir.");
-                      await new Promise((r) => setTimeout(r, 2500));
-                      await logout(); // Session sıfırla
-                      window.location.href = '/'; // Hard reload — hesap silme sonrası tam sıfırlama gerekli
-                    }, 50);
+                    // M13 (KVKK): önce Firestore'daki tüm kullanıcı verisi
+                    // (profil, favoriler, ilanlar) — güvenlik kuralları sahibin
+                    // silmesine izin verir; Auth kaydı silindikten sonra reddederdi.
+                    // Sonra Auth kaydı silinir.
+                    await deleteAllUserData(auth.currentUser.uid);
+                    await deleteUser(auth.currentUser);
+
+                    // M19: alert() yerine yeşil başarı bildirimi — kullanıcı
+                    // okuyabilsin diye çıkış/yenileme 2,5 sn gecikmeli.
+                    // M31: 50 ms'lik setTimeout zinciri kaldırıldı — spinner
+                    // artık iş bitene kadar (logout + yönlendirme dahil) açık.
+                    setDeleteSuccess('Hesabınız ve ona bağlı tüm verileriniz başarıyla silinmiştir.');
+                    await new Promise((r) => setTimeout(r, 2500));
+                    await logout(); // Session sıfırla
+                    window.location.href = '/'; // Hard reload — hesap silme sonrası tam sıfırlama gerekli
                   } catch (err) {
                     if (getErrorCode(err) === 'auth/requires-recent-login') {
-                      setDeleteError("Güvenlik kuralı: Hesabı silebilmek için oturum tazelemeniz gerekiyor. Lütfen yeniden giriş yapın.");
+                      setDeleteError('Güvenlik kuralı: Hesabı silebilmek için oturum tazelemeniz gerekiyor. Lütfen yeniden giriş yapın.');
                       setTimeout(async () => {
                         await logout();
                         window.location.href = '/'; // Hard reload nükleer çözüm
                       }, 2500); // Uyarıyı okuması için süre
                     } else {
-                      setDeleteError(getErrorMessage(err) || 'Hesabınız silinirken bir donanımsal ağ hatası oluştu.');
+                      setDeleteError(getErrorMessage(err) || 'Hesabınız silinirken bir ağ hatası oluştu.');
+                      // M31: hata mesajı ~8 sn sonra kendini temizler
+                      setTimeout(() => setDeleteError(null), 8000);
                     }
                   } finally {
-                    setIsDeletingAccount(false); // KESİNLİKLE kapanması garanti altına alınır
+                    setIsDeletingAccount(false);
                   }
                 }}
                 disabled={isDeletingAccount}
@@ -371,7 +382,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
               <div>
                 <h3 className={`text-xs sm:text-sm font-bold ${textPrimary}`}>Bildirimleri Al</h3>
-                <p className={`text-[11px] ${textSecondary}`}>Duyuruları alıyorsunuz</p>
+                <p className={`text-[11px] ${textSecondary}`}>
+                  {notificationsEnabled ? 'Haber bildirimleri açık' : 'Haber bildirimleri kapalı'}
+                </p>
               </div>
             </div>
 
@@ -379,7 +392,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <input
                 type="checkbox"
                 checked={notificationsEnabled}
-                onChange={() => setNotificationsEnabled(!notificationsEnabled)}
+                onChange={() => handleNotificationToggle({ newsEnabled: !notificationsEnabled })}
                 className="sr-only peer"
               />
               <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -394,7 +407,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
               <div>
                 <h3 className={`text-xs sm:text-sm font-bold ${textPrimary}`}>Günlük Hatırlatmalar</h3>
-                <p className={`text-[11px] ${textSecondary}`}>Gün içinde öneriler alıyorsunuz</p>
+                <p className={`text-[11px] ${textSecondary}`}>
+                  {dailyRemindersEnabled ? 'Namaz vakitleri hatırlatmaları açık' : 'Namaz vakitleri hatırlatmaları kapalı'}
+                </p>
               </div>
             </div>
 
@@ -402,7 +417,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <input
                 type="checkbox"
                 checked={dailyRemindersEnabled}
-                onChange={() => setDailyRemindersEnabled(!dailyRemindersEnabled)}
+                onChange={() => handleNotificationToggle({ prayerEnabled: !dailyRemindersEnabled })}
                 className="sr-only peer"
               />
               <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -419,7 +434,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
               <div>
                 <h3 className={`text-xs sm:text-sm font-bold ${textPrimary}`}>Titreşimleri Kapat</h3>
-                <p className={`text-[11px] ${textSecondary}`}>Baskı titreşimleri açık</p>
+                <p className={`text-[11px] ${textSecondary}`}>
+                  {vibrationDisabled ? 'Titreşimler kapalı' : 'Titreşimler açık'}
+                </p>
               </div>
             </div>
 
@@ -427,7 +444,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <input
                 type="checkbox"
                 checked={vibrationDisabled}
-                onChange={() => setVibrationDisabled(!vibrationDisabled)}
+                onChange={() => handleNotificationToggle({ vibrationEnabled: vibrationDisabled })}
                 className="sr-only peer"
               />
               <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-700"></div>

@@ -250,13 +250,19 @@ export const PharmacySection: React.FC<PharmacySectionProps> = ({ isDark, search
                         <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Mesafe: {pharmacy.distance}</span>
                       )}
 
-                      <a
-                        href={`tel:${pharmacy.phone.replace(/\s+/g, '')}`}
-                        className="bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold py-1.5 px-3.5 rounded-full flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
-                      >
-                        <PhoneCall className="w-3.5 h-3.5" />
-                        <span>{pharmacy.phone}</span>
-                      </a>
+                      {/* M31: telefon ayrıştırılamadıysa (server artık uydurma
+                          numara üretmiyor) boş tel: linki gösterme */}
+                      {pharmacy.phone ? (
+                        <a
+                          href={`tel:${pharmacy.phone.replace(/\s+/g, '')}`}
+                          className="bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold py-1.5 px-3.5 rounded-full flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" />
+                          <span>{pharmacy.phone}</span>
+                        </a>
+                      ) : (
+                        <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Telefon belirtilmemiş</span>
+                      )}
                     </div>
                   </div>
                 ))

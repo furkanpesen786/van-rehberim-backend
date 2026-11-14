@@ -35,6 +35,24 @@ app.use(express.json());
 // doğrulaması; Firestore'a yalnızca Admin SDK ile yazılır).
 app.use('/api/listings', listingsRouter);
 
+// M30: timeout'lu fetch yardımcısı. Node fetch'in varsayılan zaman aşımı
+// YOKTUR — kaynak asılı kalırsa (bağlantı açılır ama yanıt gelmez) await
+// süresiz bekler ve route bloklanır. Bu yardımcı ms sonunda isteği iptal
+// eder; abort bir rejection üretir, çağıran tarafın .catch/try-catch'i
+// mevcut fallback akışına düşer.
+const FETCH_TIMEOUT_MS = 15000;
+
+function fetchWithTimeout(url: string, init: RequestInit = {}, ms: number = FETCH_TIMEOUT_MS): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
+}
+
+// M31: `catch (error: any)` yerine tip güvenli mesaj çıkarıcı. `any` ile
+// yakalanan değerin Error olduğunu varsaymak güvenli değil (AbortSignal,
+// string throw vb.); details alanına undefined yazılmasın.
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // Helper function to map MGM wind direction angle to Turkish compass directions
 function getWindDirectionName(degree: number): string {
   if (degree === undefined || degree === null) return 'K';
@@ -177,19 +195,19 @@ app.get('/api/weather', async (_req, res) => {
       'Referer': 'https://www.mgm.gov.tr/'
     };
 
-    // Fetch MGM sondurumlar (current observation)
-    const mgmSonRes = await fetch('https://servis.mgm.gov.tr/web/sondurumlar?il=Van', { headers }).catch(() => null);
+    // Fetch MGM sondurumlar (current observation) — M30: timeout'lu
+    const mgmSonRes = await fetchWithTimeout('https://servis.mgm.gov.tr/web/sondurumlar?il=Van', { headers }).catch(() => null);
     const mgmSonData = mgmSonRes && mgmSonRes.ok ? await mgmSonRes.json() : null;
 
-    // Fetch MGM günlük tahminler (daily forecast)
-    const mgmTahminRes = await fetch('https://servis.mgm.gov.tr/web/tahminler/gunluk?il=Van', { headers }).catch(() => null);
+    // Fetch MGM günlük tahminler (daily forecast) — M30: timeout'lu
+    const mgmTahminRes = await fetchWithTimeout('https://servis.mgm.gov.tr/web/tahminler/gunluk?il=Van', { headers }).catch(() => null);
     const mgmTahminData = mgmTahminRes && mgmTahminRes.ok ? await mgmTahminRes.json() : null;
 
-    // Fetch Open-Meteo for AQI & UV
-    const openMeteoAqiRes = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5012&longitude=43.3730&current=us_aqi').catch(() => null);
+    // Fetch Open-Meteo for AQI & UV — M30: timeout'lu
+    const openMeteoAqiRes = await fetchWithTimeout('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.5012&longitude=43.3730&current=us_aqi').catch(() => null);
     const openMeteoAqiData = openMeteoAqiRes && openMeteoAqiRes.ok ? await openMeteoAqiRes.json() : null;
 
-    const openMeteoUvRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=38.5012&longitude=43.3730&current=uv_index&daily=uv_index_max&timezone=Europe%2FIstanbul').catch(() => null);
+    const openMeteoUvRes = await fetchWithTimeout('https://api.open-meteo.com/v1/forecast?latitude=38.5012&longitude=43.3730&current=uv_index&daily=uv_index_max&timezone=Europe%2FIstanbul').catch(() => null);
     const openMeteoUvData = openMeteoUvRes && openMeteoUvRes.ok ? await openMeteoUvRes.json() : null;
 
     // Default fallback values if MGM endpoints are delayed
@@ -319,7 +337,7 @@ app.get('/api/weather', async (_req, res) => {
 
     weatherCache = { payload: vanWeatherData, fetchedAt: Date.now() };
     res.json(vanWeatherData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching MGM weather data:', error);
     // M18: bayat (≤2 saat) önbellekten devam
     if (weatherCache && Date.now() - weatherCache.fetchedAt < WEATHER_STALE_MAX_MS) {
@@ -354,7 +372,7 @@ app.get('/api/pharmacies', async (_req, res) => {
     return res.json(pharmaciesCache.payload);
   }
   try {
-    const response = await fetch('https://www.vaneczaciodasi.org.tr/nobetci-eczaneler', {
+    const response = await fetchWithTimeout('https://www.vaneczaciodasi.org.tr/nobetci-eczaneler', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://www.vaneczaciodasi.org.tr/'
@@ -421,7 +439,10 @@ app.get('/api/pharmacies', async (_req, res) => {
         district: rawDistrict,
         city,
         address: address || `${rawDistrict}, Van`,
-        phone: phone || '0432 216 56 76',
+        // M31: telefon ayrıştırılamadıysa boş bırak — sabit bir numara
+        // uydurmak yanlış eczaneye çağrı yönlendirir. İstemci telefon
+        // yoksa ARA düğmesini gizler.
+        phone,
         distance: 'Merkez',
         isOpen24h: true,
         dutyDate,
@@ -449,7 +470,7 @@ app.get('/api/pharmacies', async (_req, res) => {
     };
     pharmaciesCache = { payload, fetchedAt: Date.now() };
     res.json(payload);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error scraping Van Eczacı Odası duty pharmacies:', error);
     // M18: bayat (≤24 saat) önbellekten devam
     if (pharmaciesCache && Date.now() - pharmaciesCache.fetchedAt < PHARMACIES_STALE_MAX_MS) {
@@ -458,7 +479,7 @@ app.get('/api/pharmacies', async (_req, res) => {
     res.status(500).json({
       success: false,
       error: 'Van Eczacı Odası nöbetçi eczane verisi çekilemedi',
-      details: error.message,
+      details: errorMessage(error),
     });
   }
 });
@@ -485,7 +506,7 @@ async function fetchDiyanetTimes(): Promise<DiyanetTimesCache & { stale: boolean
 
   try {
     const diyanetUrl = 'https://namazvakitleri.diyanet.gov.tr/tr-TR/9930/van-icin-namaz-vakti';
-    const response = await fetch(diyanetUrl, {
+    const response = await fetchWithTimeout(diyanetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -517,13 +538,21 @@ async function fetchDiyanetTimes(): Promise<DiyanetTimesCache & { stale: boolean
     const aksamMatch = cleanHtml.match(/Akşam\s+([0-9]{2}:[0-9]{2})/i);
     const yatsiMatch = cleanHtml.match(/Yatsı\s+([0-9]{2}:[0-9]{2})/i);
 
+    // M31: sabit "fallback" vakitler (03:23 vb.) kaldırıldı — sayfa yapısı
+    // değişirse yanlış vakitler "canlı Diyanet verisi" gibi servis ediliyordu.
+    // Eksik ayrıştırma artık hata fırlatır; bayat önbellek / dürüst 500 yolu
+    // devreye girer.
+    if (!imsakMatch || !gunesMatch || !ogleMatch || !ikindiMatch || !aksamMatch || !yatsiMatch) {
+      throw new Error('Diyanet sayfa yapısı değişti: namaz vakitleri eksik ayrıştırıldı');
+    }
+
     const times = {
-      imsak: imsakMatch ? imsakMatch[1] : '03:23',
-      sabah: gunesMatch ? gunesMatch[1] : '05:01', // Güneş
-      ogle: ogleMatch ? ogleMatch[1] : '12:18',
-      ikindi: ikindiMatch ? ikindiMatch[1] : '16:08',
-      aksam: aksamMatch ? aksamMatch[1] : '19:25',
-      yatsi: yatsiMatch ? yatsiMatch[1] : '20:56',
+      imsak: imsakMatch[1],
+      sabah: gunesMatch[1], // Güneş
+      ogle: ogleMatch[1],
+      ikindi: ikindiMatch[1],
+      aksam: aksamMatch[1],
+      yatsi: yatsiMatch[1],
     };
 
     // Extract Date header if present
@@ -535,7 +564,7 @@ async function fetchDiyanetTimes(): Promise<DiyanetTimesCache & { stale: boolean
   } catch (err) {
     // Diyanet erişilemezse bayat (≤24 saat) önbellekten devam
     if (prayerCache && now - prayerCache.fetchedAt < PRAYER_STALE_MAX_MS) {
-      console.warn('[prayer-times] Diyanet erişilemedi, bayat önbellek kullanılıyor:', (err as Error).message);
+      console.warn('[prayer-times] Diyanet erişilemedi, bayat önbellek kullanılıyor:', errorMessage(err));
       return { ...prayerCache, stale: true };
     }
     throw err;
@@ -627,15 +656,16 @@ app.get('/api/prayer-times', async (_req, res) => {
       remainingMinutes: nextMinutes,
       lastUpdated: `Bugün ${nowStr} (namazvakitleri.diyanet.gov.tr)`,
       source: stale ? 'Diyanet İşleri Başkanlığı — geçici olarak önbellekten' : 'Diyanet İşleri Başkanlığı',
-      isLive: true,
+      // M31: bayat önbellek yanıtında isLive artık dürüstçe false
+      isLive: !stale,
       stale,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching Diyanet prayer times:', error);
     res.status(500).json({
       success: false,
       error: 'Diyanet ezan vakti verileri alınamadı',
-      details: error.message,
+      details: errorMessage(error),
     });
   }
 });
@@ -790,7 +820,7 @@ app.get('/api/currencies', async (_req, res) => {
     };
     currenciesCache = { payload, fetchedAt: Date.now() };
     return res.json(payload);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching doviz.com rates:', error);
     // doviz.com geçici olarak düşerse: son başarılı sonuç hâlâ makul
     // tazelikteyse dürüstçe "eski önbellek" olarak sun (kaynak etiketinde
@@ -805,7 +835,7 @@ app.get('/api/currencies', async (_req, res) => {
     res.status(500).json({
       success: false,
       error: 'doviz.com canlı kurlar çekilemedi',
-      details: error.message,
+      details: errorMessage(error),
     });
   }
 });
@@ -864,10 +894,14 @@ app.get('/api/bus-schedules', async (_req, res) => {
             route: text,
             departureTimes: Array.from(timeMatches),
             returnTimes: [],
-            stops: ['Merkez Garaj', 'İpekyolu', 'Varış Durak'],
+            // M31: canlı ayrıştırma yalnızca saatleri okuyabiliyor — durak
+            // listesi ve tarife sayfada yok. Uydurma "Merkez Garaj / Varış
+            // Durak" durakları ve sabit 15 TL tarife kaldırıldı; istemci
+            // boş alanları zaten gizliyor.
+            stops: [],
             frequency: 'Canlı Saatler',
             status: 'Aktif',
-            tariff: 'BELVAN Kart: 15,00 TL',
+            tariff: '',
             operatingHours: `${timeMatches[0]} - ${timeMatches[timeMatches.length - 1]}`,
           });
         }
@@ -963,6 +997,7 @@ app.get('/api/news', async (_req, res) => {
             const titleMatch = itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
             const linkMatch = itemXml.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
             const descMatch = itemXml.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
+            const pubDateMatch = itemXml.match(/<pubDate>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/pubDate>/i);
             const imgMatch = itemXml.match(/url="([^"]+\.(?:jpg|png|jpeg|webp))"/i) || itemXml.match(/src="([^"]+\.(?:jpg|png|jpeg|webp))"/i);
 
             const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
@@ -976,6 +1011,18 @@ app.get('/api/news', async (_req, res) => {
               ? imgMatch[1].replace(/^http:\/\//i, 'https://')
               : 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
 
+            // M31: tarih artık RSS <pubDate>'ten gelir — eskiden her haber
+            // "bugün / şu an" gibi gösteriliyordu (gerçek yayın saati değil).
+            let date = todayStr;
+            let time = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            if (pubDateMatch) {
+              const parsed = new Date(pubDateMatch[1].trim());
+              if (!isNaN(parsed.getTime())) {
+                date = parsed.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+                time = parsed.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+              }
+            }
+
             if (title && title.length > 5) {
               items.push({
                 id: `rss-${channel.domain}-${i}-${Date.now()}`,
@@ -984,8 +1031,8 @@ app.get('/api/news', async (_req, res) => {
                 image: image,
                 summary: desc.length > 120 ? desc + '...' : desc,
                 content: desc + ' Devamı için kaynağı ziyaret ediniz.',
-                date: todayStr,
-                time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+                date,
+                time,
                 source: channel.name,
                 sourceUrl: link,
               });

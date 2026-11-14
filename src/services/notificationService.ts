@@ -137,13 +137,15 @@ export class NotificationService {
                 return d;
             };
 
-            const prayerMap: Record<string, string> = {
-                Imsak: 'İmsak vakti geldi.',
-                Sabah: 'Güneş doğdu.',
-                Ogle: 'Öğle ezanı.',
-                Ikindi: 'İkindi ezanı.',
-                Aksam: 'Akşam ezanı.',
-                Yatsi: 'Yatsı ezanı.',
+            // M31: başlıklar API anahtarından (Imsak/Ogle/...) değil düzgün
+            // Türkçe isimlerden geliyor; gövde metinleri tam cümle.
+            const prayerMap: Record<string, { title: string; body: string }> = {
+                Imsak: { title: 'İmsak', body: 'İmsak vakti girdi.' },
+                Sabah: { title: 'Güneş', body: 'Güneş doğdu.' },
+                Ogle: { title: 'Öğle', body: 'Öğle ezanı okundu.' },
+                Ikindi: { title: 'İkindi', body: 'İkindi ezanı okundu.' },
+                Aksam: { title: 'Akşam', body: 'Akşam ezanı okundu.' },
+                Yatsi: { title: 'Yatsı', body: 'Yatsı ezanı okundu.' },
             };
 
             const notifications = [];
@@ -161,12 +163,18 @@ export class NotificationService {
 
                 // Schedule if it is in the future
                 if (ptime.getTime() > new Date().getTime()) {
+                    const meta = prayerMap[key];
                     notifications.push({
                         id: idCounter++,
-                        title: key,
-                        body: prayerMap[key] || `${key} vakti geldi.`,
+                        title: meta ? meta.title : key,
+                        body: meta ? meta.body : `${key} vakti girdi.`,
                         channelId: 'prayer_channel',
-                        schedule: { on: { hour: ptime.getHours(), minute: ptime.getMinutes() }, allowWhileIdle: true },
+                        // M31: `on: { hour, minute }` GÜNLÜK tekrar planlar —
+                        // vakitler her gün değiştiği için ertesi gün bayat
+                        // saatte bildirim geliyordu. Tek atımlık `at:` kullan;
+                        // uygulama her açılışta App.tsx üzerinden yeniden
+                        // planlıyor (applySettings).
+                        schedule: { at: ptime, allowWhileIdle: true },
                         sound: 'beep.caf', // Default available sound behavior
                     });
                 }
