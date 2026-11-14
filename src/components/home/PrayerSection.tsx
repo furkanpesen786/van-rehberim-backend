@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { fetchLivePrayerTimes, LivePrayerTimesResponse, calculatePrayerStatus } from '../../services/prayerService';
 import { PRAYER_TIMES } from '../../data/mockData';
 import { Clock, RefreshCw } from 'lucide-react';
+import { useBackButtonClose } from '../../utils/backButtonStack';
 
 interface PrayerSectionProps {
   isDark: boolean;
@@ -13,6 +14,9 @@ interface PrayerSectionProps {
 }
 
 export const PrayerSection: React.FC<PrayerSectionProps> = ({ isDark, searchQuery, isModalOpen, onOpen, onClose }) => {
+  // M32: Android geri tuşu açık modali kapatır
+  useBackButtonClose(isModalOpen, onClose);
+
   // Live Diyanet Prayer Times State (Fetched from namazvakitleri.diyanet.gov.tr)
   const [prayerData, setPrayerData] = useState<LivePrayerTimesResponse | null>(null);
   const [isPrayerLoading, setIsPrayerLoading] = useState<boolean>(true);

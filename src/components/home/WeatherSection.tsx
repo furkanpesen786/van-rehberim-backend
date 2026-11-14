@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { VanWeatherData } from '../../types';
 import { fetchLiveVanWeather } from '../../services/weatherService';
 import { VAN_WEATHER } from '../../data/mockData';
+import { useBackButtonClose } from '../../utils/backButtonStack';
 import {
   ChevronRight,
   CloudSun,
@@ -42,6 +43,9 @@ interface WeatherSectionProps {
 }
 
 export const WeatherSection: React.FC<WeatherSectionProps> = ({ isDark, searchQuery, isModalOpen, onOpen, onClose }) => {
+  // M32: Android geri tuşu açık modali kapatır
+  useBackButtonClose(isModalOpen, onClose);
+
   // Live Weather State
   const [weather, setWeather] = useState<VanWeatherData>(VAN_WEATHER);
   const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(false);

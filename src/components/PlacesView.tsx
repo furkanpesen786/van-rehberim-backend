@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { PLACES_TO_VISIT } from '../data/mockData';
 import { PlaceToVisit } from '../types';
-import { Search, MapPin, ChevronRight, X, Star, Calendar, Clock, Compass, Heart } from 'lucide-react';
+import { Search, MapPin, X, Star, Compass, Heart } from 'lucide-react';
 import { useSavedItems } from '../context/SavedItemsContext';
+import { useBackButtonClose } from '../utils/backButtonStack';
 
 interface PlacesViewProps {
   theme?: 'light' | 'dark';
@@ -11,6 +12,8 @@ interface PlacesViewProps {
 export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceToVisit | null>(null);
+  // M32: Android geri tuşu açık yer detayını kapatır
+  useBackButtonClose(selectedPlace !== null, () => setSelectedPlace(null));
 
   // M28: favori yer state'i SavedItemsContext'te — eskiden yanlışlıkla
   // `van_saved_deals_changed` (ilan) event'ini dinleyerek senkron oluyordu.

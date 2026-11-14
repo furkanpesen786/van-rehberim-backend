@@ -1,19 +1,16 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+// M32: ölü importlar (signInWithPopup/signOut/onAuthStateChanged/User/
+// getFirestore) kaldırıldı — Auth akışı Capacitor/yerel kullanımda bu
+// modülün dışında hallediliyor.
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-  User,
 } from 'firebase/auth';
 import {
-  getFirestore,
   initializeFirestore,
   collection,
   doc,
   setDoc,
-  getDoc,
   getDocs,
   deleteDoc,
   query,
@@ -179,32 +176,10 @@ export function subscribeDeals(callback: (deals: RawDealDoc[]) => void, onError?
   }
 }
 
-// Save User Favorites to Firebase Firestore
-export async function saveUserFavoritesToFirestore(userId: string, favorites: { savedJobs?: string[]; savedDeals?: string[]; savedPlaces?: string[] }) {
-  try {
-    const favRef = doc(db, 'userFavorites', userId);
-    await setDoc(favRef, {
-      ...favorites,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
-  } catch (err) {
-    console.error('Error saving user favorites to Firestore:', err);
-  }
-}
-
-// Get User Favorites from Firebase Firestore
-export async function getUserFavoritesFromFirestore(userId: string) {
-  try {
-    const favRef = doc(db, 'userFavorites', userId);
-    const snapshot = await getDoc(favRef);
-    if (snapshot.exists()) {
-      return snapshot.data();
-    }
-  } catch (err) {
-    console.error('Error getting user favorites:', err);
-  }
-  return null;
-}
+// M32: saveUserFavoritesToFirestore / getUserFavoritesFromFirestore
+// kaldırıldı — favoriler M28'den beri yalnızca yerel (localStorage +
+// SavedItemsContext); çağıran kimse kalmamıştı. Firestore'daki
+// userFavorites dokümanı hesap silme akışında (deleteAllUserData) temizlenir.
 
 // M13 (KVKK): Hesap silme — Auth kaydı silinmeden ÖNCE çağrılır. Kullanıcının
 // Firestore'daki tüm verisini siler: profil dokümanı, favoriler ve kendi

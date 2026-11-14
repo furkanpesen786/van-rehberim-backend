@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NewsItem } from '../types';
 import { fetchLiveVanNews } from '../services/newsService';
+import { useBackButtonClose } from '../utils/backButtonStack';
 import {
   Clock,
   Info,
@@ -25,6 +26,8 @@ const VAN_NEWS_CHANNELS = [
 
 export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  // M32: Android geri tuşu açık haberi kapatır
+  useBackButtonClose(selectedNews !== null, () => setSelectedNews(null));
 
   // Live News State
   const [newsList, setNewsList] = useState<NewsItem[]>([]);

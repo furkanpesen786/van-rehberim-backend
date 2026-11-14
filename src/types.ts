@@ -10,7 +10,11 @@ export interface JobListing {
   phone: string;
   description: string;
   photo?: string;
-  durationDays: 1 | 3 | 7 | 15 | 30;
+  // M32: sunucu (server/listings.ts whitelist) sayı yazar; RevenueCat
+  // paketleri de sayı üretir — 1|3|7|15|30 birliği gerçekte yalnızca 30'a
+  // karşılık geliyordu, meta kaynağından (listingMeta) gelen number'a
+  // genişletildi.
+  durationDays: number;
   pricePaid: number;
   createdAt: string;
   isFeatured?: boolean;

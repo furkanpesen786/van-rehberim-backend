@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { JOB_CATEGORIES, JOB_LISTINGS } from '../data/mockData';
+import { JOB_CATEGORIES } from '../data/mockData';
 import { JobListing } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { subscribeJobListings } from '../lib/firebase';
 import { submitPaidListing } from '../services/listingService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { getErrorMessage } from '../utils/errors';
+import { getDealMetaFromPackage } from '../utils/listingMeta';
+import { useBackButtonClose } from '../utils/backButtonStack';
 import {
   Wrench,
   Sparkles,
@@ -24,8 +26,6 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  X,
-  Upload,
   Image as ImageIcon,
   ChevronRight,
   UserCheck,
@@ -45,16 +45,9 @@ interface JobsViewProps {
   theme?: 'light' | 'dark';
 }
 
-function getJobMetaFromPackage(pkg: PurchasesPackage): { durationDays: 1 | 3 | 7 | 15 | 30; isFeatured: boolean } {
-  const productId = pkg.product.identifier;
-  if (productId === PACKAGE_IDS.ONE_CIKAN_30_GUN) {
-    return { durationDays: 30, isFeatured: true };
-  }
-  if (productId === PACKAGE_IDS.ILAN_30_GUN) {
-    return { durationDays: 30, isFeatured: false };
-  }
-  return { durationDays: 30, isFeatured: false };
-}
+// M32: yerel getJobMetaFromPackage (getDealMetaFromPackage'ın birebir
+// kopyası, ölü ILAN_30_GUN dalıyla) silindi — süre/öne çıkarma meta'sı
+// artık test edilmiş tek kaynaktan gelir: utils/listingMeta.
 
 // M30: ilçe listesinin TEK kaynağı — önceden filtre seçenekleriyle form
 // seçenekleri ayrıydı (Özalp filtrede vardı ama formda yoktu → ölü filtre;
@@ -136,6 +129,12 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // M32: Android geri tuşu önce açık modali kapatır (LIFO): detay → ilan
+  // formu → ödeme. Önceden hepsi açıkken geri tuşu sekmeyi değiştiriyordu.
+  useBackButtonClose(selectedJob !== null, () => setSelectedJob(null));
+  useBackButtonClose(isPostModalOpen, () => setIsPostModalOpen(false));
+  useBackButtonClose(showPlayModal, () => setShowPlayModal(false));
+
   // M30: toast temizleme zamanlayıcıları unmount'ta iptal edilir — önceden
   // bileşen kapandıktan sonra da setState çağrılıyordu.
   const toastTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -172,7 +171,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
     phone: '',
     description: '',
     photo: '',
-    durationDays: 30 as 1 | 3 | 7 | 15 | 30,
+    durationDays: 30,
     experienceYears: '1+ Yıl Deneyim',
   });
 
@@ -221,7 +220,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
         const preferred =
           jobPackages.find((pkg) => pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN) || jobPackages[0];
         setSelectedPackage(preferred);
-        const meta = getJobMetaFromPackage(preferred);
+        const meta = getDealMetaFromPackage(preferred);
         setFormData((prev) => ({ ...prev, durationDays: meta.durationDays }));
       }
     } catch (e) {
@@ -285,7 +284,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       }
     }
 
-    const meta = getJobMetaFromPackage(selectedPackage);
+    const meta = getDealMetaFromPackage(selectedPackage);
     const pricePaid = Number(selectedPackage.product.price) || 0;
 
     // M30: sunucunun ezip yazdığı alanlar (userId/userEmail/productId/
@@ -927,7 +926,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {rcPackages.map((pkg) => {
                       const isSelected = selectedPackage?.identifier === pkg.identifier;
-                      const meta = getJobMetaFromPackage(pkg);
+                      const meta = getDealMetaFromPackage(pkg);
                       return (
                         <button
                           key={pkg.identifier}
@@ -966,7 +965,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                   <div className="text-[10px] text-slate-400 font-bold uppercase">SEÇİLEN PAKET ÖZETİ</div>
                   <div className="text-xs font-extrabold text-sky-300">
                     {selectedPackage
-                      ? `${selectedPackage.product.title} (${getJobMetaFromPackage(selectedPackage).durationDays} Gün)`
+                      ? `${selectedPackage.product.title} (${getDealMetaFromPackage(selectedPackage).durationDays} Gün)`
                       : 'Paket seçilmedi'}
                   </div>
                 </div>
@@ -1158,7 +1157,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 <div>
                   <h3 className="text-sm font-black leading-snug text-[#F5E6D3]">
                     {selectedPackage?.product.title || `İş / Hizmet İlanı (${formData.durationDays} Gün)`}
-                    {selectedPackage && getJobMetaFromPackage(selectedPackage).isFeatured ? ' + Premium Vitrin' : ''}
+                    {selectedPackage && getDealMetaFromPackage(selectedPackage).isFeatured ? ' + Premium Vitrin' : ''}
                   </h3>
                   <p className="text-[11px] font-bold text-[#D4AF37] mt-1 tracking-wide uppercase">Van Rehberim Premium</p>
                 </div>

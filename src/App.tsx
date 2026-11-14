@@ -13,6 +13,7 @@ import { App as CapApp } from '@capacitor/app';
 import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
 import { NotificationService } from './services/notificationService';
 import { PurchaseService } from './services/purchaseService';
+import { closeTopModal } from './utils/backButtonStack';
 
 export default function App() {
   const { showAuthModal, setShowAuthModal, currentUser } = useAuth();
@@ -59,7 +60,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const listener = CapApp.addListener('backButton', ({ canGoBack }) => {
+    const listener = CapApp.addListener('backButton', () => {
+      // M32: önce açık modal varsa onu kapat (LIFO — bkz. backButtonStack).
+      // Yığın boşsa eski davranış: home'da çıkış, diğer sekmelerde home'a dön.
+      if (closeTopModal()) return;
       if (activeTab === 'home') {
         CapApp.exitApp();
       } else {
@@ -103,7 +107,6 @@ export default function App() {
           <HomeView
             theme={theme}
             onNavigateToPlaces={() => setActiveTab('places')}
-            onNavigateToDeals={() => setActiveTab('deals')}
             onNavigateToJobs={() => setActiveTab('jobs')}
           />
         )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PLACES_TO_VISIT } from '../data/mockData';
-import { Deal, PlaceToVisit } from '../types';
+import { Deal } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { auth, deleteAllUserData, subscribeDeals } from '../lib/firebase';
 import { mapDealDoc } from '../utils/dealMapping';
@@ -8,7 +8,7 @@ import { deleteUser } from 'firebase/auth';
 import { NotificationService, NotificationSettings } from '../services/notificationService';
 import { getErrorMessage, getErrorCode } from '../utils/errors';
 import { useSavedItems } from '../context/SavedItemsContext';
-import { LocalNotifications } from '@capacitor/local-notifications';
+import { useBackButtonClose } from '../utils/backButtonStack';
 import {
   Bell,
   Vibrate,
@@ -21,8 +21,6 @@ import {
   Trash2,
   ChevronRight,
   ChevronDown,
-  User,
-  Check,
   Smartphone,
   Sun,
   Moon,
@@ -34,11 +32,7 @@ import {
   Building2,
   MapPin,
   PhoneCall,
-  ExternalLink,
-  Bookmark,
-  Store,
   Calendar,
-  Tag,
   Compass,
 } from 'lucide-react';
 
@@ -91,7 +85,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     await NotificationService.saveSettings(next);
   };
 
-  const [isLoggedOut, setIsLoggedOut] = useState(false);
   const [isPoliciesOpen, setIsPoliciesOpen] = useState(true);
   const [selectedPolicy, setSelectedPolicy] = useState<null | 'privacy' | 'terms' | 'kvkk'>(null);
 
@@ -99,6 +92,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [favoritesTab, setFavoritesTab] = useState<'businesses' | 'places'>('businesses');
   const [selectedBusiness, setSelectedBusiness] = useState<Deal | null>(null);
+
+  // M32: Android geri tuşu iç içe modalleri LIFO sırayla kapatır —
+  // politikalar → favoriler → işletme detayı.
+  useBackButtonClose(selectedPolicy !== null, () => setSelectedPolicy(null));
+  useBackButtonClose(isFavoritesOpen, () => setIsFavoritesOpen(false));
+  useBackButtonClose(selectedBusiness !== null, () => setSelectedBusiness(null));
 
   // M28: favori state'i SavedItemsContext'te — bileşen yerel kopyası,
   // `van_saved_deals_changed` dinleyicileri ve elle localStorage yazmaları
@@ -252,7 +251,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     // M14: hard reload kaldırıldı — logout() state'i temizler,
                     // bu ekran currentUser === null'da "oturum kapalı" kartına döner.
                     await logout();
-                  } catch (e) { }
+                  } catch { }
                 }}
                 className="py-2 px-3 border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 rounded-full font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
               >
@@ -489,15 +488,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
               <div>
                 <h3 className={`text-xs sm:text-sm font-bold ${textPrimary}`}>Yardım & Destek</h3>
-                <p className={`text-[11px] ${textSecondary}`}>Bize ulaşın</p>
+                {/* M32: e-posta adresi görünür — mailto WebView'de sessizce
+                    başarısız olursa kullanıcı elle kopyalayabilir */}
+                <p className={`text-[11px] ${textSecondary}`}>furkanpesen786@gmail.com</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-slate-400" />
           </div>
 
-          {/* Uygulamayı Değerlendir Link */}
+          {/* Uygulamayı Değerlendir Link — M32: market:// şeması WebView'de
+              güvenilmez; https Play Store bağlantısı hem tarayıcıda hem
+              Android'de (Play Store uygulaması) çalışır */}
           <div
-            onClick={() => window.open('market://details?id=com.vanrehberim.app', '_system')}
+            onClick={() => window.open('https://play.google.com/store/apps/details?id=com.vanrehberim.app', '_blank')}
             className={`${cardBg} rounded-3xl p-4 shadow-sm border flex items-center justify-between hover:opacity-90 transition-opacity cursor-pointer`}
           >
             <div className="flex items-center gap-3">

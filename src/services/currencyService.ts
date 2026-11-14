@@ -1,4 +1,3 @@
-import { CURRENCY_RATES } from '../data/mockData';
 import { getErrorMessage } from '../utils/errors';
 
 export interface CurrencyItem {

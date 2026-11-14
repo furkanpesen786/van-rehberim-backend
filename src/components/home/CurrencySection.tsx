@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchLiveCurrencies, LiveCurrencyResponse } from '../../services/currencyService';
 import { TrendingUp, RefreshCw, X } from 'lucide-react';
+import { useBackButtonClose } from '../../utils/backButtonStack';
 
 interface CurrencySectionProps {
   isDark: boolean;
@@ -12,6 +13,9 @@ interface CurrencySectionProps {
 }
 
 export const CurrencySection: React.FC<CurrencySectionProps> = ({ isDark, searchQuery, isModalOpen, onOpen, onClose }) => {
+  // M32: Android geri tuşu açık modali kapatır
+  useBackButtonClose(isModalOpen, onClose);
+
   // Live doviz.com Exchange & Gold Rates State
   const [currencyData, setCurrencyData] = useState<LiveCurrencyResponse | null>(null);
   const [isCurrencyLoading, setIsCurrencyLoading] = useState<boolean>(true);

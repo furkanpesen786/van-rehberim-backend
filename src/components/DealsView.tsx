@@ -10,6 +10,7 @@ import { mapDealDoc } from '../utils/dealMapping';
 import { getErrorMessage } from '../utils/errors';
 import { useSavedItems } from '../context/SavedItemsContext';
 import { compressImageFile } from '../utils/imageCompress';
+import { useBackButtonClose } from '../utils/backButtonStack';
 import { Sparkles, PhoneCall } from 'lucide-react';
 import {
   Search,
@@ -130,6 +131,10 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const [packagesError, setPackagesError] = useState<string | null>(null);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // M32: Android geri tuşu önce açık modali kapatır (detay → ödeme).
+  useBackButtonClose(selectedDeal !== null, () => setSelectedDeal(null));
+  useBackButtonClose(showPlayModal, () => setShowPlayModal(false));
   // M29: ödeme TAMAMLANDI ama ilan yazılamadı durumu. true iken "Tekrar Dene"
   // yeniden purchasePackage çağırmaz — sunucunun 15 dk'lık satın alma tazelik
   // penceresi içinde yalnızca ilan yazımı yeniden denenir (çift ücret engeli).
@@ -171,7 +176,9 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     if (isPublishing) {
       loadRevenueCatPackages();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // M32: loadRevenueCatPackages bileşen gövdesinde tanımlı; bağımlılık
+    // listesine almak her render'da yeni referansla sonsuz döngü riski
+    // taşır — bilinçli olarak yalnızca isPublishing tetikler.
   }, [isPublishing]);
 
   // New UI states needed for the complex form

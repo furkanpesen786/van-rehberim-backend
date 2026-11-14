@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errors';
+import { useBackButtonClose } from '../utils/backButtonStack';
 import {
   X,
   ShieldCheck,
@@ -22,6 +23,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const { loginWithGoogle, loginWithApple, setShowAuthModal } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // M32: Android geri tuşu giriş modalını kapatır (önceden sekmeyi
+  // değiştiriyordu). onClose opsiyonel — AuthContext'ten güvenli kapatma.
+  useBackButtonClose(isOpen, () => (onClose ? onClose() : setShowAuthModal(false)));
 
   if (!isOpen) return null;
 

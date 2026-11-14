@@ -5,12 +5,18 @@ import tsParser from "@typescript-eslint/parser";
 import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
-  // Yalnızca src/ altındaki kaynak dosyalar lint edilir; üretim/ara dizinler yok sayılır.
+  // M32: kapsam genişletildi — src/ yanında server/ + server.ts + şema
+  // denetim script'i de lint edilir. Üretim/ara dizinler yok sayılır.
   {
     ignores: ["dist/**", "android/**", "resources/**", "node_modules/**"],
   },
   {
-    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    files: [
+      "src/**/*.{js,jsx,ts,tsx}",
+      "server.ts",
+      "server/**/*.ts",
+      "scripts/firestore-schema-audit.ts",
+    ],
     languageOptions: {
       parser: tsParser,
       parserOptions: {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Pharmacy } from '../../types';
 import { fetchLivePharmacies } from '../../services/pharmacyService';
+import { useBackButtonClose } from '../../utils/backButtonStack';
 import {
   HeartPulse,
   RefreshCw,
@@ -19,6 +20,9 @@ interface PharmacySectionProps {
 }
 
 export const PharmacySection: React.FC<PharmacySectionProps> = ({ isDark, searchQuery, isModalOpen, onOpen, onClose }) => {
+  // M32: Android geri tuşu açık modali kapatır
+  useBackButtonClose(isModalOpen, onClose);
+
   // Live Duty Pharmacies State (Fetched from vaneczaciodasi.org.tr)
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [pharmacyDutyDate, setPharmacyDutyDate] = useState<string>('Bugün');

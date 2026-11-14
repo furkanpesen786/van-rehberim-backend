@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   X,
   Plus,
-  Trash2,
   CheckCircle2,
   AlertCircle,
   CreditCard,
@@ -31,18 +30,23 @@ import { getErrorMessage } from '../utils/errors';
 interface HomeViewProps {
   theme?: 'light' | 'dark';
   onNavigateToPlaces: () => void;
-  onNavigateToDeals: () => void;
   onNavigateToJobs?: () => void;
 }
 
 import { subscribeTaxis } from '../lib/firebase';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
 import { submitPaidListing } from '../services/listingService';
+import { useBackButtonClose } from '../utils/backButtonStack';
 
-export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateToPlaces, onNavigateToDeals, onNavigateToJobs }) => {
-  const { currentUser, setShowAuthModal, logout } = useAuth();
+export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateToPlaces, onNavigateToJobs }) => {
+  const { currentUser, setShowAuthModal } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeModal, setActiveModal] = useState<'pharmacy' | 'hospital' | 'bus' | 'taxi' | 'pray' | 'weather' | 'finance' | null>(null);
+
+  // M32: Android geri tuşu önce açık bölüm modalini kapatır (önceden
+  // sekmeyi değiştiriyordu). 'hospital'/'taxi' değerleri M25 bölünmesinden
+  // kalma — hiç set edilmiyorlar ama tip birliği için duruyorlar.
+  useBackButtonClose(activeModal !== null, () => setActiveModal(null));
 
   // User Taxi Listings & Subscription State (Live from Firestore)
   const [taxis, setTaxis] = useState<TaxiStand[]>([]);
@@ -79,6 +83,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
 
   const [isAddTaxiModalOpen, setIsAddTaxiModalOpen] = useState<boolean>(false);
   const [showPayModalTaksi, setShowPayModalTaksi] = useState<boolean>(false);
+  // M32: Android geri tuşu taksi ekleme/ödeme modallarını kapatır
+  useBackButtonClose(isAddTaxiModalOpen, () => setIsAddTaxiModalOpen(false));
+  useBackButtonClose(showPayModalTaksi, () => setShowPayModalTaksi(false));
   // M19: alert() yerine ödeme modalı içi hata mesajı
   const [payModalError, setPayModalError] = useState<string | null>(null);
   const [isProcessingTaksi, setIsProcessingTaksi] = useState<boolean>(false);
@@ -178,9 +185,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
     }
   };
 
-  const handleDeleteTaxi = (id: string) => {
-    // Only admin can delete from firestore manually or we can add deleteDoc logic here
-  };
+  // M32: ölü handleDeleteTaxi (id parametresi hiç kullanılmıyordu, gövde
+  // boştu) kaldırıldı — taksi silme akışı yok.
 
   const isDark = theme === 'dark';
 
@@ -693,14 +699,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                         <span>ARA ({taxi.phone})</span>
                       </a>
 
-                      <button
-                        onClick={() => handleDeleteTaxi(taxi.id)}
-                        title="İlanı Sil"
-                        className={`p-2.5 rounded-xl border transition-all ${isDark ? 'bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border-slate-700' : 'bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border-slate-200'
-                          }`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {/* M32: "İlanı Sil" düğmesi kaldırıldı — boş bir no-op
+                          handler'a bağlıydı (hiçbir şey silmiyordu). Gerçek
+                          silme akışı istenirse ayrıca eklenmeli (deleteDoc +
+                          owner kural kontrolü). */}
                     </div>
                   </div>
                 ))

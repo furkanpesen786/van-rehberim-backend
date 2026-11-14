@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { BusRoute } from '../../types';
 import { fetchLiveBusSchedules } from '../../services/busService';
+import { useBackButtonClose } from '../../utils/backButtonStack';
 import {
   Bus,
   RefreshCw,
@@ -25,14 +26,16 @@ interface BusSectionProps {
 }
 
 export const BusSection: React.FC<BusSectionProps> = ({ isDark, searchQuery, isModalOpen, onOpen, onClose }) => {
+  // M32: Android geri tuşu açık modali kapatır
+  useBackButtonClose(isModalOpen, onClose);
+
   // Live van.bel.tr Bus Schedules & Stops State
+  // M32: busSource/busIsLive/selectedBusCategory state'leri kaldırıldı —
+  // değerler hiçbir yerde okunmuyordu (yalnızca setter'ları çağrılıyordu).
   const [busRoutes, setBusRoutes] = useState<BusRoute[]>([]);
   const [isBusLoading, setIsBusLoading] = useState<boolean>(true);
-  const [busSource, setBusSource] = useState<string>('van.bel.tr (VAN BELVAN Ulaşım)');
   const [busLastUpdated, setBusLastUpdated] = useState<string>('');
-  const [busIsLive, setBusIsLive] = useState<boolean>(false);
   const [busSearchQuery, setBusSearchQuery] = useState<string>('');
-  const [selectedBusCategory, setSelectedBusCategory] = useState<string>('Tümü');
   const [activeBusId, setActiveBusId] = useState<string | null>(null);
 
   const handleRefreshBusSchedules = async () => {
@@ -41,9 +44,7 @@ export const BusSection: React.FC<BusSectionProps> = ({ isDark, searchQuery, isM
       const data = await fetchLiveBusSchedules();
       if (data && data.routes && data.routes.length > 0) {
         setBusRoutes(data.routes);
-        if (data.source) setBusSource(data.source);
         if (data.lastUpdated) setBusLastUpdated(data.lastUpdated);
-        setBusIsLive(!!data.isLive);
       }
     } catch (err) {
       console.error('Failed to load live van.bel.tr bus schedules:', err);

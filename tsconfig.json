@@ -29,7 +29,9 @@
   },
   "include": [
     "src",
-    "server.ts"
+    "server.ts",
+    "server",
+    "scripts/firestore-schema-audit.ts"
   ],
   "exclude": [
     "node_modules",

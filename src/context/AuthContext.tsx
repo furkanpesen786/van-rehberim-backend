@@ -65,7 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const loginWithEmail = async (email: string, displayName?: string) => {
+  // M32: e-posta girişi devre dışı — parametreler artık gereksiz.
+  const loginWithEmail = async () => {
     throw new Error('E-posta ile giriş sistemi güvenlik güncellemeleri nedeniyle geçici olarak devre dışı bırakılmıştır. Lütfen Google veya Apple ile giriş yapınız.');
   };
 
@@ -112,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Save to Firestore in the background
         try {
           await saveUserToFirestore(profile);
-        } catch (e) {
+        } catch {
           console.warn("Firestore sync failed, but user is logged in locally.");
         }
       }
@@ -172,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         try {
           await saveUserToFirestore(profile);
-        } catch (e) {
+        } catch {
           console.warn("Firestore sync failed, but user is logged in locally.");
         }
       }
