@@ -4,12 +4,12 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 13.11.2026 (oturum #11 sürüyor) — **M29 ÇÖZÜLDÜ ✅**
-> (kritik ödeme/ilan akışı + favori hayalet id'ler; commit `e8e4abd`, push'lu —
-> CI/Render kontrolü bekliyor). 17/17 ana liste bitti; yeni döngüde sonraki
-> parti **M30** (server fetch timeout'ları, abonelik hata callback'leri,
-> sıralama, ilçe filtresi vb.). Kalan tek büyük iş: M5 (iyzico vs RevenueCat
-> kararı — dondurulmuş).
+> **Son güncelleme:** 14.11.2026 (oturum #11 sürüyor) — **M30 ÇÖZÜLDÜ ✅**
+> (commit `6d6cf65`, push'lu — CI/Render kontrolü bekliyor). Önceki: M29
+> (`e8e4abd`: kritik ödeme/ilan akışı + favori hayalet id'ler — CI ✅ + Render
+> `live`). 17/17 ana liste bitti; yeni döngüde sonraki parti **M31**
+> (SettingsView/notificationService/server veri dürüstlüğü vb.). Kalan tek
+> büyük iş: M5 (iyzico vs RevenueCat kararı — dondurulmuş).
 
 ---
 
@@ -169,9 +169,10 @@ M5 (iyzico vs RevenueCat kararı — dondurulmuş).
 Kullanıcı "tüm projeyi en ince ayrıntısına kadar incele" istedi → kapsamlı
 rapor teslim edildi (3 kritik + 13 orta + hafif; ayrıca JobsView+DealsView
 derin inceleme ajanı ~28 bulgu more). Kullanıcı **"tamam sırayla çöz bunları"**
-dedi. **M29 ✅ ÇÖZÜLDÜ — commit `e8e4abd`** (12 dosya, +469/−104, push'lu;
-CI + Render deploy kontrolü bekliyor — server/listings.ts değişti → deploy
-tetiklendi). Ayrıntı aşağıdaki M29 kaydında. Sonraki parti **M30**.
+dedi. **M29 ✅ ÇÖZÜLDÜ — commit `e8e4abd`** (12 dosya, +469/−104; **CI ✅
+yeşil + Render `live`**, 13.11 akşamı API'den doğrulandı). **M30 ✅ ÇÖZÜLDÜ
+— commit `6d6cf65`** (7 dosya, +223/−40; CI/Render kontrolü bekliyor).
+Ayrıntı aşağıdaki M29/M30 kayıtlarında. Sonraki parti **M31**.
 
 **12.11.2026 oturumu #11 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
 HomeView.tsx 2167 → 960 satır. Hava durumu / nöbetçi eczane / ezan vakitleri
@@ -248,24 +249,59 @@ hayalet id'ler + testler) restart sonrası tamamlandı.
   images/indirimMetni/phone eşlemesi, kapak fallback'i) ve
   savedItemsStorage.test.ts'ye hayalet temizliği regresyonu (+6). 54/54 ✅.
 - **Doğrulama:** tsc strict exit 0; eslint 0 error / 36 warning (37→36);
-  build ✅ (vite 11.71 s + server bundle). Push `6a2790c..e8e4abd`.
-  CI + Render deploy kontrolü BEKLİYOR (server/listings.ts değişti).
+  build ✅ (vite 11.71 s + server bundle). Push `6a2790c..e8e4abd`;
+  **CI ✅ yeşil** (check-runs: build / completed / success) + **Render
+  `e8e4abd` live** (API'den doğrulandı). MEMORY kaydı: `d7fc81d`.
 - **Bash sınıflandırıcısı** oturum boyunca aralıklı arızalıydı (bir ara
   tamamen kapalı — model kullanılamıyor hatası); test/lint/build/commit/push
   komutlarını kullanıcı `!` önekiyle çalıştırdı.
 
+**13.11.2026 oturumu #11 — M30 ÇÖZÜLDÜ (orta önem partisi; commit `6d6cf65`,
+7 dosya +223/−40):**
+
+1. **Server fetch timeout'ları:** `server.ts`'e `fetchWithTimeout` yardımcısı
+   (AbortSignal.timeout, 15 sn) — weather ×4 (MGM sondurum/tahmin +
+   Open-Meteo AQI/UV), pharmacies, prayer-times fetch'lerine bağlandı.
+   Önceden Node fetch'in varsayılan zaman aşımı YOKTU — asılı bağlantı
+   route'u süresiz blokluyordu. Abort mevcut M18 bayat-önbellek fallback'ine
+   düşüyor. (currencies 10 sn / bus + news 3,5 sn zaten timeout'luydu.)
+2. **Abonelik hata callback'leri:** `subscribeJobListings`/`subscribeDeals`/
+   `subscribeTaxis` imzalarına opsiyonel `onError` eklendi (onSnapshot hata
+   callback'i önceden yalnızca console.warn ediyordu). Tüketicilerde
+   (JobsView/DealsView/SettingsView/HomeView-taksi) hata durumunda
+   setIsLoading(false) + dürüst hata kartı — önceden sonsuz iskelet/spinner.
+3. **"En Yeni İlanlar Üstte":** `src/utils/listingSort.ts` (YENİ, +5 test) —
+   `listingTimestampMillis` (Firestore Timestamp toMillis/seconds) +
+   `sortByNewestFirst`. Sıralama üç subscribe fonksiyonun içinde tek
+   noktada (docs sıralanıp sonra map edilir) — Firestore orderBy composite
+   index istemez; timestamp'u olmayan eski kayıtlar sona düşer.
+4. **İlçe filtresi/form uyumsuzluğu (JobsView):** tek `VAN_DISTRICTS`
+   sabiti (İpekyolu, Edremit, Tuşba, Erciş, Gevaş, Muradiye, Özalp) hem
+   filtre hem form select'inde (önceden Özalp filtrede vardı ama formda
+   yoktu → ölü filtre; form "/ Van" sonekli değerler yazıyordu). "Tüm Van
+   Geneli" ilanları artık her ilçe filtresinde görünür; eski sonekli
+   kayıtlar includes() eşleşmesiyle uyumlu kalır.
+5. **DealsView tarih input'ları readOnly:** tarihler satın alınan paketten
+   hesaplanıyor (finalStartDate/finalEndDate) — düzenlenebilir görünüm
+   yanıltıcıydı. Setter'lar paket seçiminde/reset'te hâlâ çalışıyor.
+6. **JobsView toast unmount koruması:** `toastTimers` ref + `scheduleToastClear`
+   — 4 setTimeout artık izleniyor, unmount'ta clearTimeout.
+7. **py-0.2 → py-0.5** (4 yer: HomeView/JobsView/SettingsView çipleri —
+   derlenmiş CSS'te doğrulandı: py-0.2 üretilmiyordu, sessizce padding yoktu).
+   **İnceleme düzeltmesi:** py-4.5 ve border-3 Tailwind 4 dinamik ölçekle
+   GEÇERLİymiş (derlenmiş CSS'te mevcutlar) — incelemedeki şüphe yanlıştı.
+8. **JobsView payload ölü alanları:** sunucunun ezip yazdığı createdAt/
+   durationDays/isFeatured/userEmail/userId/productId payload'tan çıkarıldı;
+   yerel liste güncellemesi (`newJob`) sunucu değerleriyle açıkça kuruluyor.
+   pricePaid whitelist'te — kaldı.
+
+**Doğrulama:** tsc strict ✅ exit 0; eslint 0 error / 36 warning (aynı);
+**59/59 test** ✅ (9 dosya — listingSort +5); build ✅ (vite 3.23 s + server
+bundle). Push `d7fc81d..6d6cf65`. CI + Render kontrolü bekliyor.
+Bash sınıflandırıcısı oturum boyunca aralıklı arızalı — doğrulama ve commit
+kullanıcı `!` önekiyle çalıştırdı.
+
 **Sonraki partiler (kullanıcı zaten "sırayla çöz" onayı verdi):**
-- **M30 (orta):** server.ts fetch timeout'ları (weather ×4 MGM, pharmacies,
-  prayer-times — asılı bağlantı route'u bloklar); subscribeJobs/subscribeDeals/
-  subscribeTaxis hata callback'ine isLoading=false + hata mesajı (şu an
-  sonsuz iskelet/yükleniyor — callback imzasına error parametresi ekle,
-  bileşenlerde setIsLoading(false)); "En Yeni İlanlar Üstte" için client-side
-  sort (createdAtTimestamp desc; Firestore orderBy composite index ister);
-  ilçe filtresi/form uyumsuzluğu (Özalp formda yok → ölü filtre; "Tüm Van
-  Geneli" ilanları ilçe filtresinde gizleniyor); DealsView tarih input'ları
-  readOnly; JobsView toast setTimeout unmount koruması; py-0.2/py-4.5
-  geçersiz Tailwind sınıfları; JobsView payload ölü alanları (createdAt/
-  durationDays/isFeatured/userEmail/userId/productId sunucu override ediyor).
 - **M31:** SettingsView (isInitialLoad koruması çalışmıyor — her girişte
   bildirim yeniden planlanıyor + fetchLivePrayerTimes; requestPermissions
   mount'ta koşulsuz; hesap silme: currentUser null → sahte başarı mesajı,
