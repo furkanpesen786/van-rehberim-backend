@@ -4,12 +4,12 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 14.11.2026 (oturum #11 sürüyor) — **M30 ÇÖZÜLDÜ ✅**
-> (commit `6d6cf65`, push'lu — CI/Render kontrolü bekliyor). Önceki: M29
-> (`e8e4abd`: kritik ödeme/ilan akışı + favori hayalet id'ler — CI ✅ + Render
-> `live`). 17/17 ana liste bitti; yeni döngüde sonraki parti **M31**
-> (SettingsView/notificationService/server veri dürüstlüğü vb.). Kalan tek
-> büyük iş: M5 (iyzico vs RevenueCat kararı — dondurulmuş).
+> **Son güncelleme:** 14.11.2026 (oturum #11 sürüyor) — **M31 ÇÖZÜLDÜ ✅**
+> (commit `6885559`, **CI ✅ yeşil + Render `live`**). Önceki: M30
+> (`6d6cf65`: CI ✅ + Render `live`), M29 (`e8e4abd`: kritik ödeme/ilan akışı +
+> favori hayalet id'ler — CI ✅ + Render `live`). 17/17 ana liste bitti; yeni
+> döngüde sonraki parti **M32** (Android geri tuşu, ölü importlar, deps
+> temizliği). Kalan tek büyük iş: M5 (iyzico vs RevenueCat kararı — dondurulmuş).
 
 ---
 
@@ -171,8 +171,10 @@ rapor teslim edildi (3 kritik + 13 orta + hafif; ayrıca JobsView+DealsView
 derin inceleme ajanı ~28 bulgu more). Kullanıcı **"tamam sırayla çöz bunları"**
 dedi. **M29 ✅ ÇÖZÜLDÜ — commit `e8e4abd`** (12 dosya, +469/−104; **CI ✅
 yeşil + Render `live`**, 13.11 akşamı API'den doğrulandı). **M30 ✅ ÇÖZÜLDÜ
-— commit `6d6cf65`** (7 dosya, +223/−40; CI/Render kontrolü bekliyor).
-Ayrıntı aşağıdaki M29/M30 kayıtlarında. Sonraki parti **M31**.
+— commit `6d6cf65`** (7 dosya, +223/−40; **CI ✅ + Render `live`**).
+**M31 ✅ ÇÖZÜLDÜ — commit `6885559`** (5 dosya, +185/−86; **CI ✅ + Render
+`live`**, 14.11 API'den doğrulandı). Ayrıntı aşağıdaki M29/M30/M31
+kayıtlarında. Sonraki parti **M32**.
 
 **12.11.2026 oturumu #11 — M25 ÇÖZÜLDÜ (HomeView monolit bölünmesi; 4.3):**
 HomeView.tsx 2167 → 960 satır. Hava durumu / nöbetçi eczane / ezan vakitleri
@@ -256,6 +258,57 @@ hayalet id'ler + testler) restart sonrası tamamlandı.
   tamamen kapalı — model kullanılamıyor hatası); test/lint/build/commit/push
   komutlarını kullanıcı `!` önekiyle çalıştırdı.
 
+**14.11.2026 oturum #11 — M31 ÇÖZÜLDÜ (veri dürüstlüğü + bildirim/hesap-silme;
+commit `6885559`, 5 dosya +185/−86):**
+
+1. **`catch (error: any)` ×4 → `unknown`:** `server.ts`'e `errorMessage(error:
+   unknown)` yardımcısı (Error → message, değilse String) — hava durumu /
+   eczane / namaz / döviz catch'lerinde `error.message` yerine. `any` ile
+   yakalanan değerin Error olduğu varsayımı güvenli değildi (AbortSignal vb.).
+2. **Eczane uydurma fallback telefon:** telefon ayrıştırılamazsa sabit
+   `'0432 216 56 76'` (odanın kendi numarası) basılıyordu — yanlış eczaneye
+   çağrı yönlendirir. Artık boş gönderiliyor; PharmacySection telefonsuz
+   kayıtta ARA düğmesi yerine "Telefon belirtilmemiş" gösteriyor.
+3. **Diyanet uydurma vakitler + isLive:** regex eşleşmezse sabit eski vakitler
+   ('03:23' vb.) "canlı" etiketiyle önbelleğe alınıyordu. Artık eksik
+   ayrıştırma hata fırlatıyor → bayat önbellek / dürüst 500 yolu. Bayat
+   önbellek yanıtında `isLive: false` (önceden hep `true`).
+4. **Otobüs canlı-parse uydurma veriler:** van.bel.tr tablosundan yalnızca
+   saatler okunabiliyor ama payload `['Merkez Garaj', 'İpekyolu', 'Varış
+   Durak']` durakları + sabit '15,00 TL' tarife taşıyordu. İkisi de boş
+   (istemci BusSection boş alanları zaten gizliyor). BUS_FALLBACK_ROUTES
+   (isLive:false yerel veri seti) bilinçli tasarım — dokunulmadı.
+5. **Haber RSS pubDate:** `<pubDate>` ayrıştırma eklendi — önceden her haber
+   "bugün + şu an" gösteriyordu (gerçek yayın tarihi değil). pubDate yoksa
+   eski davranış korunur.
+6. **rateLimiter bellek sızıntısı (listings.ts):** pencere dışına çıkan
+   uid'ler Map'ten hiç silinmiyordu → uzun ömürlü süreçte büyüme. Dakikada
+   bir çalışan `pruneRateLimiter()` — boş girdi silinir, kısmi filtre yazılır.
+7. **notificationService namaz bildirimleri:** `schedule: { on: {hour,
+   minute} }` GÜNLÜK tekrar planlıyordu → ertesi gün BAYAT vakitte bildirim.
+   Tek atımlık `at:` kullanılıyor; App.tsx her açılışta applySettings ile
+   yeniden planlıyor (dependable). Başlıklar API anahtarından değil
+   (Imsak/Ogle) düzgün Türkçe isimlerden: İmsak/Güneş/Öğle/İkindi/Akşam/Yatsı
+   + tam cümle gövdeler.
+8. **SettingsView bildirim efektleri → handler:** isInitialLoad bekçili effect
+   işe yaramıyordu (senkron state yüklemesinde ilk render'da guardı yutuyor,
+   sonra her ziyarette ayarlar geri yazılıp bildirimler yeniden planlanıyordu).
+   Yeni `handleNotificationToggle(patch)` — ayarlar yalnızca toggle değişince
+   kaydediliyor; `requestPermissions` yalnızca bir bildirim türü AÇILIRKEN
+   çağrılıyor (önceden mount'ta koşulsuz — Android'de rahatsız edici).
+9. **SettingsView hesap silme dürüstlüğü:** `auth.currentUser` yoksa eskiden
+   sessizce "başarılı" davranıyordu (hiçbir şey silinmediği halde) → artık
+   dürüst hata. 50 ms'lik setTimeout zinciri kaldırıldı — spinner logout +
+   yönlendirme bitene kadar açık. deleteError 8 sn sonra kendini temizliyor.
+10. **Toggle alt yazıları state'e bağlı** (haber/namaz/titreşim açık-kapalı
+    gösteriyor) + "Baskı" yazım hatası giderildi.
+
+**Doğrulama:** tsc strict ✅ exit 0; eslint 0 error / 36 warning (aynı);
+**59/59 test** ✅; build ✅ (vite 3.23 s + server bundle). Push
+`38e9556..6885559`. **CI ✅ yeşil + Render `live`** (14.11 09:37 UTC'den
+itibaren). Bash sınıflandırıcısı oturum boyunca aralıklı arızalı — doğrulama
+ve commit kullanıcı `!` önekiyle çalıştırdı.
+
 **13.11.2026 oturumu #11 — M30 ÇÖZÜLDÜ (orta önem partisi; commit `6d6cf65`,
 7 dosya +223/−40):**
 
@@ -302,17 +355,6 @@ Bash sınıflandırıcısı oturum boyunca aralıklı arızalı — doğrulama v
 kullanıcı `!` önekiyle çalıştırdı.
 
 **Sonraki partiler (kullanıcı zaten "sırayla çöz" onayı verdi):**
-- **M31:** SettingsView (isInitialLoad koruması çalışmıyor — her girişte
-  bildirim yeniden planlanıyor + fetchLivePrayerTimes; requestPermissions
-  mount'ta koşulsuz; hesap silme: currentUser null → sahte başarı mesajı,
-  deleteAllUserData→deleteUser sırası yanıltıcı, spinner erken kapanıyor;
-  toggle alt başlıkları state'e bağlanmamış + "Baskı"→"Bas" typo; hata
-  toast'u otomatik kapanmıyor); notificationService (on:{hour,minute} günlük
-  tekrar → tam tarih + let:false, ASCII başlıklar "Ogle"→"Öğle"); server.ts
-  veri dürüstlüğü (otobüs uydurma duraklar 'Merkez Garaj'... + sabit 15 TL
-  tarife; haber pubDate parse yok — hepsi "bugün"; Diyanet regex fallback
-  sabit eski vakitler "canlı" etiketiyle; eczane sabit fallback telefon);
-  rateLimiter Map uid temizliği; catch(error:any) ×4.
 - **M32:** Android geri tuşu modalları kapatmıyor (App.tsx listener her zaman
   home'a atar); mailto/market:// WebView'de güvenilmez (https fallback);
   36 eslint uyarısı (ölü importlar: SettingsView 11, firebase.ts 5, BusSection
@@ -1607,7 +1649,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (13.11.2026, oturum #11): dal ucu `6a2790c` (M28: state
+- Git durumu (14.11.2026, oturum #11): dal ucu `6885559` (M31: veri
+  dürüstlüğü + bildirim/hesap-silme; **CI ✅ + Render `live`**), önceki
+  `38e9556` (MEMORY M30), `6d6cf65` (M30; CI ✅ + Render `live`), `d7fc81d`
+  (MEMORY M29), `e8e4abd` (M29; CI ✅ + Render `live`), `6a2790c` (M28: state
   management — 17/17 SON SORUN), önceki `ff65be7` (MEMORY M27), `7156b76`
   (M27: tsconfig strict + @types/react; CI ✅ yeşil), önceki `00d2e21`
   (MEMORY M26), `135b131` (M26: Firestore şema normalizasyonu; CI ✅ yeşil),
