@@ -15,16 +15,16 @@
 
 import { Router, type Request, type Response } from 'express';
 import axios from 'axios';
-import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
+// M35: Admin init ortak modüle taşındı (server/account.ts de kullanıyor)
+import { getAdminApp } from './adminApp.ts';
 
 export const listingsRouter = Router();
 
 // --- Konfigürasyon -----------------------------------------------------------
 
 const RC_SECRET_API_KEY = process.env.REVENUECAT_SECRET_API_KEY || '';
-const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT || '';
 
 // Ürün → süre/vitrin metaı. Tek doğrul kaynağı SUNUCUDUR (istemcideki
 // getJobMetaFromPackage / getDealMetaFromPackage yalnızca UI içindir).
@@ -88,27 +88,6 @@ const IMAGE_FIELDS = new Set(['image', 'photo']);
 const IMAGE_LIST_FIELDS = new Set(['images']);
 const MAX_IMAGE_FIELD_LENGTH = 150_000;
 const MAX_IMAGE_COUNT = 5;
-
-// --- Firebase Admin (lazy init, fail-closed) ---------------------------------
-
-let cachedAdminApp: App | null = null;
-
-function getAdminApp(): App | null {
-  if (cachedAdminApp) return cachedAdminApp;
-  if (getApps().length > 0) {
-    cachedAdminApp = getApps()[0];
-    return cachedAdminApp;
-  }
-  if (!FIREBASE_SERVICE_ACCOUNT) return null;
-  try {
-    const serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
-    cachedAdminApp = initializeApp({ credential: cert(serviceAccount) });
-    return cachedAdminApp;
-  } catch (err) {
-    console.error('[listings] FIREBASE_SERVICE_ACCOUNT çözümlenemedi:', err);
-    return null;
-  }
-}
 
 // --- RevenueCat subscriber sorgusu (v1 REST, 60 sn önbellekli) ---------------
 

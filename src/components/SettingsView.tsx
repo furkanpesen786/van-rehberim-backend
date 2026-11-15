@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PLACES_TO_VISIT } from '../data/mockData';
 import { Deal } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { auth, deleteAllUserData, subscribeDeals } from '../lib/firebase';
+import { auth, subscribeDeals } from '../lib/firebase';
 import { mapDealDoc } from '../utils/dealMapping';
-import { deleteUser } from 'firebase/auth';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
+import { deleteAccountRemotely } from '../services/accountService';
+import { SAVED_DEALS_KEY, SAVED_PLACES_KEY } from '../utils/savedItemsStorage';
 import { NotificationService, NotificationSettings } from '../services/notificationService';
-import { getErrorMessage, getErrorCode } from '../utils/errors';
+import { getErrorMessage } from '../utils/errors';
 import { useSavedItems } from '../context/SavedItemsContext';
 import { useBackButtonClose } from '../utils/backButtonStack';
 import {
@@ -302,21 +303,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       }
                     };
 
-                    // M13 (KVKK): önce Firestore'daki tüm kullanıcı verisi
-                    // (profil, favoriler, ilanlar) — güvenlik kuralları sahibin
-                    // silmesine izin verir; Auth kaydı silindikten sonra reddederdi.
-                    // Sonra Auth kaydı silinir.
-                    await runStep('Firestore verilerinin silinmesi', () => deleteAllUserData(user.uid));
+                    // M35: silme artık tamamen SUNUCUDA yapılır (Admin SDK,
+                    // POST /api/account/delete). M34 teşhisi: CapacitorHttp
+                    // altında Firestore web SDK'nın yazma çağrıları
+                    // (deleteDoc) asla sonuçlanmıyordu — "Firestore
+                    // verilerinin silinmesi" adımı 20 sn'de tamamlanamadı.
+                    // Sunucu tarafı aynı zamanda requires-recent-login
+                    // kısıtını ve @capacitor-firebase plugin'inin deleteUser
+                    // hatasını sessizce yutmasını da aşar.
+                    const idToken = await runStep('Oturum kimliğinin alınması', () => user.getIdToken());
+                    await runStep('Hesabın silinmesi', () => deleteAccountRemotely(idToken));
 
-                    // M34: Auth kaydı. Native'de (Android) web SDK'nın
-                    // deleteUser çağrısı CapacitorHttp araya girdiği için
-                    // takılabiliyordu — native plugin kullanıcayı siler ve
-                    // oturumu kapatar; web'de klasik yol korunur.
+                    // Cihazdaki yerel veri (KVKK): favoriler + oturumlar.
+                    // Sunucu Auth kaydını sildiği için oturum tokenları
+                    // zaten geçersiz; burada yerel durum temizlenir.
                     if (Capacitor.isNativePlatform()) {
-                      await runStep('Auth kaydının silinmesi (native)', () => FirebaseAuthentication.deleteUser());
-                    } else {
-                      await runStep('Auth kaydının silinmesi', () => deleteUser(user));
+                      await runStep('Yerel oturumun kapatılması', () => FirebaseAuthentication.signOut());
                     }
+                    localStorage.removeItem(SAVED_DEALS_KEY);
+                    localStorage.removeItem(SAVED_PLACES_KEY);
 
                     // M19: alert() yerine yeşil başarı bildirimi — kullanıcı
                     // okuyabilsin diye çıkış/yenileme 2,5 sn gecikmeli.
@@ -324,20 +329,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     // artık iş bitene kadar (logout + yönlendirme dahil) açık.
                     setDeleteSuccess('Hesabınız ve ona bağlı tüm verileriniz başarıyla silinmiştir.');
                     await new Promise((r) => setTimeout(r, 2500));
-                    await runStep('Çıkış yapma', () => logout());
+                    await logout(); // Session sıfırla (web SDK oturumu)
                     window.location.href = '/'; // Hard reload — hesap silme sonrası tam sıfırlama gerekli
                   } catch (err) {
-                    if (getErrorCode(err) === 'auth/requires-recent-login') {
-                      setDeleteError('Güvenlik kuralı: Hesabı silebilmek için oturum tazelemeniz gerekiyor. Lütfen yeniden giriş yapın.');
-                      setTimeout(async () => {
-                        await logout();
-                        window.location.href = '/'; // Hard reload nükleer çözüm
-                      }, 2500); // Uyarıyı okuması için süre
-                    } else {
-                      setDeleteError(getErrorMessage(err) || 'Hesabınız silinirken bir ağ hatası oluştu.');
-                      // M31: hata mesajı ~8 sn sonra kendini temizler
-                      setTimeout(() => setDeleteError(null), 8000);
-                    }
+                    // Hata mesajları Türkçe ve adımlı gelir (zaman aşımı /
+                    // sunucu hatası / oturum doğrulama)
+                    setDeleteError(getErrorMessage(err) || 'Hesabınız silinirken bir ağ hatası oluştu.');
+                    // M31: hata mesajı ~8 sn sonra kendini temizler
+                    setTimeout(() => setDeleteError(null), 8000);
                   } finally {
                     setIsDeletingAccount(false);
                   }

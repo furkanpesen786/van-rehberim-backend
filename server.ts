@@ -7,6 +7,8 @@ import cors from 'cors';
 // tam .ts uzantısı şart (ts-node, tsx, esbuild ve tsc/allowImportingTsExtensions
 // hepsi bu formu kabul eder).
 import { listingsRouter } from './server/listings.ts';
+// M35: KVKK hesap silme — Firestore + Auth kaydı Admin SDK ile sunucuda silinir
+import { accountRouter } from './server/account.ts';
 // M20: ~612 satırlık inline otobüs fallback verisi ayrı modüle taşındı.
 // M33: fallback artık npm run scrape:bus ile üretilen GERÇEK van.bel.tr
 // anlık görüntüsü; canlı kazıyıcı server/busScraper.ts'te.
@@ -37,6 +39,9 @@ app.use(express.json());
 // M5: Ücretli ilan yayınlama (Firebase ID token + RevenueCat entitlement
 // doğrulaması; Firestore'a yalnızca Admin SDK ile yazılır).
 app.use('/api/listings', listingsRouter);
+
+// M35: KVKK hesap silme (ID token doğrulaması; Firestore + Auth Admin SDK ile).
+app.use('/api/account', accountRouter);
 
 // M30: timeout'lu fetch yardımcısı. Node fetch'in varsayılan zaman aşımı
 // YOKTUR — kaynak asılı kalırsa (bağlantı açılır ama yanıt gelmez) await
