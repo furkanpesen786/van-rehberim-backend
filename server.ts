@@ -840,10 +840,24 @@ app.get('/api/currencies', async (_req, res) => {
   }
 });
 
-// M18: van.bel.tr 1 saat önbellek + 24 saat bayat-fallback — tarifeler nadir
-// değişir; her istemci yenilemesi sayfayı scrape ediyordu (ToS/blok riski).
+// M33: van.bel.tr otobüs sayfası yenilendi — liste sayfası artık tablo değil
+// hat linkleri; saatler ve durak zinciri her hattın OtobusSaatDetay/{id}
+// detay sayfasında. M18 desen korunur: 1 saat taze önbellek + 24 saat bayat
+// önbellek + yerel fallback. 83 detay sayfası (~15-30 sn) istemciyi
+// bekletmemek için arka planda 6'şarlı gruplar halinde çekilir
+// (stale-while-revalidate).
 const BUS_CACHE_TTL_MS = 60 * 60 * 1000;
 const BUS_STALE_MAX_MS = 24 * 60 * 60 * 1000;
+const BUS_FETCH_TIMEOUT_MS = 8000;
+const BUS_DETAIL_TIMEOUT_MS = 6000;
+const BUS_DETAIL_CONCURRENCY = 6;
+const BUS_LISTING_URL = 'https://van.bel.tr/Syf/Otobus-Hareket-Saatleri.html';
+const BUS_UA_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+} as const;
 interface BusApiPayload {
   success: boolean;
   routes: any[];
@@ -852,78 +866,198 @@ interface BusApiPayload {
   isLive: boolean;
   stale?: boolean;
 }
+interface BusListingEntry {
+  detailId: string;
+  lineNo: string;
+  title: string;
+}
+interface BusDetailData {
+  title: string;
+  route: string;
+  departureTimes: string[];
+  returnTimes: string[];
+  stops: string[];
+}
 let busCache: { payload: BusApiPayload; fetchedAt: number } | null = null;
+let busRefreshInProgress = false;
 
-// API ROUTE: Live Bus Schedules & Stops from van.bel.tr (https://van.bel.tr/Syf/Otobus-Hareket-Saatleri.html)
-app.get('/api/bus-schedules', async (_req, res) => {
+function decodeBasicHtml(text: string): string {
+  return text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&apos;|&#0?39;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchVanBelTrPage(url: string, timeoutMs: number): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal, headers: BUS_UA_HEADERS });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`);
+    return await response.text();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Liste sayfası: her hat <a href=".../OtobusSaatDetay/{id}"> içinde
+// <strong>HATNO - </strong>GÜZERGÂH biçiminde listelenir.
+function parseBusListing(html: string): BusListingEntry[] {
+  const entries: BusListingEntry[] = [];
+  const seen = new Set<string>();
+  const anchorRe = /<a\s+href="(?:https:\/\/van\.bel\.tr)?\/OtobusSaatDetay\/(\d+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = anchorRe.exec(html)) !== null) {
+    const detailId = match[1];
+    if (seen.has(detailId)) continue;
+    seen.add(detailId);
+
+    const plain = decodeBasicHtml(match[2].replace(/<[^>]+>/g, ' '));
+    const strongMatch = /<strong>([\s\S]*?)<\/strong>/i.exec(match[2]);
+    const lineNo = strongMatch
+      ? decodeBasicHtml(strongMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s*-\s*$/, ''))
+      : plain.split(/\s+/)[0] || `Hat ${detailId}`;
+    const title = strongMatch
+      ? decodeBasicHtml(match[2].replace(/<strong>[\s\S]*?<\/strong>/i, '').replace(/<[^>]+>/g, ' '))
+      : plain;
+
+    if (lineNo && title) entries.push({ detailId, lineNo, title });
+  }
+  return entries;
+}
+
+// Detay sayfası: iki <ul class="list-group"> sütunu (gidiş / dönüş) +
+// route-note içinde "Durak1-Durak2-..." güzergâh zinciri.
+function parseBusDetail(html: string): BusDetailData {
+  const h1Match = /<h1[^>]*class="page-title"[^>]*>([\s\S]*?)<\/h1>/i.exec(html);
+  const title = h1Match ? decodeBasicHtml(h1Match[1].replace(/<[^>]+>/g, ' ')) : '';
+
+  const columns = (html.match(/<ul class="list-group">[\s\S]*?<\/ul>/gi) || []).map((ul) => {
+    const times: string[] = [];
+    const liRe = /<li class="list-group-item">([\s\S]*?)<\/li>/gi;
+    let liMatch: RegExpExecArray | null;
+    while ((liMatch = liRe.exec(ul)) !== null) {
+      const text = decodeBasicHtml(liMatch[1].replace(/<[^>]+>/g, ' '));
+      if (/^[0-2]?\d:[0-5]\d$/.test(text)) times.push(text);
+    }
+    const noteMatch = /route-note[\s\S]*?<b>([\s\S]*?)<\/b>/i.exec(ul);
+    const note = noteMatch ? decodeBasicHtml(noteMatch[1].replace(/<[^>]+>/g, ' ')) : '';
+    return { times, note };
+  });
+
+  const route = columns[0]?.note ?? columns[1]?.note ?? '';
+  return {
+    title,
+    route,
+    departureTimes: columns[0]?.times ?? [],
+    returnTimes: columns[1]?.times ?? [],
+    stops: route ? route.split('-').map((s) => s.trim()).filter(Boolean) : [],
+  };
+}
+
+function buildLiveBusRoute(entry: BusListingEntry, detail: BusDetailData): BusRouteData {
+  const first = detail.departureTimes[0];
+  const last = detail.departureTimes[detail.departureTimes.length - 1];
+  return {
+    id: `v-live-${entry.detailId}`,
+    lineNo: entry.lineNo,
+    title: detail.title || entry.title,
+    route: detail.route || entry.title,
+    departureTimes: detail.departureTimes,
+    returnTimes: detail.returnTimes,
+    stops: detail.stops,
+    frequency:
+      detail.departureTimes.length > 0
+        ? `Günde ${detail.departureTimes.length} sefer`
+        : 'Program van.bel.tr detayında',
+    status: 'Aktif',
+    // Tarife bilgisi van.bel.tr'de yayımlanmıyor — boş bırakılır (M31 dürüstlük).
+    tariff: '',
+    operatingHours: first && last ? `${first} - ${last}` : '',
+  };
+}
+
+async function fetchLiveBusRoutes(): Promise<BusRouteData[]> {
+  const listingHtml = await fetchVanBelTrPage(BUS_LISTING_URL, BUS_FETCH_TIMEOUT_MS);
+  const listing = parseBusListing(listingHtml);
+  if (listing.length === 0) throw new Error('van.bel.tr liste sayfasında otobüs hattı bulunamadı');
+
+  const routes: BusRouteData[] = [];
+  for (let i = 0; i < listing.length; i += BUS_DETAIL_CONCURRENCY) {
+    const chunk = listing.slice(i, i + BUS_DETAIL_CONCURRENCY);
+    const parsed = await Promise.all(
+      chunk.map(async (entry) => {
+        try {
+          const html = await fetchVanBelTrPage(
+            `https://van.bel.tr/OtobusSaatDetay/${entry.detailId}`,
+            BUS_DETAIL_TIMEOUT_MS,
+          );
+          return buildLiveBusRoute(entry, parseBusDetail(html));
+        } catch {
+          // Detayı alınamayan hat listede kalır (saatler boş); bir sonraki
+          // saatlik yenilemede yeniden denenir.
+          return buildLiveBusRoute(entry, {
+            title: entry.title,
+            route: entry.title,
+            departureTimes: [],
+            returnTimes: [],
+            stops: [],
+          });
+        }
+      }),
+    );
+    routes.push(...parsed);
+  }
+  return routes;
+}
+
+// Arka plan yenilemesi — çağıran istemci bekletilmez; bir sonraki istek
+// taze veriyi önbellekten alır. Aynı anda yalnızca tek yenileme çalışır.
+function refreshBusCacheInBackground(): void {
+  if (busRefreshInProgress) return;
+  busRefreshInProgress = true;
+  void (async () => {
+    try {
+      const routes = await fetchLiveBusRoutes();
+      const withTimes = routes.filter((r) => r.departureTimes.length > 0);
+      // Site yapısı yeniden değişirse boş/kırık ayrıştırmayı önbelleğe alma
+      if (withTimes.length >= 10) {
+        busCache = {
+          payload: {
+            success: true,
+            routes,
+            lastUpdated: `van.bel.tr Canlı (${new Date().toLocaleString('tr-TR', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            })})`,
+            source: 'van.bel.tr (VAN BELVAN Ulaşım Dairesi)',
+            isLive: true,
+          },
+          fetchedAt: Date.now(),
+        };
+      }
+    } catch (error) {
+      console.warn('[bus] van.bel.tr canlı veri alınamadı:', errorMessage(error));
+    } finally {
+      busRefreshInProgress = false;
+    }
+  })();
+}
+
+// API ROUTE: Live Bus Schedules & Stops from van.bel.tr (stale-while-revalidate)
+app.get('/api/bus-schedules', (_req, res) => {
   // Taze önbellek varsa doğrudan dön
   if (busCache && Date.now() - busCache.fetchedAt < BUS_CACHE_TTL_MS) {
     return res.json(busCache.payload);
   }
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+  // Taze değil: yenilemeyi arka plana bırak, istemciyi 15-30 sn bekleme
+  refreshBusCacheInBackground();
 
-    const response = await fetch('https://van.bel.tr/Syf/Otobus-Hareket-Saatleri.html', {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-      },
-    });
-
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const html = await response.text();
-      // Try parsing tables or accordion rows from van.bel.tr
-      const parsedRoutes: BusRouteData[] = [];
-
-      const trMatches = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
-      trMatches.forEach((tr, idx) => {
-        const text = tr.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        const timeMatches = text.match(/\b([0-2]?[0-9]:[0-5][0-9])\b/g);
-        if (text.length > 5 && timeMatches && timeMatches.length >= 2) {
-          const parts = text.split(/\s+/);
-          parsedRoutes.push({
-            id: `v-live-${idx}`,
-            lineNo: parts[0] || `Hat ${idx + 101}`,
-            title: text.substring(0, 60),
-            route: text,
-            departureTimes: Array.from(timeMatches),
-            returnTimes: [],
-            // M31: canlı ayrıştırma yalnızca saatleri okuyabiliyor — durak
-            // listesi ve tarife sayfada yok. Uydurma "Merkez Garaj / Varış
-            // Durak" durakları ve sabit 15 TL tarife kaldırıldı; istemci
-            // boş alanları zaten gizliyor.
-            stops: [],
-            frequency: 'Canlı Saatler',
-            status: 'Aktif',
-            tariff: '',
-            operatingHours: `${timeMatches[0]} - ${timeMatches[timeMatches.length - 1]}`,
-          });
-        }
-      });
-
-      if (parsedRoutes.length > 0) {
-        const livePayload: BusApiPayload = {
-          success: true,
-          routes: parsedRoutes,
-          lastUpdated: 'van.bel.tr Canlı',
-          source: 'van.bel.tr (VAN BELVAN Ulaşım Dairesi)',
-          isLive: true,
-        };
-        busCache = { payload: livePayload, fetchedAt: Date.now() };
-        return res.json(livePayload);
-      }
-    }
-  } catch {
-    // Graceful fallback to official BELVAN bus schedules dataset when external van.bel.tr endpoint is unreachable
-  }
-
-  // M18: canlı veri alınamadıysa önce bayat (≤24 saat) önbellek
+  // Bayat (≤24 saat) önbellek hâlâ en iyi tahmin
   if (busCache && Date.now() - busCache.fetchedAt < BUS_STALE_MAX_MS) {
     return res.json({ ...busCache.payload, stale: true, source: `${busCache.payload.source} — geçici olarak önbellekten` });
   }
