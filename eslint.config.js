@@ -15,7 +15,7 @@ export default [
       "src/**/*.{js,jsx,ts,tsx}",
       "server.ts",
       "server/**/*.ts",
-      "scripts/firestore-schema-audit.ts",
+      "scripts/*.ts",
     ],
     languageOptions: {
       parser: tsParser,
