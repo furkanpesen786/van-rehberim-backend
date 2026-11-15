@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { auth, deleteAllUserData, subscribeDeals } from '../lib/firebase';
 import { mapDealDoc } from '../utils/dealMapping';
 import { deleteUser } from 'firebase/auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { Capacitor } from '@capacitor/core';
 import { NotificationService, NotificationSettings } from '../services/notificationService';
 import { getErrorMessage, getErrorCode } from '../utils/errors';
 import { useSavedItems } from '../context/SavedItemsContext';
@@ -267,16 +269,54 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     // M31: auth.currentUser yoksa eskiden sessizce "başarılı"
                     // davranıyordu — hesap silinmediği halde başarı mesajı
                     // gösteriliyordu. Artık dürüst hata veriyor.
-                    if (!auth.currentUser) {
+                    const user = auth.currentUser;
+                    if (!user) {
                       throw new Error('Oturum bulunamadı. Lütfen yeniden giriş yapıp tekrar deneyin.');
                     }
+
+                    // M34: akış adım adım loglanır ve her adımın kendi zaman
+                    // aşımı vardır. Kullanıcı bildirimi: "İşleniyor" spinner'ı
+                    // sonsuza kadar açık kalıyordu — hangi adımın takıldığı
+                    // artık hem konsolda hem hata mesajında görünür; en kötü
+                    // durumda 20 sn sonra anlaşılır hata döner.
+                    const runStep = async <T,>(name: string, fn: () => Promise<T>): Promise<T> => {
+                      console.info(`[hesap-silme] ${name}...`);
+                      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+                      try {
+                        const result = await Promise.race([
+                          fn(),
+                          new Promise<never>((_, reject) => {
+                            timeoutId = setTimeout(
+                              () => reject(new Error(`${name} adımı 20 saniyede tamamlanamadı (bağlantı sorunu olabilir)`)),
+                              20000,
+                            );
+                          }),
+                        ]);
+                        console.info(`[hesap-silme] ${name} tamam`);
+                        return result;
+                      } catch (err) {
+                        console.error(`[hesap-silme] ${name} hatası:`, err);
+                        throw err;
+                      } finally {
+                        if (timeoutId) clearTimeout(timeoutId);
+                      }
+                    };
 
                     // M13 (KVKK): önce Firestore'daki tüm kullanıcı verisi
                     // (profil, favoriler, ilanlar) — güvenlik kuralları sahibin
                     // silmesine izin verir; Auth kaydı silindikten sonra reddederdi.
                     // Sonra Auth kaydı silinir.
-                    await deleteAllUserData(auth.currentUser.uid);
-                    await deleteUser(auth.currentUser);
+                    await runStep('Firestore verilerinin silinmesi', () => deleteAllUserData(user.uid));
+
+                    // M34: Auth kaydı. Native'de (Android) web SDK'nın
+                    // deleteUser çağrısı CapacitorHttp araya girdiği için
+                    // takılabiliyordu — native plugin kullanıcayı siler ve
+                    // oturumu kapatar; web'de klasik yol korunur.
+                    if (Capacitor.isNativePlatform()) {
+                      await runStep('Auth kaydının silinmesi (native)', () => FirebaseAuthentication.deleteUser());
+                    } else {
+                      await runStep('Auth kaydının silinmesi', () => deleteUser(user));
+                    }
 
                     // M19: alert() yerine yeşil başarı bildirimi — kullanıcı
                     // okuyabilsin diye çıkış/yenileme 2,5 sn gecikmeli.
@@ -284,7 +324,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     // artık iş bitene kadar (logout + yönlendirme dahil) açık.
                     setDeleteSuccess('Hesabınız ve ona bağlı tüm verileriniz başarıyla silinmiştir.');
                     await new Promise((r) => setTimeout(r, 2500));
-                    await logout(); // Session sıfırla
+                    await runStep('Çıkış yapma', () => logout());
                     window.location.href = '/'; // Hard reload — hesap silme sonrası tam sıfırlama gerekli
                   } catch (err) {
                     if (getErrorCode(err) === 'auth/requires-recent-login') {
