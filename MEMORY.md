@@ -4,13 +4,13 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 14.11.2026 (oturum #11 sürüyor) — **M32 ÇÖZÜLDÜ ✅**
-> (commit `c4bd63e`, 23 dosya +292/−2012, **CI ✅ yeşil + Render `live`**).
-> Önceki: M31 (`6885559`: CI ✅ + Render `live`), M30 (`6d6cf65`:
-> CI ✅ + Render `live`), M29 (`e8e4abd`: kritik ödeme/ilan akışı — CI ✅ +
-> Render `live`). **M29-M32 inceleme döngüsü TAMAMLANDI** — tespit edilen
-> tüm partiler çözüldü. Kalan tek büyük iş: M5 (iyzico vs RevenueCat kararı
-> — dondurulmuş).
+> **Son güncelleme:** 15.11.2026 (oturum #12) — **M33 ÇÖZÜLDÜ ✅**
+> (commits `8591910` + `3631119`, **CI ✅ + Render `live`**; otobüs verisi
+> van.bel.tr'nin yeni site yapısına göre yeniden yazıldı — canlıda 87 gerçek
+> hat). Önceki: M32 (`c4bd63e`: CI ✅ + Render `live`), M31 (`6885559`),
+> M30 (`6d6cf65`), M29 (`e8e4abd`). **M29-M32 inceleme döngüsü tamamlandı**;
+> M33 kullanıcı bildirimiyle (telefonda yalnız 7 otobüs hatı) ortaya çıktı.
+> Kalan tek büyük iş: M5 (iyzico vs RevenueCat kararı — dondurulmuş).
 
 ---
 
@@ -262,6 +262,56 @@ hayalet id'ler + testler) restart sonrası tamamlandı.
   tamamen kapalı — model kullanılamıyor hatası); test/lint/build/commit/push
   komutlarını kullanıcı `!` önekiyle çalıştırdı.
 
+**15.11.2026 oturumu #12 — M33 ÇÖZÜLDÜ (van.bel.tr yeni site yapısı: otobüs
+gerçek veri; commits `8591910` + `3631119`, CI ✅ + Render `live`):**
+
+Kullanıcı bildirimi: telefonda yalnız **7 otobüs hatı** görünüyordu (eskiden
+30). Kök neden: van.bel.tr otobüs sayfasını yenilemiş — liste artık tablo
+değil **hat linkleri** (`OtobusSaatDetay/{id}`); eski `<tr>` ayrıştırıcı 0
+satır buluyor, görünen 7 hat tasarım değişikliğinden hemen önce
+ayrıştırılmış bayat önbellektendi. İki ek gizli sorun daha bulundu: detay
+sayfalarının 56'sı **HTML-escape edilmiş** teslim ediliyor (`&lt;li&gt;`)
+ve saat satırları **"HH:MM KALKIŞ-NOTU"** biçiminde (`13:45 MERKEZ
+(ARIZALI)` gibi — kalkış noktası/arıza notu değerli gerçek veri).
+
+1. **`server/busScraper.ts` (yeni):** kazıyıcı server.ts'ten modüle
+   ayrıldı. Liste sayfasından 87 hat linki (hat no + güzergâh), her hattın
+   detayından gidiş/dönüş saatleri + `route-note` durak zinciri.
+   `unescapeHtmlEntities` ile escape'li sayfalar çözülür; etiketli saat
+   satırları kabul edilir; operatingHours/frequency saf saat önekinden
+   hesaplanır. Yerel test: **87/87 hat saatli**.
+2. **stale-while-revalidate:** `/api/bus-schedules` taze önbelleği (1 sa)
+   yoksa yenilemeyi arka plana bırakır, istemciyi bekletmez (87 detay
+   sayfası ~15-30 sn, 6'şarlı gruplar); istek anında bayat önbellek ya
+   da anlık görüntüye döner.
+3. **Render'dan van.bel.tr'ye erişim başarısız** (veri merkezi IP engeli
+   veya yavaşlık — yerelde kusursuz, Render'da canlı yenileme
+   başarısız). Çözüm: **anlık görüntü fallback'i** — `npm run
+   scrape:bus` (`scripts/update-bus-fallback.ts`) van.bel.tr'ye
+   erişebilen makinede `server/busFallbackData.ts`'i GERÇEK veriyle
+   yazar. 30 **kurgusal** Hat 101-130 silindi; yerine 15.11 13:33
+   anlık görüntüsü (87 hat, hepsi saatli) işlendi. Render artık her
+   koşulda gerçek veri sunar; canlı yenileme bir gün çalışırsa daha taze
+   veriyle değiştirir. **van.bel.tr tarifeleri değişince anlık görüntüyü
+   `npm run scrape:bus` + commit/push ile yenilemek gerekir.**
+4. **Ödeme tutarı görünmüyor (kullanıcı bildirimi — kod değil, yapı):**
+   fiyatlar M24'ten beri yalnızca Google Play/RevenueCat'ten canlı gelir
+   (uydurulmaz). Uygulama Play Console'a yüklenip in-app ürünler Aktif
+   olana (en az Internal testing) kadar Play fiyat döndürmez → ilan
+   paket kartlarında tutar boş. Play Store yayınıyla çözülür (kullanıcı
+   eylemi, kodda iş yok).
+5. Testler yeni sözleşmeye güncellendi (59→60: benzersizlik, saat öneki,
+   damga, dürüst boş alanlar); tsconfig/eslint kapsamı
+   `scripts/firestore-schema-audit.ts` → `scripts/*.ts`.
+
+**Doğrulama:** tsc ✅ exit 0; eslint 0 error / 9 warning (server.ts `any`
+borcu, değişiklik yok); **60/60 test** ✅; build ✅ (server.cjs 80→147 KB —
+veri seti büyüdü). Push `d0284fc → 8591910 → 3631119`. **CI ✅ + Render
+`live`** (15.11 10:42 UTC); canlı uç nokta doğrulandı: **87 hat, 0 saatsiz,
+"van.bel.tr anlık görüntü (15.11.2026 13:33)" damgası**. APK gerekmez
+(yalnız sunucu tarafı). Bash sınıflandırıcısı yine oturum boyunca aralıklı
+arızalıydı — komutlar kullanıcı `!` önekiyle çalıştırdı.
+
 **14.11.2026 oturumu #11 — M32 ÇÖZÜLDÜ (geri tuşu + ölü kod/uyarı temizliği +
 deps; commit `c4bd63e`, 23 dosya +292/−2012):**
 
@@ -415,6 +465,9 @@ Bash sınıflandırıcısı oturum boyunca aralıklı arızalı — doğrulama v
 kullanıcı `!` önekiyle çalıştırdı.
 
 **Sonraki partiler (kullanıcı zaten "sırayla çöz" onayı verdi):**
+- ~~**M33:** van.bel.tr yeni site yapısı — telefonda 7 otobüs hatı sorunu~~
+  **✅ 15.11.2026 çözüldü** (commits `8591910` + `3631119`; ayrıntı
+  yukarıdaki M33 kaydında).
 - ~~**M32:** Android geri tuşu, mailto/market, 36 eslint uyarısı, ölü kod,
   deps temizliği, vite.config, kapsam genişletme~~ **✅ 14.11.2026 çözüldü**
   (commit `c4bd63e`; ayrıntı yukarıdaki M32 kaydında). **M29-M32 döngüsü
@@ -422,11 +475,15 @@ kullanıcı `!` önekiyle çalıştırdı.
 - **Kullanıcı eylemi bekleyen:** firestore.rules ÜRETİME DEPLOY
   (`firebase deploy --only firestore:rules` — kritik #3, login gerekli);
   android/keystore.properties (release imza — şifreler kullanıcıda);
-  versionCode 1/versionName 1.0 artırımı (Play Store öncesi); M5 kararı
-  (iyzico vs RevenueCat) hâlâ dondurulmuş — kullanıcıdan haber bekle.
+  versionCode 1/versionName 1.0 artırımı (Play Store öncesi — in-app
+  ürünlerin Aktif edilmesi ödeme tutarlarının görünmesini de sağlar, bkz.
+  M33 kaydı §4); M5 kararı (iyzico vs RevenueCat) hâlâ dondurulmuş —
+  kullanıcıdan haber bekle. Periyodik bakım: van.bel.tr tarifeleri
+  değişince `npm run scrape:bus` + commit/push.
 
 APK: debug APK günceldi — `android/app/build/outputs/apk/debug/app-debug.apk`
-(23 MB, 13.11 13:49, M28 dahil; M29 sonrası yeniden üretilecek).
+(23 MB, 14.11 20:39 üretildi; M31+M32 dahil, telefonda test edildi ✅).
+M33 yalnız sunucu tarafı — APK yeniden üretilmesi gerekmez.
 
 **13.11.2026 oturumu #11 — M28 ÇÖZÜLDÜ (state management; 17/17 — SON):**
 Favori ilan/yer state'i React Context'e taşındı (yeni bağımlılık YOK —
@@ -1702,7 +1759,10 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (14.11.2026, oturum #11): dal ucu `c4bd63e` (M32: geri tuşu +
+- Git durumu (15.11.2026, oturum #12): dal ucu `3631119` (M33: otobüs
+  anlık görüntü fallback'i — 87 gerçek hat; **CI ✅ + Render `live`**),
+  önceki `8591910` (M33-1: yeni site ayrıştırıcı; CI ✅ + Render `live`),
+  `d0284fc` (MEMORY M32), `c4bd63e` (M32: geri tuşu +
   ölü kod temizliği + deps; **CI ✅ + Render `live`**), önceki `6059374`
   (MEMORY M31), `6885559` (M31; **CI ✅ + Render `live`**), önceki
   `38e9556` (MEMORY M30), `6d6cf65` (M30; CI ✅ + Render `live`), `d7fc81d`
