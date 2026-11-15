@@ -4,13 +4,15 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 15.11.2026 (oturum #12) — **M33 ÇÖZÜLDÜ ✅**
-> (commits `8591910` + `3631119`, **CI ✅ + Render `live`**; otobüs verisi
-> van.bel.tr'nin yeni site yapısına göre yeniden yazıldı — canlıda 87 gerçek
-> hat). Önceki: M32 (`c4bd63e`: CI ✅ + Render `live`), M31 (`6885559`),
-> M30 (`6d6cf65`), M29 (`e8e4abd`). **M29-M32 inceleme döngüsü tamamlandı**;
-> M33 kullanıcı bildirimiyle (telefonda yalnız 7 otobüs hatı) ortaya çıktı.
-> Kalan tek büyük iş: M5 (iyzico vs RevenueCat kararı — dondurulmuş).
+> **Son güncelleme:** 15.11.2026 (oturum #13, gün kapanışı) — **M34+M35 ÇÖZÜLDÜ ✅**
+> (KVKK hesap silme telefonda ÇALIŞIYOR; commits `9b21de1` + `c6200c8`,
+> **CI ✅ + Render `live`**; silme tamamen sunucuya taşındı — Admin SDK).
+> **Kullanıcı kararları (16.11 için):** (1) ödeme **RevenueCat** olacak — M5
+> dondurması kalktı; (2) ilk açılışta **onboarding ekranı** eklenecek.
+> Önceki: M33 (oturum #12: `8591910` + `3631119` — otobüs 87 gerçek hat),
+> M32-M29 inceleme döngüsü. Bilinen ufak sorun: Render ücretsiz plan uykudan
+> soğuk başlangıçta ilk hesap silme denemesi 20 sn zaman aşımına düşebiliyor
+> (tekrar deneyince çalışıyor — bkz. M35 kaydı).
 
 ---
 
@@ -48,11 +50,11 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 **Proje çalışır durumda:** APK üretilmiş (diskte, artık git dışı), backend Render'da canlı.
 TypeScript derlemesi: ✅ `tsc --noEmit` exit 0 (M0 ve M2 sonrası doğrulandı, 05.11.2026).
 
-**07.11.2026 oturum #6 (akşam) — M5 DONDURULDU (kullanıcı kararı):**
-Kullanıcı, RevenueCat yerine **iyzico** ödeme sistemine geçmeyi düşünüyor. Karar:
-M5 tamamlanmayacak; tüm sorunlar çözüldükten sonra M5'e dönüp **iyzico vs RevenueCat
-karşılaştırması** yapılacak (yerel kart/TRY avantajı vs Play Billing politikası
-riski vs entegrasyon emeği), seçimden sonra ödeme altyapısı kurulacak.
+**07.11.2026 oturum #6 (akşam) — M5 DONDURULDU → 15.11.2026 KARAR VERİLDİ:**
+Kullanıcı RevenueCat yerine iyzico'yu düşünüyordu; M5 dondurulmuştu. **15.11.2026
+oturum #13 kapanışında karar verildi: REVENUECAT.** M5 16.11'de tamamlanacak
+(Render'a `REVENUECAT_SECRET_API_KEY` ekleme + Play Console yayını — bkz. oturum
+#13 kaydındaki 16.11 planı).
 
 **M5 dondurma notları (dönünce buradan devam):**
 - Kod durumu: M5 kodu commit'li + push'lı (`d548ef6`), CI düzeltmesi `bf8bab9`,
@@ -261,6 +263,68 @@ hayalet id'ler + testler) restart sonrası tamamlandı.
 - **Bash sınıflandırıcısı** oturum boyunca aralıklı arızalıydı (bir ara
   tamamen kapalı — model kullanılamıyor hatası); test/lint/build/commit/push
   komutlarını kullanıcı `!` önekiyle çalıştırdı.
+
+**15.11.2026 oturumu #13 — M34+M35 ÇÖZÜLDÜ (KVKK hesap silme telefonda
+sonsuz "İşleniyor" takılması; commits `9b21de1` (M34) + `c6200c8` (M35),
+CI ✅ + Render `live`; TELEFONDA DOĞRULANDI ✅):**
+
+Kullanıcı bildirimi: telefonda hesap silme hiç bitmiyordu — "İşleniyor"
+spinner'ı sonsuza kadar kalıyordu. İki aşamalı çözüm:
+
+**M34 (`9b21de1`) — teşhis altyapısı + ilk deneme:** Silme akışına adım adım
+konsol log'u (`[hesap-silme]`) + her adıma 20 sn zaman aşımı eklendi; Auth
+silmesi native'de web SDK yerine `FirebaseAuthentication.deleteUser()`'a
+verildi. Sonuç: takılma noktası kesinleşti — **"Firestore verilerinin
+silinmesi" adımı** asla sonuçlanmıyordu. Kök neden: **CapacitorHttp altında
+Firestore web SDK'nın YAZMA işlemleri (deleteDoc) sonuçlanmıyor** (okuma/
+onSnapshot çalışıyor — M22 long-polling bilgisi yalnızca okuma için geçerliydi;
+istemcideki TEK yazma yolu olan `saveUserToFirestore` hataları yuttuğu için
+bu hiç fark edilmemiş). Ayrıca plugin'in Android `deleteUser`'ı görev
+başarısız olsa bile resolve döndürüyor (hata yutan kusur).
+
+**M35 (`c6200c8`) — kökten çözüm, silme sunucuya taşındı:**
+1. **`server/account.ts` (yeni):** `POST /api/account/delete` — Bearer ID
+   token `verifyIdToken(token, true)` ile doğrulanır → Firestore'da
+   `users/{uid}` + `userFavorites/{uid}` + 3 ilan koleksiyonunda
+   `userId == uid` dokümanları silinir → **en son** Auth kaydı (Admin SDK'da
+   `requires-recent-login` yok; silme tüm oturum tokenlarını iptal eder).
+   Idempotent; uid başına saatte 5 deneme rate limit'i. M13 KVKK kapsamı aynen.
+2. **`server/adminApp.ts` (yeni):** Admin SDK lazy init ortak modüle taşındı
+   (listings.ts aynı davranışla kullanır).
+3. **İstemci:** `src/services/accountService.ts` (yeni, listingService deseni:
+   30 sn timeout); SettingsView akışı: ID token al → sunucuda sil → yerel
+   oturum (`FirebaseAuthentication.signOut`) + localStorage favori
+   temizliği (`saved_deals_van`, `saved_places_van`) → logout → reload.
+   Adımlı log + 20 sn zaman aşımı korundu. `deleteAllUserData` istemciden
+   kaldırıldı; KVKK kapsam testleri `server/account.test.ts`'e taşındı
+   (60→61 test).
+4. **Render'a `FIREBASE_SERVICE_ACCOUNT` env'i EKLENDİ** (kullanıcı izniyle,
+   `Desktop/yeni klasör/render-add-sa-env.sh` — render-setup.sh'in dondurulmuş
+   RevenueCat kısmına dokunmaz; Render API'de env değişikliği **PUT** ile
+   yapılıyor, POST/PATCH 405 döner ve PUT tüm seti eşitlediğinden mevcut
+   `SCRAPERAPI_KEY` gövdeye dahil edildi). `REVENUECAT_SECRET_API_KEY` hâlâ
+   eklenmedi — yarınki RevenueCat işinde eklenecek. Lokal `.env`'e de
+   service account eklendi (`add-firebase-env.mjs`).
+
+**Doğrulama:** tsc ✅; eslint 0 error / 9 warning (bilinen borç); **61/61
+test**; build ✅; lokal smoke (token yok/sahte → 401); canlıda **401** +
+Türkçe mesaj (service account yüklü). **Telefonda kullanıcı testi:** ilk
+deneme (uykudaki Render'a) 20 sn zaman aşımına düştü, çık-gir + kısa bekleme
+sonrası ikinci deneme **başarıyla silindi** (yeşil mesaj görüldü). Bilinen
+ufak sorun: Render free-tier soğuk başlangıç >20 sn sürebiliyor — istenirse
+sunucu çağrısı adımının zaman aşımı artırılabilir (ör. 60 sn) ya da silme
+öncesi sessiz bir health-check ile servis uyandırılabilir. Bash sınıflandırıcısı
+yine oturum boyunca aralıklı arızalıydı — komutlar kullanıcı `!` önekiyle
+çalıştırdı.
+
+**16.11.2026 planı (kullanıcı istekleri):**
+1. **Ödeme: RevenueCat** (kullanıcı kararı — M5 dondurması KALKTI). Yapılacaklar:
+   RevenueCat Secret API key'i Render'a ekle (`REVENUECAT_SECRET_API_KEY`,
+   render-add-sa-env.sh benzeri betikle), Play Console yayını (versionCode 2,
+   versionName 1.1, keystore.properties, in-app ürünler Aktif) — bu aynı
+   zamanda ilan paketlerindeki boş ödeme tutarlarını da çözer.
+2. **Onboarding ekranı:** uygulama ilk açıldığında (ilk kez indiren kullanıcı)
+   tanıtım/rehber ekranı gösterilecek.
 
 **15.11.2026 oturumu #12 — M33 ÇÖZÜLDÜ (van.bel.tr yeni site yapısı: otobüs
 gerçek veri; commits `8591910` + `3631119`, CI ✅ + Render `live`):**
@@ -1729,7 +1793,9 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 2 | 🔴 Acil | ~~Firestore kurallarını sıkılaştır~~ **✅ 05.11.2026 çözüldü** (owner-based; tsc doğrulandı; commit edildi). Kalan: Firebase'e deploy + canlı test | Kurallar canlıda aktif; yabancı kullanıcı silme denemesi reddediliyor |
 | 3 | 🔴 Acil | ~~DealsView süre/fiyat hatasını düzelt~~ **✅ 06.11.2026 çözüldü** (JobsView modeli; tsc doğrulandı). Canlı RevenueCat satın alma testi önerilir | Seçilen gün = satın alınan ürün = Firestore'a yazılan süre ✅ (kod düzeyinde) |
 | 4 | 🟠 Yüksek | ~~ESLint'i düzelt (tek flat config + `@typescript-eslint/parser`), `.eslintrc.json`'ı sil~~ **✅ 06.11.2026 çözüldü** (`npm run lint` exit 0, 0 error / 87 warn). Kalan: push sonrası CI main'de yeşil kontrolü | `npm run lint` exit 0 ✅ |
-| 5 | 🟠 Yüksek | ~~RevenueCat backend entitlement doğrulaması; ilan yazımını backend'e taşı~~ **⏸️ 07.11.2026 DONDURULDU** — kod tamam+push'lı (`d548ef6`); tüm sorunlar bitince iyzico vs RevenueCat kararına göre tamamlanacak | Ödeme yapılmadan ilan yayımlanamıyor (ertelendi — M5 dondurma notu Bölüm 2'de) |
+| 5 | 🟠 Yüksek | ~~RevenueCat backend entitlement doğrulaması; ilan yazımını backend'e taşı~~ **⏸️ 07.11 DONDURULDU → 🔓 15.11 AÇILDI (karar: RevenueCat)** — kod tamam+push'lı (`d548ef6`); 16.11'de tamamlanacak: Render'a `REVENUECAT_SECRET_API_KEY` + Play Console yayını (versionCode 2, versionName 1.1, keystore.properties, in-app ürünler Aktif) | Ödeme yapılmadan ilan yayımlanamıyor; ilan paketlerinde tutar görünüyor (Play fiyatı) |
+| 5b | 🟠 Yüksek | **YENİ (16.11):** Onboarding ekranı — uygulama ilk açıldığında (cihazda ilk kez) tanıtım/rehber gösterimi (kullanıcı isteği) | İlk açılışta onboarding görünüyor, tamamlanınca bir daha çıkmıyor (localStorage işareti) |
+| 5c | 🟢 İleri | **Bilinen ufak sorun (M35):** Render free-tier soğuk başlangıçta ilk hesap silme denemesi 20 sn zaman aşımına düşüyor (tekrar deneyince çalışıyor). İstenirse: sunucu çağrısı adımı zaman aşımını artır (ör. 60 sn) ya da silme öncesi sessiz health-check ile servisi uyandır | İlk denemede de silme tamamlanıyor |
 | 6 | 🟠 Yüksek | ~~Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir~~ **✅ 07.11 çözüldü (M6) + 08.11 CANLIDA (M7 ile)** | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü ✅ (canlıda doğrulandı) |
 | 6b | 🟠 Yüksek | ~~`/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape tetikliyor)~~ **✅ 09.11 çözüldü (M8) + CANLIDA** (`b3acdd8`: 10 dk önbellek + bayat-fallback + 10 sn timeout) | Canlı tekrar çağrılar aynı `lastUpdated` ile önbellekten dönüyor ✅ |
 | 7 | 🟡 Orta | ~~AndroidManifest: `usesCleartextTraffic` ve `allowBackup` kapat~~ **✅ 09.11 çözüldü (M9)** (`5542427`, canlıda) | Manifest temiz ✅ (kod düzeyinde; etki yeni APK'da) |
@@ -1744,11 +1810,11 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 ## 7. DOĞRULAMA ORTAMI VE KOMUTLAR
 
-| Komut | Sonuç (13.11.2026, oturum #11 — M28 sonrası) |
+| Komut | Sonuç (15.11.2026, oturum #13 — M35 sonrası) |
 |---|---|
 | `npx tsc --noEmit` | ✅ exit 0 — **strict modda** temiz (M27: strict + @types/react@19) |
 | `npx eslint src` | ✅ exit 0 — 0 error, **37 warning** (M28 sonrası; M24'te 48 idi) |
-| `npm test` | ✅ 46/46 geçti (Vitest; 8 dosya, CI'da da koşuyor) |
+| `npm test` | ✅ 61/61 geçti (Vitest; 9 dosya, CI'da da koşuyor — M35: 5 istemci KVKK testi `server/account.test.ts`'te 6 teste taşındı) |
 | `npm run dev` | `tsx server.ts` — dev sunucusu (Vite middleware, port 3000/PORT) |
 | `npm run build` | ✅ `vite build` + `esbuild server.ts → dist/server.cjs` |
 | `npm start` | `node dist/server.cjs` (prod) |
@@ -1759,10 +1825,14 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (15.11.2026, oturum #12): dal ucu `3631119` (M33: otobüs
-  anlık görüntü fallback'i — 87 gerçek hat; **CI ✅ + Render `live`**),
-  önceki `8591910` (M33-1: yeni site ayrıştırıcı; CI ✅ + Render `live`),
-  `d0284fc` (MEMORY M32), `c4bd63e` (M32: geri tuşu +
+- Git durumu (15.11.2026, oturum #13 kapanışı): dal ucu `c6200c8` (M35:
+  hesap silme sunucuya taşındı — Admin SDK; **CI ✅ + Render `live`**,
+  telefonda doğrulandı), önceki `9b21de1` (M34: silme akışına adım adım log
+  + 20 sn zaman aşımı + native deleteUser denemesi; CI ✅), `66a7981`
+  (MEMORY M33), `3631119` (M33: otobüs anlık görüntü fallback'i — 87 gerçek
+  hat; **CI ✅ + Render `live`**), önceki `8591910` (M33-1: yeni site
+  ayrıştırıcı; CI ✅ + Render `live`), `d0284fc` (MEMORY M32), `c4bd63e`
+  (M32: geri tuşu +
   ölü kod temizliği + deps; **CI ✅ + Render `live`**), önceki `6059374`
   (MEMORY M31), `6885559` (M31; **CI ✅ + Render `live`**), önceki
   `38e9556` (MEMORY M30), `6d6cf65` (M30; CI ✅ + Render `live`), `d7fc81d`
