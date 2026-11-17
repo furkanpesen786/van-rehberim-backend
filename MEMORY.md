@@ -626,8 +626,11 @@ kullanıcı `!` önekiyle çalıştırdı.
   değişince `npm run scrape:bus` + commit/push.
 
 APK: debug APK günceldi — `android/app/build/outputs/apk/debug/app-debug.apk`
-(23 MB, 14.11 20:39 üretildi; M31+M32 dahil, telefonda test edildi ✅).
-M33 yalnız sunucu tarafı — APK yeniden üretilmesi gerekmez.
+(18 MB, 17.11 17:29 üretildi; M36 onboarding + M33-M35 dahil + versionCode 2/1.1;
+`npx cap sync android` + `gradlew assembleDebug` BUILD SUCCESSFUL 1m39s).
+Telefonda onboarding testi BEKLİYOR (ilk açılışta tanıtım çıkmalı; tamamlanınca
+bir daha çıkmamalı — yeniden tetiklemek için localStorage'dan `van_onboarding_done`
+silinir). Önceki: 14.11 üretimi (M31+M32, telefonda test edildi ✅).
 
 **13.11.2026 oturumu #11 — M28 ÇÖZÜLDÜ (state management; 17/17 — SON):**
 Favori ilan/yer state'i React Context'e taşındı (yeni bağımlılık YOK —
