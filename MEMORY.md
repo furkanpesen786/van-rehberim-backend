@@ -4,16 +4,23 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 17.11.2026 (oturum #15 KAPANDI) — **M36 ONBOARDING
-> EKRANI ÇÖZÜLDÜ ✅** (ilk açılış tanıtımı — 5 slayt, localStorage işareti,
-> Android geri tuşu; commit `877b7ab`, **CI ✅ yeşil**; versionCode 2/1.1
-> ayrı commit `fab6a62`, **CI ✅**). **M5 İSTEMCİ TARAFI KULLANICI
-> KARARIYLA YENİDEN DONDUURULDU (17.11):** `goog_...` anahtarı + Play
-> Console yayını bekliyor — kullanıcı "revenuecat kısmı tekrar dondur"
-> dedi. M5 SUNUCU TARAFI canlıda kaldı (Render env + `/api/listings`
-> çalışır durumda; istemci anahtarı gelene kadar telefonda ödeme akışı
-> sahte placeholder key'le açılmaz — ödeme denendiğinde hata verir).
-> Önceki: oturum #14 (16.11) — M5 sunucu tarafı canlıda; versionCode 2/1.1.
+> **Son güncelleme:** 17.11.2026 (oturum #16) — **M37 APPLE GİRİŞİ
+> (ANDROID) ÇÖZÜLDÜ ✅** — kullanıcı bildirimi: telefonda Google girişi
+> çalışıyor ama Apple girişi "apple sign-in provider is not enabled..."
+> hatası veriyordu. Kök neden: `capacitor.config.ts` FirebaseAuthentication
+> `providers` listesinde yalnızca `google.com` vardı — Android'de
+> @capacitor-firebase/authentication OAuth sağlayıcılarını bu listede ister.
+> Düzeltme: `"apple.com"` eklendi; cap sync + gradle assembleDebug; APK
+> içinden capacitor.config.json çıkarılarak doğrulandı. **Telefonda test
+> bekliyor** — bir sonraki katman hatası çıkarsa: Firebase Console →
+> Authentication → Apple sağlayıcısı Android/web için Service ID + Team ID
+> + Key ID + .p8 anahtarı ister (Apple Developer Program üyeliği gerekli);
+> Apple Developer'da Service ID'ye `https://vanrehberim-f181b.firebaseapp.com/__/auth/handler`
+> redirect URL'i kaydedilmeli. **M36 onboarding TELEFONDA TEST EDİLDİ ✅
+> (17.11, kullanıcı onayı — sorun yok).** Önceki: oturum #15 — M36 çözüldü
+> (commit `877b7ab`, CI ✅); versionCode 2/1.1 (`fab6a62`). **M5 İSTEMCİ
+> TARAFI DONDURULDU:** `goog_...` anahtarı + Play Console yayını bekliyor.
+> M5 SUNUCU TARAFI canlıda (Render env + `/api/listings` çalışır durumda).
 > Bilinen ufak sorun: Render free plan uykudan soğuk başlangıçta ilk hesap
 > silme denemesi 20 sn zaman aşımına düşebiliyor (tekrar deneyince
 > çalışıyor — bkz. M35 kaydı).
@@ -50,6 +57,45 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**17.11.2026 oturumu #16 — M37 ÇÖZÜLDÜ (Apple girişi Android'de
+"provider is not enabled" hatası):**
+
+Kullanıcı bildirimi: yeni APK'da (M36 dahil) Google girişi çalışıyor,
+Apple girişi "Apple ile giriş yapılamadı: apple sign-in provider is not
+enabled. Make sure to add the provider to the 'providers' list in the
+capacitor configuration" hatası veriyordu. (Aynı oturumda M36 onboarding
+telefonda test edildi — sorun yok ✅.)
+
+- Kök neden: `capacitor.config.ts` → FirebaseAuthentication eklenti
+  yapılandırmasındaki `providers` listesinde yalnızca `["google.com"]`
+  vardı. Android'de @capacitor-firebase/authentication, tarayıcı OAuth
+  akışına düşen sağlayıcıları (apple.com, microsoft.com vb.) bu listede
+  açıkça ister; listede olmayan çağrılınca eklenti bu hatayı fırlatır.
+  Google listede olduğu için native akış çalışıyordu.
+- Düzeltme: `providers: ["google.com", "apple.com"]`. Tek satırlık
+  değişiklik; istemci koduna (AuthContext) dokunulmadı — mevcut
+  `signInWithApple` + `OAuthProvider.credential({idToken, rawNonce})`
+  akışı eklenti dokümantasyonundaki desene zaten uygun.
+- Doğrulama: `npx cap sync android` → yeni capacitor.config.json
+  android assets'e yazıldı; `gradlew assembleDebug` (ilk deneme geçici
+  hatayla BUILD FAILED — tekrarında tamamlandı); **APK içinden
+  `unzip -p ... assets/capacitor.config.json` ile apple.com olduğu
+  doğrulandı** (APK 18:27, config 18:25 — sıra doğru).
+- **Telefonda test bekliyor:** yeni APK kurulunca Apple düğmesi eklenti
+  hatasını geçmeli. **Bir sonraki katman uyarısı:** Apple girişi
+  Android'de Apple'ın web sayfası üzerinden akar — çalışması için
+  Firebase Console → Authentication → Sign-in method → Apple
+  sağlayıcısında Android/web yapılandırması gerekli: Apple Developer
+  Program üyeliği ($99/yıl) + Services ID (Sign in with Apple açık) +
+  Team ID + Key ID + .p8 içerik anahtarı; ayrıca Apple Developer'da
+  Service ID'ye redirect URL olarak
+  `https://vanrehberim-f181b.firebaseapp.com/__/auth/handler`
+  kaydedilmeli. Bunlar yoksa kullanıcı yeni bir hatayla döner (Apple
+  sayfasında invalid_request ya da Firebase OAuth hatası) — bu durumda
+  sağlayıcıyı yapılandırana kadar Apple düğmesini gizlemek seçenek.
+
+
 
 **Proje çalışır durumda:** APK üretilmiş (diskte, artık git dışı), backend Render'da canlı.
 TypeScript derlemesi: ✅ `tsc --noEmit` exit 0 (M0 ve M2 sonrası doğrulandı, 05.11.2026).
@@ -626,11 +672,10 @@ kullanıcı `!` önekiyle çalıştırdı.
   değişince `npm run scrape:bus` + commit/push.
 
 APK: debug APK günceldi — `android/app/build/outputs/apk/debug/app-debug.apk`
-(18 MB, 17.11 17:29 üretildi; M36 onboarding + M33-M35 dahil + versionCode 2/1.1;
-`npx cap sync android` + `gradlew assembleDebug` BUILD SUCCESSFUL 1m39s).
-Telefonda onboarding testi BEKLİYOR (ilk açılışta tanıtım çıkmalı; tamamlanınca
-bir daha çıkmamalı — yeniden tetiklemek için localStorage'dan `van_onboarding_done`
-silinir). Önceki: 14.11 üretimi (M31+M32, telefonda test edildi ✅).
+(18 MB, 17.11 18:27 üretildi; M37 Apple sağlayıcı düzeltmesi + M36 onboarding +
+M33-M35 dahil + versionCode 2/1.1; APK içinden config doğrulandı). **Telefonda
+Apple girişi testi BEKLİYOR** (M37). M36 onboarding 17.11'de telefonda test
+edildi ✅. Önceki: 17.11 17:29 üretimi (M36, onboarding testinde kullanıldı ✅).
 
 **13.11.2026 oturumu #11 — M28 ÇÖZÜLDÜ (state management; 17/17 — SON):**
 Favori ilan/yer state'i React Context'e taşındı (yeni bağımlılık YOK —
