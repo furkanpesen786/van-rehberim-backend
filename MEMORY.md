@@ -4,15 +4,18 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 15.11.2026 (oturum #13, gün kapanışı) — **M34+M35 ÇÖZÜLDÜ ✅**
-> (KVKK hesap silme telefonda ÇALIŞIYOR; commits `9b21de1` + `c6200c8`,
-> **CI ✅ + Render `live`**; silme tamamen sunucuya taşındı — Admin SDK).
-> **Kullanıcı kararları (16.11 için):** (1) ödeme **RevenueCat** olacak — M5
-> dondurması kalktı; (2) ilk açılışta **onboarding ekranı** eklenecek.
-> Önceki: M33 (oturum #12: `8591910` + `3631119` — otobüs 87 gerçek hat),
-> M32-M29 inceleme döngüsü. Bilinen ufak sorun: Render ücretsiz plan uykudan
-> soğuk başlangıçta ilk hesap silme denemesi 20 sn zaman aşımına düşebiliyor
-> (tekrar deneyince çalışıyor — bkz. M35 kaydı).
+> **Son güncelleme:** 17.11.2026 (oturum #15) — **M36 ONBOARDING EKRANI
+> ÇÖZÜLDÜ ✅** (ilk açılış tanıtımı — 5 slayt, localStorage işareti,
+> Android geri tuşu; commit `<aşağıda>`). **M5 İSTEMCİ TARAFI KULLANICI
+> KARARIYLA YENİDEN DONDUURULDU (17.11):** `goog_...` anahtarı + Play
+> Console yayını bekliyor — kullanıcı "revenuecat kısmı tekrar dondur"
+> dedi. M5 SUNUCU TARAFI canlıda kaldı (Render env + `/api/listings`
+> çalışır durumda; istemci anahtarı gelene kadar telefonda ödeme akışı
+> sahte placeholder key'le açılmaz — ödeme denendiğinde hata verir).
+> Önceki: oturum #14 (16.11) — M5 sunucu tarafı canlıda; versionCode 2/1.1.
+> Bilinen ufak sorun: Render free plan uykudan soğuk başlangıçta ilk hesap
+> silme denemesi 20 sn zaman aşımına düşebiliyor (tekrar deneyince
+> çalışıyor — bkz. M35 kaydı).
 
 ---
 
@@ -316,6 +319,78 @@ sunucu çağrısı adımının zaman aşımı artırılabilir (ör. 60 sn) ya da
 öncesi sessiz bir health-check ile servis uyandırılabilir. Bash sınıflandırıcısı
 yine oturum boyunca aralıklı arızalıydı — komutlar kullanıcı `!` önekiyle
 çalıştırdı.
+
+**17.11.2026 oturumu #15 — M36 ÇÖZÜLDÜ (onboarding ekranı; ilk açılış
+tanıtımı):**
+
+Kullanıcı kararı: M5 istemci tarafı (goog_... anahtarı + Play Console)
+**yeniden donduruldu**; onboarding öne alındı. Yapılanlar:
+1. `src/utils/onboardingStorage.ts` (YENİ, M28 deseni): `van_onboarding_done`
+   localStorage işareti — `hasCompletedOnboarding()` (okuma hatasında true
+   döner: depo kalıcı bozuksa kullanıcıyı her açılışta tanıtıma zorlamak
+   daha kötü) + `completeOnboarding()` (yazma hatası sessiz — yalnızca
+   kalıcılık kaybolur). + `onboardingStorage.test.ts` (4 test; sahte
+   localStorage deseni — savedItemsStorage.test.ts).
+2. `src/components/OnboardingView.tsx` (YENİ): tam ekran tanıtım (z-50,
+   LoginModal'dan sonra render → üstünde görünür; splash 600 ms bitince
+   açılır). 5 slayt: karşılama (logo, splash marka kimliği) → Günlük Yaşam
+   (hava/eczane/namaz/döviz) → Şehir Rehberi (yerler/otobüs/haber/taksi) →
+   İlanlar ve Favoriler (iş/indirim/favori/bildirim) → final "Başla" CTA.
+   Gezinme: İleri/Başla + geri chevron + üst sağda "Atla" + ilerleme
+   noktaları. **Android geri tuşu** M32 deseniyle (`useBackButtonClose`):
+   önce önceki slayta gider, ilk slaytta tanıtımı kapatır (onCloseRef her
+   render güncellendiğinden güncel step'i görür). Tema duyarlı (light/dark).
+   Slayt geçişi `key={step}` + animate-fadeIn.
+3. `src/App.tsx`: `showOnboarding` lazy state (`() =>
+   !hasCompletedOnboarding()`) + `<OnboardingView>` render'ı. Tamamlayınca
+   yalnızca state kapanır — işaret depoya bileşen içinde yazılır.
+4. **Doğrulama:** tsc strict ✅ exit 0; **65/65 test** ✅ (61→65, +4);
+   eslint 0 error / 9 warning (bilinen server.ts `any` borcu, değişiklik
+   yok); build ✅ (CSS 111,79 kB — yeni sınıflar; `w-5.5`/`h-5.5` Tailwind 4
+   dinamik ölçeğiyle derlendi, derlenmiş CSS'te doğrulandı). Bash
+   sınıflandırıcısı bir kez daha arızalandı (grep testinde) — Grep aracı
+   kullanıldı; tsc/test/lint/build sorunsuz çalıştı.
+5. **Telefonda test bekliyor:** yeni APK derlenince ilk açılışta tanıtım
+   çıkmalı; tamamlanınca/kapatınca bir daha çıkmamalı. (İstenirse test
+   sonrası localStorage'dan `van_onboarding_done` silinerek yeniden
+   tetiklenebilir.)
+
+**16.11.2026 oturumu #14 — M5 SUNUCU TARAFI ÇÖZÜLDÜ (RevenueCat canlıda):**
+
+Kullanıcı "ikisi sırayla" dedi → önce M5, sonra onboarding. Yapılanlar:
+1. **Tam yedek alındı:** `Desktop/van-rehberim-arsiv/van-rehberim-YEDEK-2026-11-16.tar.gz`
+   (node_modules/dist/android build hariç, .git dahil).
+2. **Render'a `REVENUECAT_SECRET_API_KEY` eklendi:** yeni betik
+   `Desktop/yeni klasör/render-add-rc-env.sh` (render-add-sa-env.sh deseninin
+   birebir kopyası; PUT ile tüm seti eşitler, mevcut `FIREBASE_SERVICE_ACCOUNT`
+   + `SCRAPERAPI_KEY` gövdeye dahil edilip sonradan korundukları doğrulandı).
+   Key kaynağı: `Desktop/yeni klasör/revenuecat` (sk_..., 30-32 karakter —
+   RevenueCat secret key'leri beklenenden kısa olabilir; betiğin uzunluk
+   doğrulaması 40→20'ye düşürüldü). Deploy tetiklendi → **`live`** (17:01).
+3. **Canlı doğrulama:** `POST /api/listings` boş gövde → **400** ("Geçersiz
+   istek") — 503 DEĞİL, yani fail-closed konfigürasyon kontrolü geçildi: her
+   iki env de yüklü. (Empty body 400'ü type/productId doğrulaması veriyor;
+   token kontrolü 401 daha sonra.)
+4. **Lokal `.env`'e `REVENUECAT_SECRET_API_KEY` eklendi** (gitignore'lı;
+   VITE_API_URL + FIREBASE_SERVICE_ACCOUNT'ın yanına).
+5. **Play Console kod tarafı:** `android/app/build.gradle` versionCode 1→2,
+   versionName "1.0"→"1.1". İmza: `android/app/upload.keystore` diskte yerinde;
+   `android/keystore.properties` HENÜZ YOK (storePassword/keyPassword
+   kullanıcıda — gitignore'lı dosyaya elle yazılacak).
+6. **M5 kalan işler (bekleyen):**
+   - İstemci `VITE_REVENUECAT_API_KEY` hâlâ placeholder
+     (`goog_YOUR_REVENUECAT_GOOGLE_API_KEY`) — RevenueCat Dashboard → Apps →
+     Android'deki `goog_...` HERKESİ AÇIK anahtar kullanıcıdan alınıp .env'e
+     yazılacak (secret DEĞİL). Placeholder boş olmadığından purchaseService
+     configure'u sahte key'le çağırıp çalışma anında patlıyor — uzun vadede
+     placeholder'a özel koruma eklenebilir.
+   - Play Console: keystore.properties → release build → yükleme → in-app
+     ürünler Aktif (`ilan_30_gun`, `one_cikan_30_gun`, `taksi_ilan_aylik`) —
+     bu, ilan paketlerindeki boş ödeme tutarlarını da çözer (M33 §4).
+   - `firestore.rules` üretim deploy'u (`create: if false`) YENİ APK canlıya
+     çıkarken yapılacak (eski APK istemciden yazıyor — erken deploy kırar).
+7. **Not:** versionCode/keystore değişiklikleri oturum #15'te (17.11) M36
+   commit'iyle birlikte commit edildi.
 
 **16.11.2026 planı (kullanıcı istekleri):**
 1. **Ödeme: RevenueCat** (kullanıcı kararı — M5 dondurması KALKTI). Yapılacaklar:
@@ -1794,7 +1869,7 @@ artık geçersizdir; yeni hash'ler için `git log --oneline` kullanılmalıdır.
 | 3 | 🔴 Acil | ~~DealsView süre/fiyat hatasını düzelt~~ **✅ 06.11.2026 çözüldü** (JobsView modeli; tsc doğrulandı). Canlı RevenueCat satın alma testi önerilir | Seçilen gün = satın alınan ürün = Firestore'a yazılan süre ✅ (kod düzeyinde) |
 | 4 | 🟠 Yüksek | ~~ESLint'i düzelt (tek flat config + `@typescript-eslint/parser`), `.eslintrc.json`'ı sil~~ **✅ 06.11.2026 çözüldü** (`npm run lint` exit 0, 0 error / 87 warn). Kalan: push sonrası CI main'de yeşil kontrolü | `npm run lint` exit 0 ✅ |
 | 5 | 🟠 Yüksek | ~~RevenueCat backend entitlement doğrulaması; ilan yazımını backend'e taşı~~ **⏸️ 07.11 DONDURULDU → 🔓 15.11 AÇILDI (karar: RevenueCat)** — kod tamam+push'lı (`d548ef6`); 16.11'de tamamlanacak: Render'a `REVENUECAT_SECRET_API_KEY` + Play Console yayını (versionCode 2, versionName 1.1, keystore.properties, in-app ürünler Aktif) | Ödeme yapılmadan ilan yayımlanamıyor; ilan paketlerinde tutar görünüyor (Play fiyatı) |
-| 5b | 🟠 Yüksek | **YENİ (16.11):** Onboarding ekranı — uygulama ilk açıldığında (cihazda ilk kez) tanıtım/rehber gösterimi (kullanıcı isteği) | İlk açılışta onboarding görünüyor, tamamlanınca bir daha çıkmıyor (localStorage işareti) |
+| 5b | 🟠 Yüksek | ~~**YENİ (16.11):** Onboarding ekranı — uygulama ilk açıldığında (cihazda ilk kez) tanıtım/rehber gösterimi (kullanıcı isteği)~~ **✅ 17.11.2026 çözüldü (M36)** — 5 slaytlık tam ekran tanıtım; `van_onboarding_done` localStorage işareti; Android geri tuşu slaytlar arasında gezinir | İlk açılışta onboarding görünüyor, tamamlanınca bir daha çıkmıyor (localStorage işareti) ✅ (kod düzeyinde; telefonda test yeni APK'da) |
 | 5c | 🟢 İleri | **Bilinen ufak sorun (M35):** Render free-tier soğuk başlangıçta ilk hesap silme denemesi 20 sn zaman aşımına düşüyor (tekrar deneyince çalışıyor). İstenirse: sunucu çağrısı adımı zaman aşımını artır (ör. 60 sn) ya da silme öncesi sessiz health-check ile servisi uyandır | İlk denemede de silme tamamlanıyor |
 | 6 | 🟠 Yüksek | ~~Haber sistemi: 5 sn polling → 60+ sn; sunucuda 5–10 dk cache; ölü RSS'leri kaldır; uydurma fallback'i dürüst hata ile değiştir~~ **✅ 07.11 çözüldü (M6) + 08.11 CANLIDA (M7 ile)** | Kaynak etiketleri gerçek; sunucu istek/s sayısı düştü ✅ (canlıda doğrulandı) |
 | 6b | 🟠 Yüksek | ~~`/api/currencies`'e önbellek (HomeView 60 sn'de bir doviz.com scrape tetikliyor)~~ **✅ 09.11 çözüldü (M8) + CANLIDA** (`b3acdd8`: 10 dk önbellek + bayat-fallback + 10 sn timeout) | Canlı tekrar çağrılar aynı `lastUpdated` ile önbellekten dönüyor ✅ |

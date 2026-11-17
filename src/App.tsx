@@ -9,6 +9,8 @@ import { JobsView } from './components/JobsView';
 import { SettingsView } from './components/SettingsView';
 import { useAuth } from './context/AuthContext';
 import { LoginModal } from './components/LoginModal';
+import { OnboardingView } from './components/OnboardingView';
+import { hasCompletedOnboarding } from './utils/onboardingStorage';
 import { App as CapApp } from '@capacitor/app';
 import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
 import { NotificationService } from './services/notificationService';
@@ -19,6 +21,9 @@ export default function App() {
   const { showAuthModal, setShowAuthModal, currentUser } = useAuth();
   const [isAppReady, setIsAppReady] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  // M36: ilk açılışta (cihazda tamamlanmamışsa) onboarding gösterilir.
+  // completeOnboarding localStorage'a işaret yazar → bir daha çıkmaz.
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('app_theme') as 'light' | 'dark') || 'light';
   });
@@ -123,6 +128,14 @@ export default function App() {
       <LoginModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+        theme={theme}
+      />
+
+      {/* M36: İlk açılış tanıtımı — LoginModal'dan SONRA render edilir,
+          yani ilk açılışta her şeyin üstünde görünür. */}
+      <OnboardingView
+        isOpen={showOnboarding}
+        onComplete={() => setShowOnboarding(false)}
         theme={theme}
       />
 
