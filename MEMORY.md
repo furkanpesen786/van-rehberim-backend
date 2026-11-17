@@ -4,9 +4,10 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 17.11.2026 (oturum #15) — **M36 ONBOARDING EKRANI
-> ÇÖZÜLDÜ ✅** (ilk açılış tanıtımı — 5 slayt, localStorage işareti,
-> Android geri tuşu; commit `<aşağıda>`). **M5 İSTEMCİ TARAFI KULLANICI
+> **Son güncelleme:** 17.11.2026 (oturum #15 KAPANDI) — **M36 ONBOARDING
+> EKRANI ÇÖZÜLDÜ ✅** (ilk açılış tanıtımı — 5 slayt, localStorage işareti,
+> Android geri tuşu; commit `877b7ab`, **CI ✅ yeşil**; versionCode 2/1.1
+> ayrı commit `fab6a62`, **CI ✅**). **M5 İSTEMCİ TARAFI KULLANICI
 > KARARIYLA YENİDEN DONDUURULDU (17.11):** `goog_...` anahtarı + Play
 > Console yayını bekliyor — kullanıcı "revenuecat kısmı tekrar dondur"
 > dedi. M5 SUNUCU TARAFI canlıda kaldı (Render env + `/api/listings`
@@ -349,7 +350,11 @@ Kullanıcı kararı: M5 istemci tarafı (goog_... anahtarı + Play Console)
    yok); build ✅ (CSS 111,79 kB — yeni sınıflar; `w-5.5`/`h-5.5` Tailwind 4
    dinamik ölçeğiyle derlendi, derlenmiş CSS'te doğrulandı). Bash
    sınıflandırıcısı bir kez daha arızalandı (grep testinde) — Grep aracı
-   kullanıldı; tsc/test/lint/build sorunsuz çalıştı.
+   kullanıldı; tsc/test/lint/build sorunsuz çalıştı. Commit `877b7ab` +
+   versionCode commit'i `fab6a62` — push ✅; **her ikisi de CI ✅ yeşil**
+   (check-runs: build / completed / success, GitHub API'den doğrulandı).
+   Render auto-deploy tetiklendi (sunucu kodu değişmedi — istemci +
+   android değişiklikleri; deploy kontrolü yapılmadı, kritik değil).
 5. **Telefonda test bekliyor:** yeni APK derlenince ilk açılışta tanıtım
    çıkmalı; tamamlanınca/kapatınca bir daha çıkmamalı. (İstenirse test
    sonrası localStorage'dan `van_onboarding_done` silinerek yeniden
@@ -1900,7 +1905,9 @@ bu dosyanın Bölüm 2/4/6'sı güncellenmeli (çözülenler Bölüm 3'e taşın
 
 **Ortama özgü notlar:**
 - `clean` script'i (`rm -rf dist server.js`) Windows/PowerShell'da çalışmaz.
-- Git durumu (15.11.2026, oturum #13 kapanışı): dal ucu `c6200c8` (M35:
+- Git durumu (17.11.2026, oturum #15 kapanışı): dal ucu `fab6a62` (M5
+  yarım kalan: versionCode 2/1.1; **CI ✅**), önceki `877b7ab` (M36:
+  onboarding ekranı; **CI ✅**), `034d8ad` (MEMORY M34+M35), `c6200c8` (M35:
   hesap silme sunucuya taşındı — Admin SDK; **CI ✅ + Render `live`**,
   telefonda doğrulandı), önceki `9b21de1` (M34: silme akışına adım adım log
   + 20 sn zaman aşımı + native deleteUser denemesi; CI ✅), `66a7981`
