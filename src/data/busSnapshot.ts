@@ -1,11 +1,16 @@
-// M33: van.bel.tr otobüs ANLIK GÖRÜNTÜSÜ — bu dosya scripts/update-bus-fallback.ts
+// M33/M38: van.bel.tr otobüs ANLIK GÖRÜNTÜSÜ — bu dosya scripts/update-bus-fallback.ts
 // (npm run scrape:bus) tarafından 15.11.2026 13:33 tarihinde van.bel.tr'den çekilerek
-// üretildi. İçindeki hat/saat/durak verisi GERÇEKTİR; Render sunucusundan
-// van.bel.tr'ye canlı erişim başarısız olduğunda (veri merkezi IP engeli)
-// /api/bus-schedules bu veriden döner.
+// üretildi. İçindeki hat/saat/durak verisi GERÇEKTİR. İki yerde kullanılır:
+//   1. Sunucu: Render'dan van.bel.tr'ye canlı erişim başarısız olduğunda
+//      (veri merkezi IP engeli) /api/bus-schedules bu veriden döner.
+//   2. İstemci (M38): Render uykudayken soğuk başlangıç istek zaman aşımına
+//      düşer — busService bu anlık görüntüye düşer; böylece ilk açılışta da
+//      87 gerçek hat görünür (önceden 7 hatlık KURGUSSAL mock'a düşüyordu).
 //
 // Yenilemek için (van.bel.tr'ye erişebilen bir makinede):
-//   npm run scrape:bus && git add server/busFallbackData.ts && git commit -m "..." && git push
+//   npm run scrape:bus && git add src/data/busSnapshot.ts && git commit -m "..." && git push
+
+import type { BusRoute } from '../types';
 
 export interface BusRouteData {
   id: string;
@@ -16,14 +21,14 @@ export interface BusRouteData {
   returnTimes: string[];
   stops: string[];
   frequency: string;
-  status: string;
+  status: BusRoute['status'];
   tariff: string;
   operatingHours: string;
 }
 
-export const BUS_FALLBACK_LAST_UPDATED = '15.11.2026 13:33';
+export const BUS_SNAPSHOT_LAST_UPDATED = '15.11.2026 13:33';
 
-export const BUS_FALLBACK_ROUTES: BusRouteData[] = [
+export const BUS_SNAPSHOT_ROUTES: BusRouteData[] = [
   {"id":"v-live-120","lineNo":"32-İB","title":"32-İB - İSKELE MAHALLESİ-BÖLGE HASTANESİ","route":"İskele-İskele Caddesi-Tebrizkapı Caddesi-Atatürk Kültür Parkı-Melen Caddesi-İpekyolu Bulvarı-Bölge Hastanesi","departureTimes":["07:00","09:00","11:00","13:00","15:00","17:00"],"returnTimes":["08:00","10:00","12:00","14:00","16:00","17:45"],"stops":["İskele","İskele Caddesi","Tebrizkapı Caddesi","Atatürk Kültür Parkı","Melen Caddesi","İpekyolu Bulvarı","Bölge Hastanesi"],"frequency":"Günde 6 sefer","status":"Aktif","tariff":"","operatingHours":"07:00 - 17:00"},
   {"id":"v-live-121","lineNo":"42-A","title":"42-A - HACIBEKİR-ŞABANİYE MAH.BÖLGE HAST.","route":"Depolama alanı-Doğu Caddesi-Sebze Hali-Şabaniye Caddesi-İpekyolu Bulvarı-Bölge Hastanesi","departureTimes":["08:30","10:30","12:30","14:30","16:30","18:30 ARIZALI"],"returnTimes":["07:35","09:30","11:30","13:30","15:30","17:30"],"stops":["Depolama alanı","Doğu Caddesi","Sebze Hali","Şabaniye Caddesi","İpekyolu Bulvarı","Bölge Hastanesi"],"frequency":"Günde 6 sefer","status":"Aktif","tariff":"","operatingHours":"08:30 - 18:30"},
   {"id":"v-live-122","lineNo":"42-B","title":"42-B - HACIBEKİR-ŞABANİYE ESKİ EDREMİT YOLU BÖLGE HAST.","route":"Bölge Hastanesi-İpekyolu Bulvarı-Hasanbey Caddesi-Şabaniye Mezarlığı-Eski Edremit Yolu Caddesi-Sebze Hali-Doğu Caddesi-Şerefiye Caddesi-Depolama Alanı","departureTimes":["06:30","08:30","10:30","12:30","14:30","16:30"],"returnTimes":["07:30","09:30","11:30","13:30","15:30","17:30"],"stops":["Bölge Hastanesi","İpekyolu Bulvarı","Hasanbey Caddesi","Şabaniye Mezarlığı","Eski Edremit Yolu Caddesi","Sebze Hali","Doğu Caddesi","Şerefiye Caddesi","Depolama Alanı"],"frequency":"Günde 6 sefer","status":"Aktif","tariff":"","operatingHours":"06:30 - 16:30"},

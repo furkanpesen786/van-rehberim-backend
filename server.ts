@@ -12,7 +12,9 @@ import { accountRouter } from './server/account.ts';
 // M20: ~612 satırlık inline otobüs fallback verisi ayrı modüle taşındı.
 // M33: fallback artık npm run scrape:bus ile üretilen GERÇEK van.bel.tr
 // anlık görüntüsü; canlı kazıyıcı server/busScraper.ts'te.
-import { BUS_FALLBACK_ROUTES, BUS_FALLBACK_LAST_UPDATED } from './server/busFallbackData.ts';
+// M38: anlık görüntü src/data/busSnapshot.ts'e taşındı — istemci
+// (busService) Render uykudayken aynı gerçek veriye düşüyor.
+import { BUS_SNAPSHOT_ROUTES, BUS_SNAPSHOT_LAST_UPDATED } from './src/data/busSnapshot.ts';
 import { fetchLiveBusRoutes } from './server/busScraper.ts';
 
 const app = express();
@@ -851,7 +853,7 @@ app.get('/api/currencies', async (_req, res) => {
 // M33: van.bel.tr otobüs verisi — ayrıştırıcı server/busScraper.ts'te
 // (hem canlı yenileme hem npm run scrape:bus aynı kodu kullanır).
 // 1 saat taze önbellek + 24 saat bayat önbellek + YEREL GERÇEK VERİ
-// fallback'i (busFallbackData.ts anlık görüntüsü). Tüm detay sayfaları
+// fallback'i (src/data/busSnapshot.ts anlık görüntüsü). Tüm detay sayfaları
 // arka planda çekilir; istemci bekletilmez (stale-while-revalidate).
 const BUS_CACHE_TTL_MS = 60 * 60 * 1000;
 const BUS_STALE_MAX_MS = 24 * 60 * 60 * 1000;
@@ -919,8 +921,8 @@ app.get('/api/bus-schedules', (_req, res) => {
   // engelli): npm run scrape:bus ile çekilmiş GERÇEK veri anlık görüntüsü.
   res.json({
     success: true,
-    routes: BUS_FALLBACK_ROUTES,
-    lastUpdated: `van.bel.tr anlık görüntü (${BUS_FALLBACK_LAST_UPDATED})`,
+    routes: BUS_SNAPSHOT_ROUTES,
+    lastUpdated: `van.bel.tr anlık görüntü (${BUS_SNAPSHOT_LAST_UPDATED})`,
     source: 'van.bel.tr (VAN BELVAN Ulaşım Dairesi) — yerel kopya',
     isLive: false,
   });

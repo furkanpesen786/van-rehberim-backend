@@ -1,4 +1,4 @@
-import { BUS_ROUTES } from '../data/mockData';
+import { BUS_SNAPSHOT_ROUTES, BUS_SNAPSHOT_LAST_UPDATED } from '../data/busSnapshot';
 import { BusRoute } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
@@ -29,11 +29,15 @@ export async function fetchLiveBusSchedules(): Promise<LiveBusResponse> {
     console.error(`[busService] Ağ/Timeout Hatası:`, getErrorMessage(err));
   }
 
+  // M38: sunucuya ulaşılamadı (Render free plan uykuda → soğuk başlangıç
+  // 15 sn timeout'u aşıyor vb.). Önceden 7 hatlık KURGUSSAL mock'a
+  // düşülüyordu; artık uygulamayla paketlenmiş GERÇEK van.bel.tr anlık
+  // görüntüsü gösterilir — ilk açılışta da 87 gerçek hat görünür.
   return {
     success: true,
-    routes: BUS_ROUTES,
-    lastUpdated: 'Van Bel.tr Standart Hat Saatleri (Yerel)',
-    source: 'Yerel Mock Data',
+    routes: BUS_SNAPSHOT_ROUTES,
+    lastUpdated: `van.bel.tr anlık görüntüsü (${BUS_SNAPSHOT_LAST_UPDATED}) — sunucuya ulaşılamadı, yenilemeyi deneyin`,
+    source: 'van.bel.tr — yerel kopya (offline)',
     isLive: false,
   };
 }

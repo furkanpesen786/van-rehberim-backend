@@ -1,7 +1,6 @@
 import {
   Pharmacy,
   Hospital,
-  BusRoute,
   TaxiStand,
   PlaceToVisit,
   NewsItem,
@@ -227,157 +226,9 @@ export const HOSPITALS: Hospital[] = [
   }
 ];
 
-export const BUS_ROUTES: BusRoute[] = [
-  {
-    id: 'b-1',
-    lineNo: 'Hat 101',
-    title: 'Merkez - YYÜ Dursun Odabaş Tıp Merkezi (Kampüs)',
-    route: 'Hz. Ömer Camii Garajı ➔ Maraş Cad. ➔ İskele Cad. ➔ Yüzüncü Yıl Üniversitesi ➔ Tıp Merkezi',
-    departureTimes: ['06:30', '06:50', '07:10', '07:30', '07:50', '08:10', '08:30', '09:00', '09:30', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:30', '18:00', '19:00', '20:00', '21:00', '22:00'],
-    returnTimes: ['07:10', '07:30', '07:50', '08:10', '08:30', '09:00', '09:30', '10:10', '10:40', '11:40', '12:40', '13:40', '14:40', '15:40', '16:40', '17:40', '18:10', '18:40', '19:40', '20:40', '21:40', '22:40'],
-    stops: [
-      'Hz. Ömer Camii Garajı (Başlangıç)',
-      'Beşyol Meydanı',
-      'Kazım Karabekir (Maraş) Caddesi',
-      'İskele Caddesi / Emniyet Kavşağı',
-      'Altaylı Sitesi',
-      'Kampüs Yolu / Sanayi Sitesi',
-      'YYÜ Rektörlük Ana Girişi',
-      'İktisadi İdari Bilimler Fakültesi',
-      'Ziraat Fakültesi',
-      'Öğrenci Yurtları Kompleksi',
-      'YYÜ Dursun Odabaş Tıp Merkezi (Son Durak)'
-    ],
-    frequency: 'Her 15-20 Dakikada Bir',
-    status: 'Aktif',
-    tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
-    operatingHours: '06:30 - 22:40',
-  },
-  {
-    id: 'b-2',
-    lineNo: 'Hat 102',
-    title: 'Merkez - Edremit TOKİ Sahil Yolu',
-    route: 'Cumhuriyet Cad. ➔ İpekyolu Bulvarı ➔ Bölge Hastanesi ➔ Edremit Seyir Terası ➔ TOKİ Konutları',
-    departureTimes: ['06:45', '07:15', '07:45', '08:15', '08:45', '09:15', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:30', '18:15', '19:15', '20:15', '21:15', '22:00'],
-    returnTimes: ['07:30', '08:00', '08:30', '09:00', '09:30', '10:45', '11:45', '12:45', '13:45', '14:45', '15:45', '16:45', '17:45', '18:15', '19:00', '20:00', '21:00', '22:00', '22:45'],
-    stops: [
-      'Cumhuriyet Caddesi (Kültür Merkezi)',
-      'İpekyolu Bulvarı Kavşağı',
-      'Van SBÜ Bölge Eğitim ve Araştırma Hastanesi',
-      'Kocaeli Parkı',
-      'Edremit Sahil Kordonu',
-      'Edremit Belediye Başkanlığı',
-      'Edremit TOKİ 1. Etap',
-      'Edremit TOKİ 2. Etap',
-      'Edremit TOKİ Son Durak'
-    ],
-    frequency: 'Her 20-30 Dakikada Bir',
-    status: 'Aktif',
-    tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
-    operatingHours: '06:45 - 22:45',
-  },
-  {
-    id: 'b-3',
-    lineNo: 'Hat 103',
-    title: 'Merkez - İskele Sahil & Feribot Garı',
-    route: 'Hz. Ömer Camii Garajı ➔ İskele Cad. ➔ Yaşar Kemal Parkı ➔ İskele Sahil Bandı',
-    departureTimes: ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'],
-    returnTimes: ['07:30', '08:30', '09:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:30', '19:30', '20:30', '21:30'],
-    stops: [
-      'Hz. Ömer Camii Garajı',
-      'Maraş Caddesi',
-      'İskele Caddesi',
-      'Valilik Kompleksi',
-      'Yaşar Kemal Parkı',
-      'İskele Tren Garı',
-      'İskele Feribot Sahil Parkı (Son Durak)'
-    ],
-    frequency: 'Saat Başı (Her 60 dk)',
-    status: 'Aktif',
-    tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
-    operatingHours: '07:00 - 21:30',
-  },
-  {
-    id: 'b-4',
-    lineNo: 'Hat 104',
-    title: 'Ferit Melen Havaalanı - Otogar Express',
-    route: 'Van Ferit Melen Havaalanı ➔ İpekyolu Bulvarı ➔ Bölge Hastanesi ➔ Şehirlerarası Otobüs Terminali',
-    departureTimes: ['07:30', '08:30', '09:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:30', '19:30', '20:30', '21:30', '22:30'],
-    returnTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'],
-    stops: [
-      'Van Ferit Melen Havaalanı Geliş Terminali',
-      'Eski Emniyet Kavşağı',
-      'İpekyolu Bulvarı',
-      'SBÜ Bölge Hastanesi Acil Girişi',
-      'Sebze Hali Kavşağı',
-      'Van Şehirlerarası Otobüs Terminali (Otogar)'
-    ],
-    frequency: 'Her 60 Dakikada Bir (Uçak Saatlerine Uyumlu)',
-    status: 'Aktif',
-    tariff: 'BELVAN Kart: 20,00 TL | Öğrenci: 12,00 TL',
-    operatingHours: '07:30 - 23:00',
-  },
-  {
-    id: 'b-5',
-    lineNo: 'Hat 105',
-    title: 'Merkez - Bostaniçi & TOKİ Konutları',
-    route: 'Soydan İş Merkezi ➔ Sebze Hali Yolu ➔ Bostaniçi Mah. ➔ TOKİ Konutları',
-    departureTimes: ['06:40', '07:20', '08:00', '08:40', '09:20', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:20', '19:00', '20:00'],
-    returnTimes: ['07:15', '07:55', '08:35', '09:15', '09:55', '10:35', '11:35', '12:35', '13:35', '14:35', '15:35', '16:35', '17:35', '18:15', '18:55', '19:35', '20:35'],
-    stops: [
-      'Soydan İş Merkezi Durağı',
-      'Sebze Hali Kavşağı',
-      'Bostaniçi Ana Caddesi',
-      'Bostaniçi Pazar Yeri',
-      'Bostaniçi TOKİ 1. Kısım',
-      'Bostaniçi TOKİ Son Durak'
-    ],
-    frequency: 'Her 40 Dakikada Bir',
-    status: 'Aktif',
-    tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
-    operatingHours: '06:40 - 20:35',
-  },
-  {
-    id: 'b-6',
-    lineNo: 'Hat 106',
-    title: 'Merkez - Kalecik TOKİ & Memur-Sen',
-    route: 'Hz. Ömer Camii Garajı ➔ İpekyolu ➔ Erciş Yolu Kavşağı ➔ Kalecik TOKİ',
-    departureTimes: ['07:00', '07:40', '08:20', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '17:40', '18:30', '19:30', '20:30'],
-    returnTimes: ['07:35', '08:15', '08:55', '09:35', '10:35', '11:35', '12:35', '13:35', '14:35', '15:35', '16:35', '17:35', '18:15', '19:05', '20:05', '21:05'],
-    stops: [
-      'Hz. Ömer Camii Garajı',
-      'Erciş Yolu Kavşağı',
-      'Oto Sanayi Girişi',
-      'Kalecik Mahalle Merkezi',
-      'Kalecik TOKİ 1. Etap',
-      'Memur-Sen Evleri Son Durak'
-    ],
-    frequency: 'Her 40-60 Dakikada Bir',
-    status: 'Aktif',
-    tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
-    operatingHours: '07:00 - 21:05',
-  },
-  {
-    id: 'b-7',
-    lineNo: 'Hat 107',
-    title: 'Merkez - Van Kalesi & Tarihi Eski Van Şehri',
-    route: 'Belediye Garajı ➔ İskele Cad. ➔ Van Kalesi Kavşağı ➔ Atatürk Kültür Parkı',
-    departureTimes: ['08:00', '09:30', '11:00', '12:30', '14:00', '15:30', '17:00', '18:30', '20:00'],
-    returnTimes: ['08:45', '10:15', '11:45', '13:15', '14:45', '16:15', '17:45', '19:15', '20:45'],
-    stops: [
-      'Belediye Otobüs Garajı',
-      'İskele Caddesi',
-      'Kale Yolu Kavşağı',
-      'Tarihi Ulu Cami & Horhor Koyu',
-      'Van Kalesi Müzesi Girişi',
-      'Atatürk Kültür Parkı (Son Durak)'
-    ],
-    frequency: 'Her 90 Dakikada Bir',
-    status: 'Aktif',
-    tariff: 'BELVAN Kart: 15,00 TL | Öğrenci: 9,00 TL',
-    operatingHours: '08:00 - 20:45',
-  }
-];
+// M38: BUS_ROUTES (7 hatlık KURGUSSAL mock) kaldırıldı — otobüs fallback'i
+// artık src/data/busSnapshot.ts'teki GERÇEK van.bel.tr anlık görüntüsü
+// (busService.ts). Sahte hat/saat verisi göstermek veri dürüstlüğüne aykırı.
 
 export const TAXI_STANDS: TaxiStand[] = [];
 

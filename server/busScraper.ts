@@ -7,7 +7,7 @@
 // (her hat https://van.bel.tr/OtobusSaatDetay/{id} detayına gider);
 // saatler ve durak zinciri detay sayfasındadır.
 
-import type { BusRouteData } from './busFallbackData.ts';
+import type { BusRouteData } from '../src/data/busSnapshot.ts';
 
 export const BUS_LISTING_URL = 'https://van.bel.tr/Syf/Otobus-Hareket-Saatleri.html';
 export const BUS_FETCH_TIMEOUT_MS = 10000;

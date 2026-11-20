@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { BusRoute } from '../../types';
 import { fetchLiveBusSchedules } from '../../services/busService';
@@ -35,27 +35,53 @@ export const BusSection: React.FC<BusSectionProps> = ({ isDark, searchQuery, isM
   const [busRoutes, setBusRoutes] = useState<BusRoute[]>([]);
   const [isBusLoading, setIsBusLoading] = useState<boolean>(true);
   const [busLastUpdated, setBusLastUpdated] = useState<string>('');
+  const [busIsLive, setBusIsLive] = useState<boolean>(false);
   const [busSearchQuery, setBusSearchQuery] = useState<string>('');
   const [activeBusId, setActiveBusId] = useState<string | null>(null);
 
-  const handleRefreshBusSchedules = async () => {
+  // M38: sunucuya ilk istek Render soğuk başlangıcıyla başarısız olup yerel
+  // anlık görüntüye düşebiliyor. Bu durumda 30 sn sonra bir KEZ arka planda
+  // yeniden denenir (sürekli döngüye girmez); elle yenileme her zaman mümkün.
+  const autoRetryTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const hasAutoRetriedRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      for (const t of autoRetryTimersRef.current) clearTimeout(t);
+      autoRetryTimersRef.current = [];
+    };
+  }, []);
+
+  // useCallback: hem mount effect'inin bağımlılık denetimi (react-hooks/
+  // exhaustive-deps) temiz olsun hem de yenileme düğmesi aynı kararlı
+  // referansı kullansın. Özyineleme (30 sn sonra tekrar deneme) kapanış
+  // içinde çalışır — kararlı referans sayesinde güvenli.
+  const handleRefreshBusSchedules = useCallback(async () => {
     setIsBusLoading(true);
     try {
       const data = await fetchLiveBusSchedules();
       if (data && data.routes && data.routes.length > 0) {
         setBusRoutes(data.routes);
         if (data.lastUpdated) setBusLastUpdated(data.lastUpdated);
+        setBusIsLive(data.isLive === true);
+        if (data.isLive !== true && !hasAutoRetriedRef.current) {
+          hasAutoRetriedRef.current = true;
+          const t = setTimeout(() => {
+            void handleRefreshBusSchedules();
+          }, 30_000);
+          autoRetryTimersRef.current.push(t);
+        }
       }
     } catch (err) {
       console.error('Failed to load live van.bel.tr bus schedules:', err);
     } finally {
       setIsBusLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    handleRefreshBusSchedules();
-  }, []);
+    void handleRefreshBusSchedules();
+  }, [handleRefreshBusSchedules]);
 
   // Dynamic theme class helpers
   const cardBg = isDark ? 'bg-[#1b1c21] border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-800';
@@ -122,10 +148,17 @@ export const BusSection: React.FC<BusSectionProps> = ({ isDark, searchQuery, isM
                     <h3 className={`font-black text-base uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-950'}`}>
                       VAN OTOBÜS SAATLERİ VE DURAKLARI
                     </h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                      Canlı Sync
-                    </span>
+                    {busIsLive ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        Canlı Sync
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        Yerel Kopya
+                      </span>
+                    )}
                   </div>
                   <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-800'} font-medium`}>
                     Kaynak: van.bel.tr (VAN BELVAN Ulaşım Dairesi)

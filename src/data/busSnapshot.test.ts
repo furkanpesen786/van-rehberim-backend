@@ -1,23 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { BUS_FALLBACK_ROUTES, BUS_FALLBACK_LAST_UPDATED } from './busFallbackData';
+import { BUS_SNAPSHOT_ROUTES, BUS_SNAPSHOT_LAST_UPDATED } from './busSnapshot';
 
 // M33: veri artık npm run scrape:bus ile van.bel.tr'den çekilen GERÇEK
 // anlık görüntü. Sabit uzunluk yok — site değiştikçe hat sayısı değişir.
 // Sözleşme: en az 30 hat, benzersiz id/hat no, saatli hatların saatleri
 // ss:dd biçiminde, dürüst boş alanlar (tarife van.bel.tr'de hiç
 // yayımlanmıyor; bazı hatların saatleri sitede yok).
-describe('BUS_FALLBACK_ROUTES', () => {
+// M38: anlık görüntü src/data/busSnapshot.ts'te — istemci offline
+// fallback'i de aynı veriyi kullanıyor (ilk açılışta 87 gerçek hat).
+describe('BUS_SNAPSHOT_ROUTES', () => {
   it('en az 30 hat içerir (gerçek van.bel.tr anlık görüntüsü)', () => {
-    expect(BUS_FALLBACK_ROUTES.length).toBeGreaterThanOrEqual(30);
+    expect(BUS_SNAPSHOT_ROUTES.length).toBeGreaterThanOrEqual(30);
   });
 
   it('id ve hat numaraları benzersizdir', () => {
-    expect(new Set(BUS_FALLBACK_ROUTES.map((r) => r.id)).size).toBe(BUS_FALLBACK_ROUTES.length);
-    expect(new Set(BUS_FALLBACK_ROUTES.map((r) => r.lineNo)).size).toBe(BUS_FALLBACK_ROUTES.length);
+    expect(new Set(BUS_SNAPSHOT_ROUTES.map((r) => r.id)).size).toBe(BUS_SNAPSHOT_ROUTES.length);
+    expect(new Set(BUS_SNAPSHOT_ROUTES.map((r) => r.lineNo)).size).toBe(BUS_SNAPSHOT_ROUTES.length);
   });
 
-  it('kaynak damgası (BUS_FALLBACK_LAST_UPDATED) doludur', () => {
-    expect(BUS_FALLBACK_LAST_UPDATED.length).toBeGreaterThan(5);
+  it('kaynak damgası (BUS_SNAPSHOT_LAST_UPDATED) doludur', () => {
+    expect(BUS_SNAPSHOT_LAST_UPDATED.length).toBeGreaterThan(5);
   });
 
   it('tüm kalkış/dönüş saatleri ss:dd ile başlar', () => {
@@ -25,7 +27,7 @@ describe('BUS_FALLBACK_ROUTES', () => {
     // (ARIZALI)") biçiminde olabilir — önek denetlenir.
     const re = /^([01]\d|2[0-3]):[0-5]\d(\s|$)/;
     let timedRoutes = 0;
-    for (const route of BUS_FALLBACK_ROUTES) {
+    for (const route of BUS_SNAPSHOT_ROUTES) {
       const allTimes = [...route.departureTimes, ...route.returnTimes];
       if (allTimes.length === 0) continue; // saati yayımlanmayan hatlar olabilir
       timedRoutes++;
@@ -38,7 +40,7 @@ describe('BUS_FALLBACK_ROUTES', () => {
   });
 
   it('her hat zorunlu alanları dürüst biçimde taşır', () => {
-    for (const route of BUS_FALLBACK_ROUTES) {
+    for (const route of BUS_SNAPSHOT_ROUTES) {
       expect(route.title.length, `${route.id} title boş`).toBeGreaterThan(0);
       expect(route.route.length, `${route.id} route boş`).toBeGreaterThan(0);
       expect(route.frequency.length, `${route.id} frequency boş`).toBeGreaterThan(0);
