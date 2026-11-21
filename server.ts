@@ -3,12 +3,18 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import cors from 'cors';
+// Aşama 2 (ölçek hazırlığı): gzip sıkıştırma + IP rate limiting
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 // DİKKAT: Native ESM ("type": "module") uzantısız göreli import'u çözemez —
 // tam .ts uzantısı şart (ts-node, tsx, esbuild ve tsc/allowImportingTsExtensions
 // hepsi bu formu kabul eder).
 import { listingsRouter } from './server/listings.ts';
 // M35: KVKK hesap silme — Firestore + Auth kaydı Admin SDK ile sunucuda silinir
 import { accountRouter } from './server/account.ts';
+// Aşama 2 (ölçek): /api/v1 ortak veri okuma katmanı — Firestore okuma kotası
+// RAM önbelleğiyle korunur (server/publicData.ts + server/cacheService.ts)
+import { publicDataRouter } from './server/publicData.ts';
 // M20: ~612 satırlık inline otobüs fallback verisi ayrı modüle taşındı.
 // M33: fallback artık npm run scrape:bus ile üretilen GERÇEK van.bel.tr
 // anlık görüntüsü; canlı kazıyıcı server/busScraper.ts'te.
@@ -18,6 +24,9 @@ import { BUS_SNAPSHOT_ROUTES, BUS_SNAPSHOT_LAST_UPDATED } from './src/data/busSn
 import { fetchLiveBusRoutes } from './server/busScraper.ts';
 
 const app = express();
+// Render.com reverse proxy arkasında çalışıyoruz: express-rate-limit IP'yi
+// X-Forwarded-For'dan doğru okusun (yanlış yapılandırmada v7 hata verir).
+app.set('trust proxy', 1);
 // Render.com'un dinamik portunu yakalamak için çok önemli!
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -37,6 +46,28 @@ app.use(cors({
 }));
 
 app.use(express.json());
+// Aşama 2: yanıt gövdelerini gzip'le (ilan listelerinin JSON'u küçülür)
+app.use(compression());
+
+// Aşama 2: hafif sağlık kontrolü — Render/uptime izleyicileri için.
+// Firestore'a DOKUNMAZ; yalnızca sürecin ayakta olduğunu bildirir.
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+// Aşama 2: /api/v1 okuma katmanı — IP başına dakikada 60 istek.
+// Bilinçli kapsam: ücretli yazma yolları (/api/listings, /api/account)
+// HARİÇ — onların daha sıkı uid tabanlı limiter'ları zaten var ve mobil
+// operatör CGNAT'ında ödeme yapan kullanıcıyı IP limitiyle bloklamak
+// istemiyoruz. limit, API_V1_RATE_LIMIT_PER_MINUTE env'i ile ayarlanabilir.
+const apiV1RateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.API_V1_RATE_LIMIT_PER_MINUTE) || 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyiniz.' },
+});
+app.use('/api/v1', apiV1RateLimiter, publicDataRouter);
 
 // M5: Ücretli ilan yayınlama (Firebase ID token + RevenueCat entitlement
 // doğrulaması; Firestore'a yalnızca Admin SDK ile yazılır).

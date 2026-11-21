@@ -4,25 +4,29 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 17.11.2026 (oturum #16) — **M37 APPLE GİRİŞİ
-> (ANDROID) ÇÖZÜLDÜ ✅** — kullanıcı bildirimi: telefonda Google girişi
-> çalışıyor ama Apple girişi "apple sign-in provider is not enabled..."
-> hatası veriyordu. Kök neden: `capacitor.config.ts` FirebaseAuthentication
-> `providers` listesinde yalnızca `google.com` vardı — Android'de
-> @capacitor-firebase/authentication OAuth sağlayıcılarını bu listede ister.
-> Düzeltme: `"apple.com"` eklendi; cap sync + gradle assembleDebug; APK
-> içinden capacitor.config.json çıkarılarak doğrulandı. **Telefonda test
-> bekliyor** — bir sonraki katman hatası çıkarsa: Firebase Console →
-> Authentication → Apple sağlayıcısı Android/web için Service ID + Team ID
-> + Key ID + .p8 anahtarı ister (Apple Developer Program üyeliği gerekli);
-> Apple Developer'da Service ID'ye `https://vanrehberim-f181b.firebaseapp.com/__/auth/handler`
-> redirect URL'i kaydedilmeli. **M36 onboarding TELEFONDA TEST EDİLDİ ✅
-> (17.11, kullanıcı onayı — sorun yok).** Önceki: oturum #15 — M36 çözüldü
-> (commit `877b7ab`, CI ✅); versionCode 2/1.1 (`fab6a62`). **M5 İSTEMCİ
-> TARAFI DONDURULDU:** `goog_...` anahtarı + Play Console yayını bekliyor.
-> M5 SUNUCU TARAFI canlıda (Render env + `/api/listings` çalışır durumda).
-> Bilinen ufak sorun: Render free plan uykudan soğuk başlangıçta ilk hesap
-> silme denemesi 20 sn zaman aşımına düşebiliyor (tekrar deneyince
+> **Son güncelleme:** 20.11.2026 (oturum #17) — **M38 OTOBÜS İLK AÇILIŞ
+> 7 HAT SORUNU ÇÖZÜLDÜ ✅** (commit `bc80288`, CI ✅ + Render `live` +
+> canlı uç nokta 87 hat doğrulandı; telefonda test için yeni APK gerekli).
+> Kullanıcı bildirimi: otobüs durakları ilk yüklemede
+> 7 hat, ikinci yenilemede 87 hat geliyordu. Kök neden: Render free plan
+> uykudayken soğuk başlangıç istemcinin 15 sn timeout'unu aşıyordu →
+> busService 7 hatlık KURGUSSAL `BUS_ROUTES` mock'una düşüyordu (ikinci
+> istekte sunucu uyanık → 87). Çözüm: gerçek van.bel.tr anlık görüntüsü
+> `server/busFallbackData.ts` → `src/data/busSnapshot.ts`'e taşındı;
+> istemci offline fallback'i artık bu 87 gerçek hat (dürüst etiket);
+> kurgusal mock silindi; BusSection rozeti dürüst + 30 sn sonra bir kez
+> arka plan yeniden denemesi. **Telefonda test için YENİ APK gerekli.**
+> **APPLE GİRİŞİ DONDURULDU (kullanıcı kararı, 20.11):** telefonda test
+> edildi — beklenen 2. katman hatası geldi ("identity provider
+> configuration is not found": Firebase Console'da Apple sağlayıcısı etkin
+> değil; etkinleştirmek Apple Developer Program $99/yıl + Service ID +
+> Team ID + Key ID + .p8 gerektiriyor). Kullanıcı hesabı yok → sorun
+> donduruldu; istenirse ileride Android'de Apple düğmesi gizlenir.
+> Önceki: oturum #16 — M37 çözüldü (`e664809`); M36 onboarding telefonda
+> test edildi ✅. **M5 İSTEMCİ TARAFI hâlâ dondurulmuş** (`goog_...`
+> anahtarı + Play Console yayını bekliyor). M5 SUNUCU TARAFI canlıda.
+> Bilinen ufak sorun: Render free plan uykudan soğuk başlangıçta ilk
+> hesap silme denemesi 20 sn zaman aşımına düşebiliyor (tekrar deneyince
 > çalışıyor — bkz. M35 kaydı).
 
 ---
@@ -57,6 +61,82 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**20.11.2026 oturumu #17 — M38 ÇÖZÜLDÜ (otobüs ilk açılışta 7 hat; commit
+`bc80288`, 8 dosya +103/−198):**
+
+Kullanıcı bildirimi: otobüs durakları/saatleri İLK yüklemede 7 hat
+görünüyor; kullanıcı ikinci kez yenileyince diğer 80 hat geliyor.
+İlk yüklemede de 87 gerçek hat gelsin istendi.
+
+- Kök neden: `busService.fetchLiveBusSchedules` 15 sn timeout'lu fetch
+  atıyor; Render free plan uykudayken soğuk başlangıç bunu aşıyor
+  (memory'deki bilinen sorun — M35'te hesap silmede de yaşanmıştı).
+  Başarısızlıkta istemci `mockData.ts`'teki 7 hatlık KURGUSSAL
+  `BUS_ROUTES` mock'una ("Yerel Mock Data") düşüyordu. Kullanıcı
+  yenileyince sunucu uyanmış oluyor → 87'lik anlık görüntü geliyordu.
+- Çözüm (kurgusal veriyi gerçek veriyle değiştirme — M31/M33 dürüstlük
+  çizgisi):
+  1. **`server/busFallbackData.ts` → `src/data/busSnapshot.ts`**
+     (git mv; yeniden adlandırma `%98` algılandı): 87 hatlık GERÇEK
+     van.bel.tr anlık görüntüsü artık istemciden de import edilebilir.
+     Export'lar `BUS_SNAPSHOT_ROUTES` / `BUS_SNAPSHOT_LAST_UPDATED`;
+     `BusRouteData.status` artık `BusRoute['status']` birliği (istemci
+     tipiyle atılabilir).
+  2. **`busService.ts`:** offline fallback = `BUS_SNAPSHOT_ROUTES`
+     (87 gerçek hat), dürüst etiket: lastUpdated "van.bel.tr anlık
+     görüntüsü (15.11.2026 13:33) — sunucuya ulaşılamadı, yenilemeyi
+     deneyin", source "van.bel.tr — yerel kopya (offline)",
+     isLive: false.
+  3. **`mockData.ts`:** 7 hatlık kurgusal `BUS_ROUTES` (b-1..b-7,
+     Hat 101-107, uydurma tarifelerle) TAMAMEN silindi + kullanılmayan
+     `BusRoute` import'u.
+  4. **`BusSection.tsx`:** modal başlığındaki her-zaman-yeşil "Canlı
+     Sync" rozeti artık gerçek duruma göre (canlıysa yeşil "Canlı Sync",
+     yerel kopyaysa amber "Yerel Kopya"); yerel kopyaya düşülürse 30 sn
+     sonra bir KEZ arka planda canlı veri yeniden denenir
+     (`hasAutoRetriedRef` — döngüye girmez; timer'lar unmount'ta
+     temizlenir; `useCallback` ile exhaustive-deps temiz).
+  5. **Bağlı güncellemeler:** `server.ts` (import + fallback yanıt
+     bloğu), `server/busScraper.ts` (tip import yolu),
+     `scripts/update-bus-fallback.ts` (hedef dosya + üretilen şablon
+     yeni konum/adlara), test `src/data/busSnapshot.test.ts`'e taşındı.
+- **Not — snapshot büyüdükçe istemci paketi büyür** (şu an vendor
+  chunk 797 kB; snapshot ~60 kB). `npm run scrape:bus` yenilemesinde
+  fark edilecek artış normaldir.
+- **Doğrulama:** tsc strict ✅ exit 0; **65/65 test** ✅; eslint 0
+  error / 9 warning (bilinen server.ts `any` borcu — BusSection'a
+  eklenen exhaustive-deps uyarısı useCallback ile çözüldü); build ✅
+  (vite 4.59 s + server.cjs 150 kB). Push `f911b16..bc80288`;
+  **CI ✅ yeşil** (check-runs: build / completed / success) + **Render
+  `bc80288` `live`** (20.11 16:14 UTC) + canlı uç nokta doğrulandı:
+  **87 hat**, "van.bel.tr anlık görüntü (15.11.2026 13:33) — yerel
+  kopya", isLive: false (beklendiği gibi — Render van.bel.tr'ye
+  erişemiyor, anlık görüntüden servis ediyor).
+- **Telefonda test için YENİ APK derlenmeli** (mevcut disk APK'sı
+  17.11 18:27 üretimi — M38 istemci değişiklikleri YOK içinde).
+  Test: uygulama ilk açılışta (Render uykudayken bile) otobüs listesi
+  87 hat göstermeli; rozet "Yerel Kopya" olmalı; ~30 sn sonra ya da
+  yenilemede canlıya dönmeli.
+- Bash sınıflandırıcısı oturum boyunca KAPALIydı — tsc/test/lint/
+  build/commit/push komutları kullanıcı `!` önekiyle çalıştırdı
+  (dosya düzenlemeleri Read/Edit araçlarıyla yapıldı).
+
+**20.11.2026 oturumu #17 — APPLE GİRİŞİ DONDURULDU (M37 devamı;
+kullanıcı kararı, kod değişikliği yok):**
+
+Telefonda test edildi (yeni APK, 17.11 üretimi): Google girişi ✅;
+Apple girişi beklenen 2. katman hatasıyla düştü — "this operation is
+not allowed... [the identity provider configuration is not found]".
+Neden: Firebase Console → Authentication → Sign-in method'da Apple
+sağlayıcısı etkin değil (kullanıcı uygulamasında Apple bağlantısını
+aktif yapmamış). Etkinleştirmek Apple Developer Program üyeliği
+($99/yıl) + Services ID + Team ID + Key ID + .p8 anahtarı ister;
+kullanıcının Apple Developer hesabı yok → **sorun DONDURULDU**.
+Döndürülmesi istenirse seçenekler: (a) Apple Developer hesabı al +
+Firebase Console'da Apple sağlayıcısını yapılandır (redirect:
+`https://vanrehberim-f181b.firebaseapp.com/__/auth/handler`), ya da
+(b) Android'de Apple girişi düğmesini gizle (Google yeterli).
 
 **17.11.2026 oturumu #16 — M37 ÇÖZÜLDÜ (Apple girişi Android'de
 "provider is not enabled" hatası):**
@@ -671,11 +751,12 @@ kullanıcı `!` önekiyle çalıştırdı.
   kullanıcıdan haber bekle. Periyodik bakım: van.bel.tr tarifeleri
   değişince `npm run scrape:bus` + commit/push.
 
-APK: debug APK günceldi — `android/app/build/outputs/apk/debug/app-debug.apk`
-(18 MB, 17.11 18:27 üretildi; M37 Apple sağlayıcı düzeltmesi + M36 onboarding +
-M33-M35 dahil + versionCode 2/1.1; APK içinden config doğrulandı). **Telefonda
-Apple girişi testi BEKLİYOR** (M37). M36 onboarding 17.11'de telefonda test
-edildi ✅. Önceki: 17.11 17:29 üretimi (M36, onboarding testinde kullanıldı ✅).
+APK: diskteki debug APK `android/app/build/outputs/apk/debug/app-debug.apk`
+(18 MB, 17.11 18:27 üretimi; M37 + M36 + M33-M35 dahil + versionCode 2/1.1) —
+**M38 İSTEMCİ DEĞİŞİKLİKLERİ İÇİNDE YOK: M38'in telefonda testi için yeni APK
+derlenmeli** (`npx cap sync android` + `gradlew assembleDebug`). 17.11 üretimi
+telefonda Apple girişi testinde kullanıldı → 2. katman hatası (bkz. oturum #17
+Apple kaydı; sorun donduruldu). M36 onboarding 17.11'de telefonda test edildi ✅.
 
 **13.11.2026 oturumu #11 — M28 ÇÖZÜLDÜ (state management; 17/17 — SON):**
 Favori ilan/yer state'i React Context'e taşındı (yeni bağımlılık YOK —
