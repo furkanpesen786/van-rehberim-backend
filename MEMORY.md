@@ -5,9 +5,13 @@
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
 > **Son güncelleme:** 22.11.2026 (oturum #18) — **ÖLÇEK DÖNÜŞÜMÜ TAMAM:
-> AŞAMA 1–4 KOD BİTTİ ✅.** Aşama 2+3 canlıda (`ea6f046` +
-> `050bf26`); **Aşama 4 (istemci /api/v1 geçişi) commit/push sonrası
-> yeni APK ile telefonda test edilmeli.** Amaç: Firestore okuma kotasını
+> AŞAMA 1–4 BİTTİ, CI ✅ + RENDER CANLIDA ✅** (aşama commit'leri:
+> 2=`ea6f046`, 3=`050bf26`, 4=`cc6aa7f`; memory=`174bc87`).
+> **Aşama 4 istemci değişiklikleri + M38 otobüs düzeltmesi için YENİ
+> APK gerekli** (`npx cap sync android` + gradlew assembleDebug).
+> ÖNEMLİ git notu: dosyanın gerçek adı `MEMORY.md` (büyük harf) —
+> `git add memory.md` Windows'ta sessizce HİÇBİR ŞEY yapamaz (index
+> harfe duyarlı); her zaman `git add MEMORY.md` kullan. Amaç: Firestore okuma kotasını
 > kullanıcı sayısından bağımsız yapmak. Aşama 1 (analiz) ✅ —
 > koleksiyonlarda `status` alanı YOK (aktiflik = `bitisTarihi > now`);
 > places yerel mock (businesses endpoint atlandı); deals'a İKİ ayrı
