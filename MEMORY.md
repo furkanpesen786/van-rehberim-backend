@@ -4,9 +4,28 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 20.11.2026 (oturum #17) — **M38 OTOBÜS İLK AÇILIŞ
-> 7 HAT SORUNU ÇÖZÜLDÜ ✅** (commit `bc80288`, CI ✅ + Render `live` +
-> canlı uç nokta 87 hat doğrulandı; telefonda test için yeni APK gerekli).
+> **Son güncelleme:** 22.11.2026 (oturum #18) — **ÖLÇEK DÖNÜŞÜMÜ TAMAM:
+> AŞAMA 1–4 KOD BİTTİ ✅.** Aşama 2+3 canlıda (`ea6f046` +
+> `050bf26`); **Aşama 4 (istemci /api/v1 geçişi) commit/push sonrası
+> yeni APK ile telefonda test edilmeli.** Amaç: Firestore okuma kotasını
+> kullanıcı sayısından bağımsız yapmak. Aşama 1 (analiz) ✅ —
+> koleksiyonlarda `status` alanı YOK (aktiflik = `bitisTarihi > now`);
+> places yerel mock (businesses endpoint atlandı); deals'a İKİ ayrı
+> onSnapshot dinleyicisi vardı (DealsView + SettingsView). Aşama 2 ✅ —
+> `/api/v1/jobs|deals|taxis` (node-cache TTL 300 sn / maxKeys 500,
+> X-Cache HIT/MISS, trust proxy 1, compression, /health, IP limiti
+> 60/dk yalnızca /api/v1'de). Aşama 3 ✅ — ilan yayınında otomatik
+> invalidasyon + `POST /api/v1/cache/clear` (fail-closed 503/401) +
+> adminApp.ts bölünmüş env (geriye uyumlu JSON fallback) + `.env.example`
+> tam liste. **Aşama 4 ✅ — `src/services/publicListingsService.ts` (YENİ):
+> 2 dk bellek+localStorage önbelleği, paralel istek tekilleştirme, 4 sn
+> AbortController timeout, düşüş = doğrudan Firestore getDocs;
+> `src/lib/firebase.ts` üç subscribe* içi değişti (İMZALAR AYNI →
+> görünümlere dokunulmadı); listingService yayın sonrası istemci önbelleği
+> temizler; listingTimestampMillis string-seconds sağlamlaştırması.**
+> Önceki: oturum #17 (20.11) — M38 ✅
+> (`bc80288`, telefonda test için yeni APK gerekli); APPLE GİRİŞİ
+> DONDURULDU (Apple Developer yok); M5 istemci tarafı dondurulmuş.
 > Kullanıcı bildirimi: otobüs durakları ilk yüklemede
 > 7 hat, ikinci yenilemede 87 hat geliyordu. Kök neden: Render free plan
 > uykudayken soğuk başlangıç istemcinin 15 sn timeout'unu aşıyordu →
@@ -61,6 +80,153 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**21–22.11.2026 oturum #18 — ÖLÇEK DÖNÜŞÜMÜ: AŞAMA 1 + 2 TAMAM (Firestore
+okuma kotası koruması; Aşama 2 commit `ea6f046`, 6 dosya +430/−24):**
+
+Kullanıcı isteği: yüksek trafik (100.000+ günlük kullanıcı) altında
+Firestore okuma kotalarını tüketmeyecek + Render'da sorunsuz çalışan
+4 aşamalı mimari dönüşüm (Auth + RevenueCat akışlarına zarar vermeden;
+her aşama sonunda onay beklenir).
+
+**Aşama 1 (analiz, kod değişikliği yok) — bulgular:**
+- Firestore liste okuyan tek nokta: `src/lib/firebase.ts` üç
+  `subscribe*` (onSnapshot + `bitisTarihi > now`): jobs→JobsView,
+  deals→DealsView **VE** SettingsView (çift dinleyici!), taxis→HomeView.
+  Her görünüm mount'ında yeni dinleyici + M22 long-polling → asıl kota
+  yakıcı bu. `users` yalnızca yazma; `userFavorites` M28'den beri
+  localStorage.
+- **Koleksiyonlarda `status` alanı YOK** — aktiflik `bitisTarihi`
+  (Timestamp) > now; sunucu `bitisTarihi`/`createdAtTimestamp` yazar.
+  v1 filtreleri bu alanla yapıldı (istemci sorgularıyla birebir).
+- Places (İşletmeler) Firestore'ta DEĞİL — `PLACES_TO_VISIT` mock'u →
+  `/api/v1/businesses` BİLİNÇLİ ATLANDI (tasarruf sıfır).
+- `node-cache`/`compression`/`express-rate-limit` kurulu değildi;
+  trust proxy / /health / compression yoktu; `.env.example` AI Studio
+  kalıntısıydı (eksik: FIREBASE_SERVICE_ACCOUNT, REVENUECAT_SECRET_API_KEY,
+  SCRAPERAPI_KEY, PORT).
+- Yazma yolu zaten tamamen sunucuda (POST /api/listings) → Aşama 3
+  invalidasyon noktası bedava.
+
+**Aşama 2 (`ea6f046`) — uygulanan:**
+1. `server/cacheService.ts` (YENİ): node-cache — `publicDataCache`
+   (stdTTL 300 sn, maxKeys 500 — Render 512 MB RAM koruması) +
+   `CACHE_KEYS` (v1:jobs/deals/taxis — Aşama 3 invalidasyonu için).
+2. `server/publicData.ts` (YENİ): `publicDataRouter` — GET
+   `/api/v1/jobs|deals|taxis`. HIT → RAM'den (Firestore'a gidilmez);
+   MISS → Admin SDK `where('bitisTarihi','>',Timestamp.now())` +
+   sunucu tarafı createdAtTimestamp desc sıralama (`sortByNewestFirst`
+   src/utils/listingSort.ts'ten paylaşımlı — composite index GEREKMEZ).
+   Yanıt: `{success, count, jobs|deals|taxis: [{id, ...data}]}` —
+   Timestamp'ler JSON'da {seconds, nanoseconds}; istemcinin
+   `listingTimestampMillis` bu biçimi destekliyor. Fail-closed 503
+   (env yok) / dürüst 502 (Firestore hatası). TS notu: spread dizin
+   imzasını düşürür → `(d): PublicListingItem =>` açık tip şart.
+3. `server.ts`: `app.set('trust proxy', 1)` (Render reverse proxy —
+   express-rate-limit v7 IP doğruluğu); `compression()`; `GET /health`
+   (`{status:'ok', uptime}` — Firestore'suz); express-rate-limit
+   60/istek-dk-IP **yalnızca `/api/v1`'e** (bilinçli: /api/listings +
+   /api/account uid limiter'lı ödeme yolları IP limitiyle
+   bloklanmasın — CGNAT riski; `API_V1_RATE_LIMIT_PER_MINUTE` env'i
+   ile ayarlanabilir, standart başlıklar draft-7).
+4. Yeni paketler: node-cache, compression, express-rate-limit +
+   @types/compression (dev). Not: npm audit 21 bulgu (19 orta/2 yüksek)
+   — mevcut bağımlılıklardan, bu aşamadan değil.
+- **Doğrulama:** tsc ✅; eslint 0 error / 9 warning (bilinen borç);
+  **65/65 test** ✅; build ✅ (server.cjs 153,8 kB); YEREL duman testi
+  (NODE_ENV=production, dist/server.cjs): /health ok, ilk istek
+  `X-Cache: MISS` + RateLimit başlıkları, ikinci `X-Cache: HIT`;
+  **CI ✅ yeşil + Render `ea6f046` `live` + CANLIDA doğrulandı**
+  (/health 200; /api/v1/jobs 200, ratelimit-limit: 60, x-cache
+  MISS→HIT). Dev notu: `node dist/server.cjs` NODE_ENV'siz DEV moda
+  düşer (Vite middleware) — duman testlerinde NODE_ENV=production şart.
+- **Bekleyen:** Aşama 4 sonrası telefonda test için YENİ APK gerekli
+  (M38 otobüs düzeltmesi de aynı APK'da olacak).
+
+**Aşama 4 (aynı oturum, commit bekliyor) — istemci /api/v1 geçişi:**
+
+1. `src/services/publicListingsService.ts` (YENİ): liste verisi taşıma
+   katmanı. Katman sırası: 2 dk BELLEK önbelleği → 2 dk localStorage
+   (ad alanlı anahtarlar `van_public_v1_*`; base64 görseller kota
+   doldurursa yazma sessizce atlanır, 1,5 MB boyut koruması) →
+   fetch `/api/v1/...` 4 sn AbortController timeout (Render soğuk
+   başlangıcı ~30-50 sn; M38 busService deseni) → DÜŞÜŞ: doğrudan
+   Firestore getDocs (çağıranın verdiği fallback fonksiyonu).
+   Paralel çağrılar `inflight` Map ile tek promise'e katlanır
+   (DealsView + SettingsView aynı veriyi isterse tek istek).
+   `clearPublicListingsCache(key?)` — yayın sonrası tazeleme.
+   Yanıt doğrulaması: `success === true` + `Array.isArray(items)`,
+   yoksa düşüş. Önbelleğe fallback sonucu da yazılır (2 dk).
+2. `src/lib/firebase.ts`: üç `subscribeJobListings/subscribeDeals/
+   subscribeTaxis` İÇİ değişti, İMZALAR AYNI — JobsView, DealsView,
+   SettingsView, HomeView'e TEK SATIR dokunulmadı. onSnapshot
+   kaldırıldı (kota yakıcı ana neden); yerine async fetch + `cancelled`
+   bayraklı unsubscribe. Firestore'a doğrudan sorgu (getDocs + aynı
+   `bitisTarihi > now` + sortByNewestFirst) yalnızca DÜŞÜŞ olarak
+   kaldı (fetchJobs/Deals/TaxisFromFirestore). `onSnapshot` import'u
+   silindi; M22 `experimentalForceLongPolling` flag'i KORUNDU (Auth
+   yazmaları + fallback getDocs için). Davranış farkı: abonelik
+   "canlı güncelleme" yerine mount başına tek atım — istemci önbelleği
+   + yayın sonrası temizlik bunun telafisi.
+3. `src/services/listingService.ts`: `submitPaidListing` başarılı
+   yanıtta `clearPublicListingsCache()` — sunucu önbelleği zaten
+   invalid edildi; istemci önbelleği de temizlenince yeni ilan bir
+   sonraki liste açılışında anında görünür.
+4. `src/utils/listingSort.ts`: `listingTimestampMillis` artık string
+   gelen `seconds` değerini de sayıya çevirir (bazı SDK serileştirmeleri
+   int64'ü string yapar; /api/v1 JSON güvenliği).
+- **Testler:** `publicListingsService.test.ts` (YENİ, 6 test): önbellek
+  (fetch bir kez), ağ hatası/HTTP 502/bozuk yanıt düşüşü, cache clear
+  sonrası yeniden istek, paralel çağrı tek fetch. `listingSort.test.ts`
+  +1 string-seconds testi. **72/72** ✅; tsc ✅; eslint 0 error ✅;
+  build ✅.
+- **Bilinçli kararlar:** API'den gelen JSON Timestamp'ları
+  `{seconds, nanoseconds}` — istemcide yalnızca sıralamada kullanılır,
+  sunucu zaten sıralı gönderir + listingTimestampMillis her iki biçimi
+  destekler. Görünümlerdeki `firestoreJobs/firestoreDeals` gibi
+  değişken adları "eski ad" olarak kaldı (dokunma minimizasyonu).
+  localStorage anahtarları ad alanlı (`van_public_v1_*`) — SavedItems
+  Context anahtarlarıyla çakışmaz.
+
+**Aşama 3 (aynı oturum, commit bekliyor) — invalidasyon + env mimarisi:**
+
+1. `server/publicData.ts`: `invalidatePublicDataCache(collection)`
+   export'u (LISTING_ENDPOINTS'ten cacheKey bulur, `publicDataCache.del`)
+   + `POST /api/v1/cache/clear` manuel endpoint. **Fail-closed:**
+   `CACHE_INVALIDATION_SECRET` tanımsızsa 503 (endpoint kapalı — kimse
+   gizli anahtarsız önbelleği boşaltıp Firestore maliyeti yükleyemez);
+   tanımlıysa `x-invalidation-secret` başlığı birebir eşleşmeli, yoksa
+   401. Üç CACHE_KEYS'i birden siler, `{ok, cleared}` döner.
+2. `server/listings.ts`: 201 (ilan yayımlandı) sonrası
+   `invalidatePublicDataCache(typeConfig.collection)` — try/catch içinde,
+   invalidasyon hatası yayını ENGELLEMEZ (en kötü durum: yeni ilan TTL
+   5 dk sonunda görünür). Ödeme akışına dokunulmadı.
+3. `server/adminApp.ts` YENİDEN YAZILDI: credential önceliği —
+   (a) üç bölünmüş env (`FIREBASE_PROJECT_ID` +
+   `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`, sonuncusu
+   `.replace(/\\n/g,'\n')` ile düzeltilir — Render paneline tek satır
+   girilir) → (b) `FIREBASE_SERVICE_ACCOUNT` tek-JSON (mevcut Render
+   kurulumu BOZULMAZ, geriye uyumlu) → (c) yok → null → 503. Lazy init
+   + `getApps()` koruması korundu.
+4. `.env.example` TAM LİSTE olarak yeniden yazıldı: istemci (VITE_API_URL,
+   VITE_REVENUECAT_API_KEY — bundle'a gömülür) vs sunucu (Firebase Admin
+   iki biçim, REVENUECAT_SECRET_API_KEY, CACHE_INVALIDATION_SECRET,
+   opsiyonel API_V1_RATE_LIMIT_PER_MINUTE, PORT Render'dan otomatik)
+   ayrımı; GEMINI_API_KEY/APP_URL kodda kullanılmıyor (eski AI Studio
+   kalıntısı, silinebilir); SCRAPERAPI_KEY Render'da tanımlı eski
+   değişken, kodda kullanılmıyor.
+- **Doğrulama (yerel):** tsc ✅; eslint 0 error / 9 warning (bilinen
+  borç); **65/65 test** ✅; build ✅ (server.cjs 155,5 kB). Duman testi
+  (NODE_ENV=production): yanlış/eksik secret → 401; doğru secret →
+  200 `{ok:true, cleared:0}` (önbellek boştu — beklenen); secret'sız
+  instance → 503 "yapılandırılmamış"; /health çalışıyor.
+- **Render'da yapılandırma notu:** mevcut FIREBASE_SERVICE_ACCOUNT JSON
+  olduğu sürece hiçbir panel değişikliği gerekmez. İleride bölünmüş
+  env'lere geçilirse üçü de girilmeli (kod JSON'a öncelik verir).
+  CACHE_INVALIDATION_SECRET Render'da tanımlı DEĞİLSE manuel temizleme
+  kapalıdır (otomatik invalidasyon listing yayınında çalışır).
+- Bash sınıflandırıcısı bu oturumda da kapalıydı — kurulum/doğrulama/
+  commit komutları kullanıcı `!` önekiyle çalıştırdı.
 
 **20.11.2026 oturumu #17 — M38 ÇÖZÜLDÜ (otobüs ilk açılışta 7 hat; commit
 `bc80288`, 8 dosya +103/−198):**
