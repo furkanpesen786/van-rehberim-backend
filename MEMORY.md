@@ -7,8 +7,11 @@
 > **Son güncelleme:** 22.11.2026 (oturum #18) — **ÖLÇEK DÖNÜŞÜMÜ TAMAM:
 > AŞAMA 1–4 BİTTİ, CI ✅ + RENDER CANLIDA ✅** (aşama commit'leri:
 > 2=`ea6f046`, 3=`050bf26`, 4=`cc6aa7f`; memory=`174bc87`).
-> **Aşama 4 istemci değişiklikleri + M38 otobüs düzeltmesi için YENİ
-> APK gerekli** (`npx cap sync android` + gradlew assembleDebug).
+> **Aşama 4 istemci değişiklikleri + M38 otobüs düzeltmesi içeren YENİ
+> APK ÜRETİLDİ (22.11, `android/app/build/outputs/apk/debug/app-debug.apk`,
+> cap sync + gradlew assembleDebug BUILD SUCCESSFUL) — telefonda test
+> bekliyor** (otobüs ilk açılışta 87 hat; ilan listeleri; ödeme sonrası
+> yeni ilan görünürlüğü).
 > ÖNEMLİ git notu: dosyanın gerçek adı `MEMORY.md` (büyük harf) —
 > `git add memory.md` Windows'ta sessizce HİÇBİR ŞEY yapamaz (index
 > harfe duyarlı); her zaman `git add MEMORY.md` kullan. Amaç: Firestore okuma kotasını
