@@ -17,7 +17,10 @@
 > server.ts 9 `any` uyarısı gerçek tiplerle kapatıldı → lint artık 0/0).
 > **Ödeme sistemi kararı: RevenueCat ile devam (kullanıcı onayı).**
 > **BEKLİYOR: firestore.rules Firebase Console'dan ÜRETİME DEPLOY
-> EDİLMELİ** (bkz. tarama kaydı).
+> EDİLDİ ✅ (23.11, kullanıcı onayı).** Eski üretim kurallarında `create:
+> if ownsNewDoc()` açığı vardı (giriş yapmış her kullanıcı ödemeden
+> istemciden ilan oluşturabiliyordu) — yeni kurallarla create/update/
+> delete tamamen backend'e kapatıldı.
 > ÖNEMLİ git notu: dosyanın gerçek adı `MEMORY.md` (büyük harf) —
 > `git add memory.md` Windows'ta sessizce HİÇBİR ŞEY yapamaz (index
 > harfe duyarlı); her zaman `git add MEMORY.md` kullan. Amaç: Firestore okuma kotasını
@@ -237,6 +240,15 @@ Düzeltilen bulgular:
   bulgu (mevcut bağımlılıklar, overrides kısmen ele almış), M5 istemci
   tarafı + Apple girişi dondurulmuş durumda.
 - **Kullanıcı kararı:** ödeme sistemi RevenueCat ile devam ediyor.
+- **npm audit kapanışı (23.11):** `npm audit fix` (güvenli mod) 21 → 14
+  bulgu (17 paket kırılmadan güncellendi; lint/test/build doğrulandı).
+  Kalan 14 bilinçli olarak bırakıldı: `uuid` (moderate) firebase-admin
+  transit bağımlılığı — zaafiyet yalnızca v3/v5/v6 buffer'lı çağrılarda,
+  firebase-admin yalnızca v4 kullanır (pratik risk ~0); çözümü
+  firebase-admin@14 major (Auth/ödeme riski). `sharp`/`glob`/`minimatch`
+  `@capacitor/assets` GELİŞTİRME aracının içinde (üretime girmez, risk 0);
+  çözümü @capacitor/assets@4 (breaking). İleride firebase-admin 14
+  geçişi planlanırsa bunlar kendiliğinden kapanır. `--force` KULLANILMADI.
 
 **Aşama 3 (aynı oturum, commit bekliyor) — invalidasyon + env mimarisi:**
 
