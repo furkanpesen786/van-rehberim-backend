@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { subscribeDeals } from '../lib/firebase';
 import type { Deal } from '../types';
@@ -103,7 +103,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         setUploadedPhotos((prev) => (prev.length >= 5 ? prev : [...prev, dataUrl]));
       } catch (err) {
         setErrorToast(getErrorMessage(err) || 'Fotoğraf eklenemedi.');
-        setTimeout(() => setErrorToast(null), 5000);
+        scheduleToastClear(setErrorToast, 5000);
       }
     }
   };
@@ -209,13 +209,32 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     return matchesCat && matchesSearch && matchesSaved;
   }) : [];
 
+  // TAM TARAMA (22.11): toast temizleme zamanlayıcıları unmount'ta iptal
+  // edilir — JobsView'teki M30 deseni buraya da uygulandı (önceden bileşen
+  // kapandıktan sonra da setState çağrılıyordu).
+  const toastTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  useEffect(() => {
+    const timers = toastTimers.current;
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+    };
+  }, []);
+  const scheduleToastClear = (setter: (v: null) => void, ms: number) => {
+    const t = setTimeout(() => {
+      toastTimers.current.delete(t);
+      setter(null);
+    }, ms);
+    toastTimers.current.add(t);
+  };
+
   // Ödeme akışı (JobsView modeli): seçilen gerçek RevenueCat paketi satın alınır,
   // ilan süresi ve öne çıkma bilgisi SATIN ALINAN ÜRÜNDEN türetilir. Böylece
   // seçilen gün = satın alınan ürün = Firestore'a yazılan süre her zaman aynıdır.
   const handleFinalPurchase = async () => {
     if (!selectedPackage) {
       setErrorToast('Geçerli bir satın alma paketi seçilmedi.');
-      setTimeout(() => setErrorToast(null), 4000);
+      scheduleToastClear(setErrorToast, 4000);
       return;
     }
 
@@ -233,7 +252,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
         setPurchaseCompleted(true);
       } catch (e) {
         setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
-        setTimeout(() => setErrorToast(null), 5000);
+        scheduleToastClear(setErrorToast, 5000);
         setIsProcessing(false);
         return;
       }
@@ -305,7 +324,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       setStartDate(todayTR());
       setEndDate(computeEndDate(30));
       setToastMessage(`🎉 İlanınız ${meta.durationDays} gün boyunca yayınlandı!`);
-      setTimeout(() => setToastMessage(null), 4000);
+      scheduleToastClear(setToastMessage, 4000);
     } catch (err) {
       setIsProcessing(false);
       // M29: ödeme alındı — kullanıcıya net söylenir ve repurchase'suz

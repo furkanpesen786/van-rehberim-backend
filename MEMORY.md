@@ -8,10 +8,16 @@
 > AŞAMA 1–4 BİTTİ, CI ✅ + RENDER CANLIDA ✅** (aşama commit'leri:
 > 2=`ea6f046`, 3=`050bf26`, 4=`cc6aa7f`; memory=`174bc87`).
 > **Aşama 4 istemci değişiklikleri + M38 otobüs düzeltmesi içeren YENİ
-> APK ÜRETİLDİ (22.11, `android/app/build/outputs/apk/debug/app-debug.apk`,
-> cap sync + gradlew assembleDebug BUILD SUCCESSFUL) — telefonda test
-> bekliyor** (otobüs ilk açılışta 87 hat; ilan listeleri; ödeme sonrası
-> yeni ilan görünürlüğü).
+> APK TELEFONDA TEST EDİLDİ — SORUN YOK ✅ (22.11, kullanıcı onayı).**
+> Ölçek dönüşümü uçtan uca tamam.
+> **TAM PROJE TARAMASI (22.11, aynı oturum):** 49 istemci + 7 sunucu
+> dosyası + server.ts + kurallar tarandı. 4 bulgu DÜZELTİLDİ (firestore.rules
+> sahibine update/delete tamamen KAPALI — ödeme bypass yolu kapatıldı;
+> DealsView toast timer temizliği; weatherService dürüst offline etiketi;
+> server.ts 9 `any` uyarısı gerçek tiplerle kapatıldı → lint artık 0/0).
+> **Ödeme sistemi kararı: RevenueCat ile devam (kullanıcı onayı).**
+> **BEKLİYOR: firestore.rules Firebase Console'dan ÜRETİME DEPLOY
+> EDİLMELİ** (bkz. tarama kaydı).
 > ÖNEMLİ git notu: dosyanın gerçek adı `MEMORY.md` (büyük harf) —
 > `git add memory.md` Windows'ta sessizce HİÇBİR ŞEY yapamaz (index
 > harfe duyarlı); her zaman `git add MEMORY.md` kullan. Amaç: Firestore okuma kotasını
@@ -194,6 +200,43 @@ her aşama sonunda onay beklenir).
   değişken adları "eski ad" olarak kaldı (dokunma minimizasyonu).
   localStorage anahtarları ad alanlı (`van_public_v1_*`) — SavedItems
   Context anahtarlarıyla çakışmaz.
+
+**TAM PROJE TARAMASI + DÜZELTMELER (22.11, aşama 4 sonrası):**
+
+Kapsam: 49 istemci dosyası, 7 sunucu modülü, server.ts (~1150 satır),
+firestore.rules, capacitor.config, package.json, tüm servisler/bağlamlar/
+görünümler. Temiz çıkanlar: ödeme akışı (sunucu doğrulaması sağlam),
+KVKK silme (adım timeout'lu + idempotent), kod disiplini (`console.log`/
+`@ts-ignore`/`eslint-disable` hepsi 0), timer temizlikleri, servis
+timeout+fallback desenleri, firebaseConfig API anahtarı public-by-design.
+
+Düzeltilen bulgular:
+1. **firestore.rules (gelir bypass kapatıldı):** `allow update: if
+   ownsExistingDoc()` kuralı ödeme yapmış kullanıcının web SDK ile kendi
+   ilanının `bitisTarihi`'ni uzatmasına / `isFeatured: true` yapmasına
+   (bedava vitrin) izin veriyordu. İstemcide güncelleme akışı zaten yok →
+   üç koleksiyonda da `create/update/delete: if false` (yalnızca
+   `read: if true`); KVKK silme sunucuda Admin SDK ile — etkilenmez.
+   Kullanılmayan ownsNewDoc/ownsExistingDoc fonksiyonları kaldırıldı.
+   **BU DOSYA HENÜZ ÜRETİME DEPLOY EDİLMEDİ** — Firebase Console →
+   Firestore → Rules → dosya içeriği yapıştır + Publish gerekiyor.
+2. **DealsView toast timer'ları:** JobsView M30 `toastTimers` deseni
+   (useRef<Set> + unmount cleanup + scheduleToastClear) buraya da
+   uygulandı; 4 setTimeout çağrısı çevrildi.
+3. **weatherService dürüst fallback:** API düşerse VAN_WEATHER mock'u
+   dönüyor ama `lastUpdated: 'Bugün 13:30'` sabit yazıyordu (bayat veri
+   canlı sanılıyordu) → artık "Canlı veriye ulaşılamadı — yerel tahmin
+   (offline)" (M38 dürüstlük standardı).
+4. **server.ts 9 `any` uyarısı:** API payload'ları gerçek tiplerle
+   tanımlandı (WeatherDayForecast/Pharmacy/CurrencyItem/TableItem/
+   BusRouteData/NewsItem — type-only import'larla, istemcilerle aynı
+   sözleşme). **eslint artık 0 error / 0 warning.**
+- **Doğrulama:** tsc ✅, eslint 0/0 ✅, 72/72 test ✅, build ✅.
+- **Bilinçli dokunulmayanlar:** eski /api/* endpoint'lerinde IP rate
+  limit yok (hepsi RAM cache'li + CGNAT riski — bilinçli), npm audit 21
+  bulgu (mevcut bağımlılıklar, overrides kısmen ele almış), M5 istemci
+  tarafı + Apple girişi dondurulmuş durumda.
+- **Kullanıcı kararı:** ödeme sistemi RevenueCat ile devam ediyor.
 
 **Aşama 3 (aynı oturum, commit bekliyor) — invalidasyon + env mimarisi:**
 

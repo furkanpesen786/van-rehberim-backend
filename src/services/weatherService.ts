@@ -131,5 +131,11 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
   }
 
   // Fallback to initial baseline
-  return VAN_WEATHER;
+  // TAM TARAMA (22.11): M38 busService dürüstlük standardı — API'ye
+  // ulaşılamadığında mock'a düşüldüğü kullanıcıya açıkça söylenir
+  // (önceden sabit "Bugün 13:30" yazıyor, bayat veri canlı sanılıyordu).
+  return {
+    ...VAN_WEATHER,
+    lastUpdated: 'Canlı veriye ulaşılamadı — yerel tahmin (offline)',
+  };
 }

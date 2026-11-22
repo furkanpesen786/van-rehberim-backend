@@ -22,6 +22,11 @@ import { publicDataRouter } from './server/publicData.ts';
 // (busService) Render uykudayken aynı gerçek veriye düşüyor.
 import { BUS_SNAPSHOT_ROUTES, BUS_SNAPSHOT_LAST_UPDATED } from './src/data/busSnapshot.ts';
 import { fetchLiveBusRoutes } from './server/busScraper.ts';
+// TAM TARAMA (22.11): API yüklerinin `any[]` yerine gerçek tiplerle
+// tanımlanması — istemciyle aynı sözleşme (type-only import, bundle'a girmez).
+import type { BusRouteData } from './src/data/busSnapshot.ts';
+import type { Pharmacy, NewsItem, WeatherDayForecast } from './src/types.ts';
+import type { CurrencyItem, TableItem } from './src/services/currencyService.ts';
 
 const app = express();
 // Render.com reverse proxy arkasında çalışıyoruz: express-rate-limit IP'yi
@@ -216,7 +221,7 @@ interface WeatherApiPayload {
   aqiColor: string;
   aqiAdvice: string;
   lastUpdated: string;
-  forecast7Days: any[];
+  forecast7Days: WeatherDayForecast[];
   isLive: boolean;
   source: string;
   stale?: boolean;
@@ -283,7 +288,7 @@ app.get('/api/weather', async (_req, res) => {
     }
 
     // Process forecast
-    const forecast7Days: any[] = [];
+    const forecast7Days: WeatherDayForecast[] = [];
     const mainTahmin = Array.isArray(mgmTahminData) && mgmTahminData.length > 0 ? mgmTahminData[0] : null;
 
     if (mainTahmin) {
@@ -401,7 +406,7 @@ interface PharmaciesApiPayload {
   vanCount: number;
   lastUpdated: string;
   source: string;
-  pharmacies: any[];
+  pharmacies: Pharmacy[];
   stale?: boolean;
 }
 let pharmaciesCache: { payload: PharmaciesApiPayload; fetchedAt: number } | null = null;
@@ -442,7 +447,7 @@ app.get('/api/pharmacies', async (_req, res) => {
     const HAKKARI_DISTRICTS = ['YÜKSEKOVA', 'ŞEMDİNLİ', 'DERECİK', 'ÇUKURCA'];
 
     const blocks = html.split('class="col-md-12 nobetci"');
-    const pharmacies: any[] = [];
+    const pharmacies: Pharmacy[] = [];
 
     for (let i = 1; i < blocks.length; i++) {
       const b = blocks[i];
@@ -720,8 +725,8 @@ const CURRENCIES_STALE_MAX_MS = 2 * 60 * 60 * 1000;  // eski önbellek üst sın
 
 interface CurrenciesApiPayload {
   success: boolean;
-  heroRates: any[];
-  tableItems: any[];
+  heroRates: CurrencyItem[];
+  tableItems: TableItem[];
   lastUpdated: string;
   source: string;
   isLive: boolean;
@@ -890,7 +895,7 @@ const BUS_CACHE_TTL_MS = 60 * 60 * 1000;
 const BUS_STALE_MAX_MS = 24 * 60 * 60 * 1000;
 interface BusApiPayload {
   success: boolean;
-  routes: any[];
+  routes: BusRouteData[];
   lastUpdated: string;
   source: string;
   isLive: boolean;
@@ -973,7 +978,7 @@ interface NewsApiPayload {
   lastUpdated: string;
   source: string;
   channelsCount: number;
-  news: any[];
+  news: NewsItem[];
   stale?: boolean;
 }
 
@@ -1066,7 +1071,7 @@ app.get('/api/news', async (_req, res) => {
     });
 
     const results = await Promise.allSettled(rssPromises);
-    const fetchedNews: any[] = [];
+    const fetchedNews: NewsItem[] = [];
     results.forEach((r) => {
       if (r.status === 'fulfilled' && Array.isArray(r.value)) {
         fetchedNews.push(...r.value);

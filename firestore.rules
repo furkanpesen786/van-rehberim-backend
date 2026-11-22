@@ -3,22 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Ortak yardımcılar -------------------------------------------------
-    // Oluşturulan dokümanın sahibi mi? (userId alanı oturum UID'si ile eşleşmeli)
-    function ownsNewDoc() {
-      return request.auth != null
-        && request.resource.data.userId is string
-        && request.resource.data.userId == request.auth.uid;
-    }
-
-    // Mevcut dokümanın sahibi mi? (update/delete için)
-    function ownsExistingDoc() {
-      return request.auth != null
-        && resource.data.userId is string
-        && resource.data.userId == request.auth.uid;
-    }
-    // -----------------------------------------------------------------------
-
     // Kullanıcı profilleri: herkese açık okuma KAPALI.
     // Her kullanıcı yalnızca kendi dokümanını okuyup yazabilir.
     match /users/{userId} {
@@ -28,28 +12,34 @@ service cloud.firestore {
 
     // İş İlanları: herkes okuyabilir. YENİ ilan oluşturma yalnızca backend'de
     // yapılır (Admin SDK kuralları bypass eder; ödeme doğrulaması sunucuda).
-    // Update'te userId değiştirilemez (sahiplik devredilemez).
+    // TAM TARAMA (22.11): update istemciye tamamen KAPALI — önceden sahibin
+    // kendisine açıktı; bu, bitisTarihi'ni ücretsiz uzatma / isFeatured'i
+    // bedava vitrine çevirme (ödeme bypass) yolunu açık bırakıyordu.
+    // İstemcide ilan güncelleme akışı yok; düzenleme gerektiğinde backend
+    // endpoint'i eklenir. Silme (KVKK) sunucuda Admin SDK ile yapılır —
+    // kurallara takılmaz; istemciden silme de kapatıldı.
     match /is_ilanlari/{jobId} {
       allow read: if true;
       allow create: if false;
-      allow update: if ownsExistingDoc() && ownsNewDoc();
-      allow delete: if ownsExistingDoc();
+      allow update: if false;
+      allow delete: if false;
     }
 
-    // İndirim İlanları (Fırsatlar): aynı model — create yalnızca backend.
+    // İndirim İlanları (Fırsatlar): aynı model — create/update/delete
+    // yalnızca backend (Admin SDK).
     match /indirim_ilanlari/{dealId} {
       allow read: if true;
       allow create: if false;
-      allow update: if ownsExistingDoc() && ownsNewDoc();
-      allow delete: if ownsExistingDoc();
+      allow update: if false;
+      allow delete: if false;
     }
 
-    // Taksiler: aynı model — create yalnızca backend.
+    // Taksiler: aynı model — create/update/delete yalnızca backend.
     match /taksiler/{taxiId} {
       allow read: if true;
       allow create: if false;
-      allow update: if ownsExistingDoc() && ownsNewDoc();
-      allow delete: if ownsExistingDoc();
+      allow update: if false;
+      allow delete: if false;
     }
 
     // Kullanıcı Favorileri (Sadece giriş yapmış kullanıcı kendi favorilerini okuyup yazabilir)
