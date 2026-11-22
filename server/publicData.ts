@@ -49,6 +49,18 @@ const LISTING_ENDPOINTS: Record<
   taxis: { cacheKey: CACHE_KEYS.taxis, collection: 'taksiler', responseField: 'taxis' },
 };
 
+/**
+ * Aşama 3: verilen koleksiyonun /api/v1 önbelleğini geçersiz kılar.
+ * Yeni ilan yayımlandığında (server/listings.ts, 201 yanıtı) çağrılır —
+ * önbellekteki eski liste en fazla TTL kadar bayat kalır, bu yolla anında
+ * tazelenir. Bilinmeyen koleksiyon adında false döner.
+ */
+export function invalidatePublicDataCache(collection: string): boolean {
+  const entry = Object.values(LISTING_ENDPOINTS).find((c) => c.collection === collection);
+  if (!entry) return false;
+  return publicDataCache.del(entry.cacheKey) > 0;
+}
+
 async function handleListingRequest(kind: ListingKind, _req: Request, res: Response): Promise<void> {
   const cfg = LISTING_ENDPOINTS[kind];
 
@@ -102,4 +114,30 @@ publicDataRouter.get('/deals', (req, res) => {
 
 publicDataRouter.get('/taxis', (req, res) => {
   void handleListingRequest('taxis', req, res);
+});
+
+// Aşama 3: manuel invalidasyon — tüm /api/v1 önbelleğini temizler.
+// Fail-closed: CACHE_INVALIDATION_SECRET env'i TANIMLI DEĞİLSE endpoint
+// kapalıdır (503) — kimse gizli bir anahtar olmadan önbelleği boşaltıp
+// Firestore okuma maliyetini sunucuya yükleyemesin. Tanımlıysa istek
+// `x-invalidation-secret` başlığıyla aynı değeri göndermelidir.
+// Not: otomatik invalidasyon (ilan yayını) için listings.ts'e bakınız —
+// bu endpoint olağan dışı durumlar (elle veri düzeltmesi vb.) içindir.
+const CACHE_INVALIDATION_SECRET = process.env.CACHE_INVALIDATION_SECRET || '';
+
+publicDataRouter.post('/cache/clear', (req, res) => {
+  if (!CACHE_INVALIDATION_SECRET) {
+    res.status(503).json({
+      error: 'Önbellek temizleme yapılandırılmamış (CACHE_INVALIDATION_SECRET eksik).',
+    });
+    return;
+  }
+  const provided = req.get('x-invalidation-secret');
+  if (!provided || provided !== CACHE_INVALIDATION_SECRET) {
+    res.status(401).json({ error: 'Yetkisiz istek.' });
+    return;
+  }
+  const cleared = publicDataCache.del([CACHE_KEYS.jobs, CACHE_KEYS.deals, CACHE_KEYS.taxis]);
+  console.log(`[publicData] manuel önbellek temizliği: ${cleared} anahtar silindi`);
+  res.json({ ok: true, cleared });
 });

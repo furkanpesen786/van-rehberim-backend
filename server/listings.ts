@@ -19,6 +19,10 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 // M35: Admin init ortak modüle taşındı (server/account.ts de kullanıyor)
 import { getAdminApp } from './adminApp.ts';
+// Aşama 3 (ölçek): ilan yayımlandığında /api/v1 önbelleğini invalidasyon
+// yapar — yeni ilan, bir sonraki /api/v1 isteğinde anında görünür olur
+// (5 dk TTL beklenmez).
+import { invalidatePublicDataCache } from './publicData.ts';
 
 export const listingsRouter = Router();
 
@@ -306,6 +310,14 @@ listingsRouter.post('/', async (req: Request, res: Response) => {
     }
 
     const docRef = await getFirestore(adminApp).collection(typeConfig.collection).add(docData);
+    // Aşama 3: ödeme alınıp ilan yazıldı → o koleksiyonun /api/v1
+    // önbelleği geçersiz. Invalidation hatası yayını ENGELLEMEZ (yalnızca
+    // log) — en kötü durumda yeni ilan TTL süresi sonunda görünür.
+    try {
+      invalidatePublicDataCache(typeConfig.collection);
+    } catch {
+      console.warn('[listings] önbellek invalidasyonu yapılamadı (kritik değil)');
+    }
     return res.status(201).json({ ok: true, id: docRef.id, durationDays: meta.durationDays });
   } catch (err) {
     console.error('[listings] beklenmeyen hata:', err);
