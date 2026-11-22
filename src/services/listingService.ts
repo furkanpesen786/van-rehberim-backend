@@ -5,6 +5,10 @@
 // Admin SDK ile yazar. Böylece ödemeyi atlatıp ilan yayımlamak mümkün olmaz.
 
 import { auth } from '../lib/firebase';
+// ÖLÇEK DÖNÜŞÜMÜ AŞAMA 4: ilan yayınlandığında istemci önbelleği
+// temizlenir — sunucu önbelleği server/listings.ts'te zaten invalid
+// edildi, böylece bir sonraki liste açılışı yeni ilanı anında getirir.
+import { clearPublicListingsCache } from './publicListingsService';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com';
 
@@ -53,6 +57,9 @@ export async function submitPaidListing(
         || 'İlan yayımlanamadı. Lütfen tekrar deneyiniz.';
       throw new Error(message);
     }
+    // Yayın başarılı → istemci liste önbelleği bayat; temizle ki yeni
+    // ilan bir sonraki liste açılışında anında görünsün.
+    clearPublicListingsCache();
     return body as SubmitListingResult;
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {

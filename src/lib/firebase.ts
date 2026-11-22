@@ -12,13 +12,18 @@ import {
   doc,
   setDoc,
   query,
-  onSnapshot,
+  getDocs,
   Timestamp,
   where,
 } from 'firebase/firestore';
 import type { JobListing } from '../types';
 // M30: ilanlar createdAtTimestamp'e göre en yeniden eskiye sıralanır
 import { sortByNewestFirst } from '../utils/listingSort';
+// ÖLÇEK DÖNÜŞÜMÜ AŞAMA 4: liste verisi artık /api/v1'den (sunucu tarafı
+// önbellekli) çekilir; aşağıdaki subscribe* fonksiyonları bu katmana
+// delege eder. Firestore'a doğrudan sorgu yalnızca düşüş (fallback)
+// olarak kalır — bkz. src/services/publicListingsService.ts.
+import { fetchListings } from '../services/publicListingsService';
 
 // M21+M26: Firestore ham doküman tipleri — CANONICAL şema. Tek yazma yolu
 // (server/listings.ts LISTING_TYPES) yalnızca bu alan adlarını yazar.
@@ -107,35 +112,49 @@ export async function saveUserToFirestore(profile: UserProfile) {
   }
 }
 
-// Subscribe to Job Listings from Firebase Firestore
-// M30: onError — snapshot dinleyicisi hata verirse bileşen yükleme
-// durumundan çıkıp hata gösterebilsin (önceden sonsuz iskelet).
+// Subscribe to Job Listings
+// ÖLÇEK DÖNÜŞÜMÜ AŞAMA 4: onSnapshot aboneliği kaldırıldı — her görünüm
+// mount'ında koleksiyonun tamamı Firestore'dan okunuyordu (kota yakıcı).
+// Artık publicListingsService /api/v1/jobs'u çeker (2 dk istemci önbelleği
+// + 4 sn timeout); API erişilemezse aşağıdaki tek seferlik Firestore
+// sorgusuna düşülür. İMZA DEĞİŞMEDİ — çağıran görünümler (JobsView)
+// aynı şekilde çalışır; abonelik artık "tek atım" olduğundan geri çağırma
+// mount başına bir kez tetiklenir.
+async function fetchJobsFromFirestore(): Promise<JobListing[]> {
+  // PRODUCTION: Yalnızca bitiş tarihi geçmemiş (aktif) ilanları getir
+  const q = query(
+    collection(db, 'is_ilanlari'),
+    where('bitisTarihi', '>', Timestamp.now())
+  );
+  const snapshot = await getDocs(q);
+  // M30: "En Yeni İlanlar Üstte" — createdAtTimestamp desc (composite
+  // index istemeden, istemci tarafında). Timestamp'u olmayan eski
+  // kayıtlar sona düşer.
+  const docs = sortByNewestFirst(snapshot.docs, (d) => d.data().createdAtTimestamp);
+  // Firestore/API verisi tipsizdir — güvenilir tek cast noktası burasıdır
+  return docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  })) as JobListing[];
+}
+
 export function subscribeJobListings(callback: (jobs: JobListing[]) => void, onError?: (error: unknown) => void) {
-  try {
-    // PRODUCTION: Yalnızca bitiş tarihi geçmemiş (aktif) ilanları getir
-    const q = query(
-      collection(db, 'is_ilanlari'),
-      where('bitisTarihi', '>', Timestamp.now())
-    );
-    return onSnapshot(q, (snapshot) => {
-      // M30: "En Yeni İlanlar Üstte" — createdAtTimestamp desc (composite
-      // index istemeden, istemci tarafında). Timestamp'u olmayan eski
-      // kayıtlar sona düşer.
-      const docs = sortByNewestFirst(snapshot.docs, (d) => d.data().createdAtTimestamp);
-      // Firestore verisi tipsizdir — güvenilir tek cast noktası burasıdır
-      const jobs = docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as JobListing[];
-      callback(jobs);
-    }, (error) => {
-      console.warn('Firestore is_ilanlari snapshot warning:', error);
-      onError?.(error);
-    });
-  } catch (err) {
-    console.error('Error setting up job listings listener:', err);
-    return () => { };
-  }
+  let cancelled = false;
+  void (async () => {
+    try {
+      const jobs = await fetchListings<JobListing>({
+        cacheKey: 'van_public_v1_jobs',
+        endpoint: '/api/v1/jobs',
+        responseField: 'jobs',
+        fallback: fetchJobsFromFirestore,
+      });
+      if (!cancelled) callback(jobs);
+    } catch (err) {
+      console.warn('İş ilanları yüklenemedi:', err);
+      if (!cancelled) onError?.(err);
+    }
+  })();
+  return () => { cancelled = true; };
 }
 
 // NOT (M5): addJobListingToFirestore / addDealToFirestore / addTaxiToFirestore
@@ -144,34 +163,45 @@ export function subscribeJobListings(callback: (jobs: JobListing[]) => void, onE
 // Firestore'a ilan yazma yolu kapatıldı; güvenlik kuralları da create'i
 // istemciye kapatır.
 
-// Subscribe to Deals from Firebase Firestore (indirim_ilanlari koleksiyonu)
-// M30: onError — snapshot dinleyicisi hata verirse bileşen yükleme
-// durumundan çıkıp hata gösterebilsin (önceden sonsuz iskelet).
+// Subscribe to Deals (indirim_ilanlari koleksiyonu)
+// Aşama 4 — yukarıdaki subscribeJobListings açıklaması burada da geçerli:
+// veri /api/v1/deals'tan gelir (DealsView + SettingsView ikisi de bu
+// fonksiyonu kullanır; publicListingsService paralel çağrıları tek
+// istekte birleştirir).
+async function fetchDealsFromFirestore(): Promise<RawDealDoc[]> {
+  const q = query(
+    collection(db, 'indirim_ilanlari'),
+    where('bitisTarihi', '>', Timestamp.now())
+  );
+  const snapshot = await getDocs(q);
+  // M30: "En Yeni İlanlar Üstte" — createdAtTimestamp desc (composite
+  // index istemeden, istemci tarafında). Timestamp'u olmayan eski
+  // kayıtlar sona düşer.
+  const docs = sortByNewestFirst(snapshot.docs, (d) => d.data().createdAtTimestamp);
+  // Firestore/API verisi tipsizdir — güvenilir tek cast noktası burasıdır
+  return docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  })) as RawDealDoc[];
+}
+
 export function subscribeDeals(callback: (deals: RawDealDoc[]) => void, onError?: (error: unknown) => void) {
-  try {
-    const q = query(
-      collection(db, 'indirim_ilanlari'),
-      where('bitisTarihi', '>', Timestamp.now())
-    );
-    return onSnapshot(q, (snapshot) => {
-      // M30: "En Yeni İlanlar Üstte" — createdAtTimestamp desc (composite
-      // index istemeden, istemci tarafında). Timestamp'u olmayan eski
-      // kayıtlar sona düşer.
-      const docs = sortByNewestFirst(snapshot.docs, (d) => d.data().createdAtTimestamp);
-      // Firestore verisi tipsizdir — güvenilir tek cast noktası burasıdır
-      const deals = docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as RawDealDoc[];
-      callback(deals);
-    }, (error) => {
-      console.warn('Firestore indirim_ilanlari snapshot warning:', error);
-      onError?.(error);
-    });
-  } catch (err) {
-    console.error('Error setting up deals listener:', err);
-    return () => { };
-  }
+  let cancelled = false;
+  void (async () => {
+    try {
+      const deals = await fetchListings<RawDealDoc>({
+        cacheKey: 'van_public_v1_deals',
+        endpoint: '/api/v1/deals',
+        responseField: 'deals',
+        fallback: fetchDealsFromFirestore,
+      });
+      if (!cancelled) callback(deals);
+    } catch (err) {
+      console.warn('İndirim ilanları yüklenemedi:', err);
+      if (!cancelled) onError?.(err);
+    }
+  })();
+  return () => { cancelled = true; };
 }
 
 // M32: saveUserFavoritesToFirestore / getUserFavoritesFromFirestore
@@ -188,33 +218,42 @@ export function subscribeDeals(callback: (deals: RawDealDoc[]) => void, onError?
 // aynen korunur: profil + favoriler + üç ilan koleksiyonunda userId eşleşmeli
 // dokümanlar, ardından Auth kaydı.
 
-// Subscribe to Taxis from Firebase Firestore (taksiler koleksiyonu)
-// M30: onError — snapshot dinleyicisi hata verirse bileşen yükleme
-// durumundan çıkıp hata gösterebilsin (önceden sonsuz iskelet).
+// Subscribe to Taxis (taksiler koleksiyonu)
+// Aşama 4 — yukarıdaki subscribeJobListings açıklaması burada da geçerli:
+// veri /api/v1/taxis'ten gelir (HomeView).
+async function fetchTaxisFromFirestore(): Promise<RawTaxiDoc[]> {
+  const q = query(
+    collection(db, 'taksiler'),
+    where('bitisTarihi', '>', Timestamp.now())
+  );
+  const snapshot = await getDocs(q);
+  // M30: "En Yeni İlanlar Üstte" — createdAtTimestamp desc (composite
+  // index istemeden, istemci tarafında). Timestamp'u olmayan eski
+  // kayıtlar sona düşer.
+  const docs = sortByNewestFirst(snapshot.docs, (d) => d.data().createdAtTimestamp);
+  // Firestore/API verisi tipsizdir — güvenilir tek cast noktası burasıdır
+  return docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  })) as RawTaxiDoc[];
+}
+
 export function subscribeTaxis(callback: (taxis: RawTaxiDoc[]) => void, onError?: (error: unknown) => void) {
-  try {
-    const q = query(
-      collection(db, 'taksiler'),
-      where('bitisTarihi', '>', Timestamp.now())
-    );
-    return onSnapshot(q, (snapshot) => {
-      // M30: "En Yeni İlanlar Üstte" — createdAtTimestamp desc (composite
-      // index istemeden, istemci tarafında). Timestamp'u olmayan eski
-      // kayıtlar sona düşer.
-      const docs = sortByNewestFirst(snapshot.docs, (d) => d.data().createdAtTimestamp);
-      // Firestore verisi tipsizdir — güvenilir tek cast noktası burasıdır
-      const taxis = docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as RawTaxiDoc[];
-      callback(taxis);
-    }, (error) => {
-      console.warn('Firestore taksiler snapshot warning:', error);
-      onError?.(error);
-    });
-  } catch (err) {
-    console.error('Error setting up taxis listener:', err);
-    return () => { };
-  }
+  let cancelled = false;
+  void (async () => {
+    try {
+      const taxis = await fetchListings<RawTaxiDoc>({
+        cacheKey: 'van_public_v1_taxis',
+        endpoint: '/api/v1/taxis',
+        responseField: 'taxis',
+        fallback: fetchTaxisFromFirestore,
+      });
+      if (!cancelled) callback(taxis);
+    } catch (err) {
+      console.warn('Taksi ilanları yüklenemedi:', err);
+      if (!cancelled) onError?.(err);
+    }
+  })();
+  return () => { cancelled = true; };
 }
 

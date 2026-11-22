@@ -13,6 +13,12 @@ describe('listingTimestampMillis', () => {
     expect(listingTimestampMillis({ seconds: 2, nanoseconds: 5 })).toBe(2000);
   });
 
+  it('aşama 4: JSON üzerinden string gelen seconds değeriyle de çalışır', () => {
+    // /api/v1 yanıtlarında bazı serileştirme biçimleri int64'ü string yapar
+    expect(listingTimestampMillis({ seconds: '3', nanoseconds: 0 })).toBe(3000);
+    expect(listingTimestampMillis({ seconds: 'bozuk' })).toBe(0);
+  });
+
   it('tanınmayan değerlerde 0 döner', () => {
     expect(listingTimestampMillis(undefined)).toBe(0);
     expect(listingTimestampMillis(null)).toBe(0);
