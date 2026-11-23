@@ -168,10 +168,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
 
   return (
-    <div className={`min-h-screen pb-28 font-sans transition-colors duration-200 ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-screen pb-28 md:pb-10 font-sans transition-colors duration-200 ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
 
       {/* Header */}
-      <div className={`px-5 py-4 border-b sticky top-0 z-30 shadow-sm transition-colors duration-200 ${isDark ? 'bg-[#1b1c21]/95 border-slate-800' : 'bg-white border-slate-200'}`}>
+      <div className={`px-5 py-4 border-b sticky top-0 md:top-16 z-30 shadow-sm transition-colors duration-200 ${isDark ? 'bg-[#1b1c21]/95 border-slate-800' : 'bg-white border-slate-200'}`}>
         <h1 className="text-2xl font-black text-emerald-600 tracking-tight">
           Ayarlar
         </h1>
@@ -219,7 +219,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
-      <div className="max-w-md mx-auto px-4 pt-4 space-y-4 animate-fadeIn">
+      {/* Aşama 2: ayarlar sayfası — orta genişlik (form ağırlıklı sayfa) */}
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-4 md:px-6 pt-4 space-y-4 animate-fadeIn">
 
         {/* User Profile Card */}
         {currentUser ? (
@@ -662,7 +663,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Policy Details Modal */}
       {selectedPolicy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className={`w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl p-5 shadow-2xl border transition-colors duration-200 ${isDark ? 'bg-[#1b1c21] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+          <div className={`w-full max-w-lg md:max-w-2xl lg:max-w-3xl max-h-[80vh] flex flex-col rounded-3xl p-5 shadow-2xl border transition-colors duration-200 ${isDark ? 'bg-[#1b1c21] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
             }`}>
             {/* Modal Header */}
             <div className={`flex items-center justify-between pb-3 border-b shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'
@@ -873,7 +874,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    /* Aşama 3: duyarlı grid (mobil 1, sm+ 2 sütun) */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {savedBusinesses.map((deal) => (
                         <div
                           key={deal.id}
@@ -973,7 +975,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    /* Aşama 3: duyarlı grid (mobil 1, sm+ 2 sütun) */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {savedPlaces.map((place) => (
                         <div
                           key={place.id}

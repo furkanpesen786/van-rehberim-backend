@@ -342,7 +342,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   };
 
   return (
-    <div className={`min-h-screen pb-28 font-sans ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-screen pb-28 md:pb-10 font-sans ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 font-bold text-xs animate-bounce">
           <CheckCircle2 className="w-5 h-5 shrink-0" />
@@ -359,8 +359,9 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       )}
 
       {isPublishing ? (
-        <div className={`max-w-md mx-auto min-h-screen pb-32 ${isDark ? 'bg-[#121316] text-white' : 'bg-slate-50 text-slate-800'}`}>
-          <div className={`px-5 py-4 flex items-center gap-3 border-b sticky top-0 z-30 backdrop-blur-md ${isDark ? 'border-slate-800 bg-[#121316]/95' : 'border-slate-200 bg-white/95'}`}>
+        // Aşama 2: form dalı — mobil dar, tablet/masaüstü ortalanmış orta genişlik
+        <div className={`w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto min-h-screen pb-32 md:pb-10 ${isDark ? 'bg-[#121316] text-white' : 'bg-slate-50 text-slate-800'}`}>
+          <div className={`px-5 py-4 flex items-center gap-3 border-b sticky top-0 md:top-16 z-30 backdrop-blur-md ${isDark ? 'border-slate-800 bg-[#121316]/95' : 'border-slate-200 bg-white/95'}`}>
             <button
               onClick={() => {
                 // M29: geri dönünce eski form hatası, ödeme-durumu ve kalıcı
@@ -640,14 +641,18 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
           </div>
         </div>
       ) : selectedDeal ? (
-        <div className={`max-w-md mx-auto min-h-screen flex flex-col justify-between ${isDark ? 'bg-[#141518]' : 'bg-slate-50'}`}>
+        // Aşama 2: detay dalı — orta genişlik (2 sütun düzeni Aşama 4'te)
+        <div className={`w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto min-h-screen flex flex-col ${isDark ? 'bg-[#141518]' : 'bg-slate-50'}`}>
           <div>
             <div className={`p-4 flex items-center justify-between border-b ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
               <button onClick={() => setSelectedDeal(null)} className="p-2"><ChevronLeft className="w-6 h-6" /></button>
               <h2 className="text-lg font-bold">İndirim Detayı</h2>
               <button onClick={(e) => toggleBookmark(selectedDeal.id, e)} className="p-2"><Bookmark className={`w-5 h-5 ${Array.isArray(savedDeals) && savedDeals.includes(selectedDeal.id) ? 'fill-emerald-600 text-emerald-600' : ''}`} /></button>
             </div>
-            <div className="relative w-full h-72 bg-black">
+            {/* Aşama 4: lg+'da 2 sütun — sol görsel+açıklama, sağ sticky iletişim kartı */}
+            <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-6 lg:items-start">
+              <div>
+            <div className="relative w-full h-72 lg:h-96 bg-black">
               <img
                 src={selectedDeal.image}
                 alt=""
@@ -692,21 +697,26 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                   ))}
                 </div>
               )}
+              </div>
+              </div>
+
+              {/* Sağ sütun: sticky iletişim kartı (lg+) */}
+              <div className="p-5 lg:p-0 lg:pt-4 lg:sticky lg:top-20 space-y-2">
+                {selectedDeal.phone && (
+                  <a href={`tel:${selectedDeal.phone.replace(/\s+/g, '')}`} className="w-full bg-slate-800 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
+                    <PhoneCall className="w-5 h-5" /> İŞLETMEYİ ARA
+                  </a>
+                )}
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(selectedDeal.storeName || '') + ' Van')}`} target="_blank" rel="noreferrer" className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
+                  <Navigation className="w-5 h-5" /> KONUMA GİT
+                </a>
+              </div>
             </div>
-          </div>
-          <div className="p-5 space-y-2">
-            {selectedDeal.phone && (
-              <a href={`tel:${selectedDeal.phone.replace(/\s+/g, '')}`} className="w-full bg-slate-800 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
-                <PhoneCall className="w-5 h-5" /> İŞLETMEYİ ARA
-              </a>
-            )}
-            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(selectedDeal.storeName || '') + ' Van')}`} target="_blank" rel="noreferrer" className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
-              <Navigation className="w-5 h-5" /> KONUMA GİT
-            </a>
           </div>
         </div>
       ) : (
-        <div className="max-w-md mx-auto px-4 pt-4">
+        // Aşama 2: ana liste — mobil dar, tablet ferah, masaüstü geniş
+        <div className="w-full max-w-md md:max-w-4xl lg:max-w-7xl mx-auto px-4 md:px-6 pt-4">
           <div className="flex items-center justify-between mb-4">
             <span className="flex items-center gap-1.5 text-emerald-700">
               <div className="w-1.5 h-6 bg-emerald-600 rounded-full"></div>
@@ -749,16 +759,20 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             ))}
           </div>
 
-          <div className="space-y-4">
+          {/* Aşama 3: duyarlı grid — mobil 1, tablet 2, masaüstü 3-4 sütun */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {isLoading ? (
-              <div className="text-center py-10 text-xs font-bold">Yükleniyor...</div>
+              <div className="text-center py-10 text-xs font-bold col-span-full">Yükleniyor...</div>
             ) : listingsError ? (
-              <div className="text-center p-8 border rounded-3xl text-xs font-bold space-y-2">
+              <div className="text-center p-8 border rounded-3xl text-xs font-bold space-y-2 col-span-full">
                 <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
                 <div>{listingsError}</div>
               </div>
             ) : filteredDeals.map((deal) => (
-              <div key={deal.id} onClick={() => setSelectedDeal(deal)} className={`relative rounded-3xl p-4 border cursor-pointer flex gap-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
+              // Aşama 3: yatay flex kart → dikey grid kartı (görsel üstte,
+              // sabit en-boy oranıyla; içerik altta). Tüm iş mantığı (onClick,
+              // M29 rozetleri, görsel fallback) birebir korundu.
+              <div key={deal.id} onClick={() => setSelectedDeal(deal)} className={`relative rounded-3xl border cursor-pointer overflow-hidden group transition-all hover:shadow-lg hover:-translate-y-1 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200'}`}>
                 {/* M29: öne çıkan ilan rozeti — bu ücretli özellik artık görünür */}
                 {deal.isFeatured && (
                   <div className="absolute top-0 right-0 z-10 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
@@ -766,33 +780,31 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                     <span>ÖNE ÇIKAN</span>
                   </div>
                 )}
-                <div className="relative w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-slate-200">
+                <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-200">
                   <img src={deal.image} alt="" onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.onerror = null;
                     target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80';
-                  }} className="w-full h-full object-cover" />
+                  }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   <div className="absolute bottom-1 left-1 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase">
                     {deal.discountRate}
                   </div>
                 </div>
-                <div className="flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-base">{deal.storeName}</h3>
-                    <p className="text-xs font-semibold uppercase mt-0.5">{deal.dealTitle}</p>
-                  </div>
-                  <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> {deal.locationName}
+                <div className="p-4 flex flex-col gap-1">
+                  <h3 className="font-bold text-base truncate">{deal.storeName}</h3>
+                  <p className="text-xs font-semibold uppercase mt-0.5 line-clamp-1">{deal.dealTitle}</p>
+                  <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
+                    <MapPin className="w-3 h-3 shrink-0" /> <span className="truncate">{deal.locationName}</span>
                   </div>
                 </div>
               </div>
             ))}
             {!isLoading && filteredDeals.length === 0 && (
-              <div className="text-center p-8 border rounded-3xl text-xs font-bold">İlan bulunamadı.</div>
+              <div className="text-center p-8 border rounded-3xl text-xs font-bold col-span-full">İlan bulunamadı.</div>
             )}
           </div>
 
-          <div className="fixed bottom-20 right-6 z-30">
+          <div className="fixed bottom-20 md:bottom-6 right-6 z-30">
             <button onClick={() => {
               if (currentUser) {
                 setIsPublishing(true);

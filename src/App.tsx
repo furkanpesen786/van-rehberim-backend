@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { TabType } from './types';
 import { BottomNav } from './components/BottomNav';
+// Aşama 2 (duyarlı arayüz): tablet/masaüstü üst navigasyon barı —
+// yalnızca md+ görünür; mobilde BottomNav korunur.
+import { TopNav } from './components/TopNav';
 import { HomeView } from './components/HomeView';
 import { PlacesView } from './components/PlacesView';
 import { NewsView } from './components/NewsView';
@@ -104,7 +107,10 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen font-sans select-none transition-colors duration-200 ${theme === 'dark' ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-screen font-sans select-none overflow-x-hidden transition-colors duration-200 ${theme === 'dark' ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
+
+      {/* Aşama 2: tablet/masaüstü üst navigasyon (mobilde render edilmez) */}
+      <TopNav activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} onThemeChange={handleThemeChange} />
 
       {/* Active View Container */}
       <main className="w-full">

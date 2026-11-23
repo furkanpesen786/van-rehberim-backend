@@ -233,7 +233,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   };
 
   return (
-    <div className={`relative min-h-screen pb-28 font-sans selection:bg-cyan-500 selection:text-white ${isDark ? 'text-white' : 'text-slate-800'}`}>
+    <div className={`relative min-h-screen pb-28 md:pb-10 font-sans selection:bg-cyan-500 selection:text-white ${isDark ? 'text-white' : 'text-slate-800'}`}>
       {/* Background Graphic matching screenshot */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
@@ -244,7 +244,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
         }}
       />
 
-      <div className="relative z-10 max-w-md mx-auto px-4 pt-5">
+      {/* Aşama 2: kademeli kapsayıcı — mobil dar, tablet ferah, masaüstü geniş */}
+      <div className="relative z-10 w-full max-w-md md:max-w-4xl lg:max-w-7xl mx-auto px-4 md:px-6 pt-5">
 
 
 
@@ -528,7 +529,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
       {/* 4. Acil Taksi Modal */}
       {activeModal === 'taxi' && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className={`${isDark ? 'bg-[#18191e] text-white border-slate-800' : 'bg-white border-slate-100'} w-full max-w-xl max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-3xl border shadow-2xl overflow-hidden animate-slideUp`}>
+          <div className={`${isDark ? 'bg-[#18191e] text-white border-slate-800' : 'bg-white border-slate-100'} w-full max-w-xl md:max-w-2xl lg:max-w-4xl max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-3xl border shadow-2xl overflow-hidden animate-slideUp`}>
 
             {/* Modal Header */}
             <div className={`p-4 sm:p-5 border-b flex items-center justify-between ${isDark ? 'border-slate-800 bg-[#1e2029]' : 'border-amber-200 bg-amber-500 text-slate-950'}`}>
@@ -597,12 +598,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
               </button>
             </div>
 
-            {/* Taxi List Body */}
-            <div className="p-4 overflow-y-auto space-y-3 flex-1">
+            {/* Taxi List Body — Aşama 3: duyarlı grid (mobil 1, md+ 2 sütun) */}
+            <div className="p-4 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
               {isLoadingTaxis ? (
                 <>
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className={`border rounded-2xl p-4 shadow-sm animate-pulse flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDark ? 'bg-[#22242b] border-slate-700/80' : 'bg-white border-slate-200'}`}>
+                    <div key={i} className={`border rounded-2xl p-4 shadow-sm animate-pulse flex flex-col justify-between gap-3 ${isDark ? 'bg-[#22242b] border-slate-700/80' : 'bg-white border-slate-200'}`}>
                       <div className="space-y-3 flex-1 min-w-0">
                         <div className="flex gap-2">
                           <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700/50 rounded-md"></div>
@@ -616,7 +617,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   ))}
                 </>
               ) : taxisError ? (
-                <div className={`p-8 rounded-3xl text-center border space-y-3 ${isDark ? 'bg-[#1e2029] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`p-8 rounded-3xl text-center border space-y-3 md:col-span-2 ${isDark ? 'bg-[#1e2029] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className="w-16 h-16 rounded-3xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
                     <CarTaxiFront className="w-8 h-8" />
                   </div>
@@ -628,7 +629,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   </p>
                 </div>
               ) : taxis.length === 0 ? (
-                <div className={`p-8 rounded-3xl text-center border space-y-4 ${isDark ? 'bg-[#1e2029] border-slate-800' : 'bg-slate-50 border-slate-200'
+                <div className={`p-8 rounded-3xl text-center border space-y-4 md:col-span-2 ${isDark ? 'bg-[#1e2029] border-slate-800' : 'bg-slate-50 border-slate-200'
                   }`}>
                   <div className="w-16 h-16 rounded-3xl bg-amber-400/20 text-amber-500 flex items-center justify-center mx-auto border border-amber-400/30 shadow-inner">
                     <CarTaxiFront className="w-8 h-8" />
@@ -669,7 +670,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 taxis.map(taxi => (
                   <div
                     key={taxi.id}
-                    className={`border rounded-2xl p-4 shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDark ? 'bg-[#22242b] border-slate-700/80 hover:border-slate-600' : 'bg-white border-slate-200 hover:border-amber-300'
+                    className={`border rounded-2xl p-4 shadow-sm transition-all hover:shadow-md flex flex-col justify-between gap-3 ${isDark ? 'bg-[#22242b] border-slate-700/80 hover:border-slate-600' : 'bg-white border-slate-200 hover:border-amber-300'
                       }`}
                   >
                     <div className="space-y-1.5 flex-1 min-w-0">
@@ -716,10 +717,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 w-full">
                       <a
                         href={`tel:${taxi.phone}`}
-                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-md shrink-0 transition-all active:scale-95"
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95"
                       >
                         <PhoneCall className="w-4 h-4 fill-slate-950" />
                         <span>ARA ({taxi.phone})</span>
@@ -741,7 +742,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
       {/* 4.1 TAKSİ İLANI EKLE MODAL */}
       {isAddTaxiModalOpen && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
-          <div className={`${isDark ? 'bg-[#18191e] text-white border-slate-800' : 'bg-white border-slate-200'} w-full max-w-lg max-h-[92vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden animate-scaleUp`}>
+          <div className={`${isDark ? 'bg-[#18191e] text-white border-slate-800' : 'bg-white border-slate-200'} w-full max-w-lg md:max-w-2xl max-h-[92vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden animate-scaleUp`}>
 
             {/* Header */}
             <div className={`p-4 sm:p-5 border-b flex items-center justify-between ${isDark ? 'bg-[#1e2029] border-slate-800' : 'bg-amber-500 text-slate-950'}`}>
@@ -810,6 +811,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </div>
               )}
 
+              {/* Aşama 4: md+'da iki sütunlu form satırları */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Input 1: Driver / Stand Name */}
               <div>
                 <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -845,7 +848,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   />
                 </div>
               </div>
+              </div>
 
+              {/* Aşama 4: plaka + ilçe ikinci satırda */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Input 3: Taksi Plakası (*ZORUNLU) */}
               <div>
                 <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -859,23 +865,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   onChange={(e) => setNewTaxiPlate(e.target.value)}
                   placeholder="Örn: 65 T 0845"
                   className={`w-full px-3.5 py-2.5 text-xs rounded-xl border font-mono uppercase font-black outline-none transition-all ${isDark ? 'bg-[#22242b] border-slate-700 text-amber-300 focus:border-amber-500' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-amber-500'
-                    }`}
-                />
-              </div>
-
-              {/* Input 4: Van'da Çalıştığı Yerler / Bölgeler (*ZORUNLU) */}
-              <div>
-                <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  Van'da Çalıştığı Yerler / Çalışma Bölgeleri <span className="text-rose-500">* (Zorunlu)</span>
-                </label>
-                <textarea
-                  required
-                  maxLength={200}
-                  rows={2}
-                  value={newTaxiOperatingRegions}
-                  onChange={(e) => setNewTaxiOperatingRegions(e.target.value)}
-                  placeholder="Örn: İpekyolu, Maraş Cad., Edremit TOKİ, YYÜ Kampüs, Havaalanı, Otogar, Tüm Van İçi"
-                  className={`w-full px-3.5 py-2.5 text-xs rounded-xl border font-medium outline-none transition-all ${isDark ? 'bg-[#22242b] border-slate-700 text-white focus:border-amber-500' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-amber-500'
                     }`}
                 />
               </div>
@@ -896,6 +885,24 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   <option value="Tuşba">Tuşba</option>
                   <option value="Tüm Van İçi">Tüm Van İçi</option>
                 </select>
+              </div>
+              </div>
+
+              {/* Input 4: Van'da Çalıştığı Yerler / Bölgeler (*ZORUNLU) */}
+              <div>
+                <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Van'da Çalıştığı Yerler / Çalışma Bölgeleri <span className="text-rose-500">* (Zorunlu)</span>
+                </label>
+                <textarea
+                  required
+                  maxLength={200}
+                  rows={2}
+                  value={newTaxiOperatingRegions}
+                  onChange={(e) => setNewTaxiOperatingRegions(e.target.value)}
+                  placeholder="Örn: İpekyolu, Maraş Cad., Edremit TOKİ, YYÜ Kampüs, Havaalanı, Otogar, Tüm Van İçi"
+                  className={`w-full px-3.5 py-2.5 text-xs rounded-xl border font-medium outline-none transition-all ${isDark ? 'bg-[#22242b] border-slate-700 text-white focus:border-amber-500' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-amber-500'
+                    }`}
+                />
               </div>
 
               {/* Mandatory Terms Checkbox */}

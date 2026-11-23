@@ -361,7 +361,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const inputBg = isDark ? 'bg-[#22242b] border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400';
 
   return (
-    <div className={`min-h-screen pb-28 pt-4 px-3 sm:px-6 max-w-4xl mx-auto space-y-5 transition-colors duration-200`}>
+    <div className={`min-h-screen pb-28 md:pb-10 pt-4 px-3 sm:px-6 max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-5 transition-colors duration-200`}>
 
       {/* Toast Notification */}
       {successToast && (
@@ -574,11 +574,12 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          /* Aşama 3: duyarlı grid — mobil 1, tablet 2, masaüstü 3-4 sütun */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredJobs.map((job) => (
               <div
                 key={job.id}
-                className={`${cardBg} rounded-3xl p-4 border shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-3 group relative overflow-hidden`}
+                className={`${cardBg} rounded-3xl p-4 border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all flex flex-col justify-between gap-3 group relative overflow-hidden`}
               >
                 {job.isFeatured && (
                   <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow-xs flex items-center gap-1">
@@ -689,7 +690,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       {/* ========================================================= */}
       {isPostModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className={`${isDark ? 'bg-[#18191e] text-white border-slate-800' : 'bg-white text-slate-900'} w-full max-w-xl rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp border`}>
+          <div className={`${isDark ? 'bg-[#18191e] text-white border-slate-800' : 'bg-white text-slate-900'} w-full max-w-xl md:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp border`}>
 
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-indigo-600 via-sky-600 to-blue-700 text-white p-4 flex items-center justify-between shadow-md shrink-0">
@@ -1007,10 +1008,10 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
       {/* ========================================================= */}
       {selectedJob && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
-          <div className={`${isDark ? 'bg-[#1b1c21] text-white border-slate-800' : 'bg-white text-slate-900'} w-full max-w-lg rounded-3xl border shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp`}>
+          <div className={`${isDark ? 'bg-[#1b1c21] text-white border-slate-800' : 'bg-white text-slate-900'} w-full max-w-lg md:max-w-2xl lg:max-w-4xl rounded-3xl border shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp`}>
 
             {/* Header / Photo */}
-            <div className="relative h-48 w-full bg-slate-900 shrink-0">
+            <div className="relative h-48 lg:h-64 w-full bg-slate-900 shrink-0">
               {selectedJob.photo ? (
                 <img src={selectedJob.photo} alt={selectedJob.title} className="w-full h-full object-cover" />
               ) : (
@@ -1039,8 +1040,11 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
               </div>
             </div>
 
-            {/* Content Scrollable */}
-            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+            {/* Content Scrollable — Aşama 4: lg+'da 2 sütun (sol: sağlayıcı +
+                açıklama; sağ: sticky iletişim/eylem kartı) */}
+            <div className="p-4 sm:p-5 overflow-y-auto text-xs sm:text-sm">
+              <div className="space-y-4 lg:grid lg:grid-cols-[1fr_320px] lg:gap-4 lg:items-start">
+                <div className="space-y-4">
 
               {/* Provider Info Card */}
               <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#22242b] border-slate-700' : 'bg-slate-50 border-slate-200'} flex items-center justify-between`}>
@@ -1075,6 +1079,10 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                   {selectedJob.description}
                 </p>
               </div>
+                </div>
+
+                {/* Sağ sütun: sticky iletişim kartı (lg+) */}
+                <div className="space-y-4 lg:sticky lg:top-0">
 
               {/* Location & Details */}
               <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#22242b] border-slate-700' : 'bg-slate-50 border-slate-200'} space-y-2 text-xs`}>
@@ -1121,6 +1129,8 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 </button>
               </div>
 
+                </div>
+              </div>
             </div>
 
           </div>

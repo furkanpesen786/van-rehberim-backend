@@ -36,7 +36,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
   const displayedPlaces = searchQuery ? filteredPlaces : PLACES_TO_VISIT;
 
   return (
-    <div className={`relative min-h-screen pb-28 font-sans ${isDark ? 'text-white' : 'text-slate-800'}`}>
+    <div className={`relative min-h-screen pb-28 md:pb-10 font-sans ${isDark ? 'text-white' : 'text-slate-800'}`}>
       {/* Background Graphic matching Screenshot */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
@@ -47,7 +47,8 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
         }}
       />
 
-      <div className="relative z-10 max-w-md mx-auto px-4 pt-5">
+      {/* Aşama 2: kademeli kapsayıcı — mobil dar, tablet ferah, masaüstü geniş */}
+      <div className="relative z-10 w-full max-w-md md:max-w-4xl lg:max-w-7xl mx-auto px-4 md:px-6 pt-5">
 
         {/* Header Title - "GEZİLECEK YERLER" */}
         <div className="text-center mb-4">
@@ -73,16 +74,16 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
           </button>
         </div>
 
-        {/* List of Places Cards */}
-        <div className="space-y-4 animate-fadeIn">
+        {/* List of Places Cards — Aşama 3: duyarlı grid (mobil 1, sm 2, lg 3, xl 4) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fadeIn">
           {displayedPlaces.map((place) => (
             <div
               key={place.id}
-              className={`rounded-3xl p-3 shadow-xl flex flex-col sm:flex-row gap-3 items-stretch hover:shadow-2xl transition-all border ${isDark ? 'bg-[#1c1e24] border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-800'
+              className={`rounded-3xl p-3 shadow-xl flex flex-col gap-3 items-stretch hover:shadow-2xl hover:-translate-y-1 transition-all border ${isDark ? 'bg-[#1c1e24] border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-800'
                 }`}
             >
-              {/* Image Container */}
-              <div className="w-full sm:w-44 h-40 shrink-0 rounded-2xl overflow-hidden shadow-inner relative group">
+              {/* Image Container — Aşama 3: sabit en-boy oranı (4/3) */}
+              <div className="w-full aspect-[4/3] shrink-0 rounded-2xl overflow-hidden shadow-inner relative group">
                 <img
                   src={place.image}
                   alt={place.title}
@@ -130,7 +131,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
           ))}
 
           {displayedPlaces.length === 0 && (
-            <div className={`rounded-3xl p-8 text-center font-bold ${isDark ? 'bg-[#1c1e24] text-slate-300' : 'bg-white/90 text-slate-700'}`}>
+            <div className={`rounded-3xl p-8 text-center font-bold col-span-full ${isDark ? 'bg-[#1c1e24] text-slate-300' : 'bg-white/90 text-slate-700'}`}>
               Aramanıza uygun gezilecek yer bulunamadı.
             </div>
           )}
@@ -141,7 +142,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
       {/* Place Detail Modal */}
       {selectedPlace && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className={`${isDark ? 'bg-[#18191e] text-white' : 'bg-white text-slate-700'} w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp`}>
+          <div className={`${isDark ? 'bg-[#18191e] text-white' : 'bg-white text-slate-700'} w-full max-w-lg md:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slideUp`}>
 
             {/* Header Image */}
             <div className="relative h-56 sm:h-64 shrink-0">

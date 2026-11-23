@@ -89,10 +89,10 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
   };
 
   return (
-    <div className={`min-h-screen pb-28 font-sans ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-screen pb-28 md:pb-10 font-sans ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
 
       {/* Top Bar Header */}
-      <div className={`px-5 py-4 flex items-center justify-between border-b sticky top-0 z-30 shadow-sm ${isDark ? 'bg-[#1b1c21] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+      <div className={`px-5 py-4 flex items-center justify-between border-b sticky top-0 md:top-16 z-30 shadow-sm ${isDark ? 'bg-[#1b1c21] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
         }`}>
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-black">
@@ -118,7 +118,8 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
         </button>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 pt-4 space-y-4">
+      {/* Aşama 2: kademeli kapsayıcı */}
+      <div className="w-full max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto px-4 md:px-6 pt-4 space-y-4">
 
         {/* Top 7 Van Channels Header Info */}
         <div className={`p-4 rounded-2xl border space-y-3 ${isDark ? 'bg-[#1b1c21] border-slate-800' : 'bg-white border-slate-200 shadow-sm'

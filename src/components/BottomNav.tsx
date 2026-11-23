@@ -12,7 +12,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, t
   const isDark = theme === 'dark';
 
   return (
-    <div className="fixed bottom-3 left-1/2 -translate-x-1/2 w-[95%] max-w-lg z-40">
+    // Aşama 2: mobilde korunur, md+ genişliklerde gizlenir (TopNav devralır)
+    <div className="fixed bottom-3 left-1/2 -translate-x-1/2 w-[95%] max-w-lg z-40 md:hidden">
       <div className={`rounded-full px-2 py-1.5 shadow-2xl flex items-center justify-around border backdrop-blur-md transition-colors duration-500 ${isDark
           ? 'bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-slate-700/60 shadow-black/80'
           : 'bg-gradient-to-r from-indigo-600 via-sky-500 to-cyan-500 border-white/40'
