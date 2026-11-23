@@ -293,6 +293,16 @@ listingsRouter.post('/', async (req: Request, res: Response) => {
     const now = new Date();
     const endDate = new Date(now.getTime() + meta.durationDays * 24 * 60 * 60 * 1000);
 
+    // Aşama 4: istemciden gelen RevenueCat işlem kimliği (varsa) — yalnızca
+    // kayıt amaçlıdır. Ödemenin GERÇEK doğrulaması yukarıdaki adım 3'te
+    // sunucuda bağımsız yapıldığından bu alanın sahtelenmesinin güvenlik
+    // etkisi yoktur; yine de uzunluk sınırıyla yazılır.
+    const rawTransactionId = (data as Record<string, unknown>).transactionId;
+    const transactionId =
+      typeof rawTransactionId === 'string' && rawTransactionId.trim().length > 0
+        ? rawTransactionId.trim().slice(0, 128)
+        : undefined;
+
     const docData: Record<string, unknown> = {
       ...pickFields(data as Record<string, unknown>, typeConfig.fields),
       userId: uid,
@@ -300,6 +310,11 @@ listingsRouter.post('/', async (req: Request, res: Response) => {
       productId,
       durationDays: meta.durationDays,
       isFeatured: meta.isFeatured,
+      // Aşama 4: ödeme durumu ve sağlayıcı İSTEMCİDEN ALINMAZ — ödemeyi
+      // doğrulayan katman (bu endpoint) sabitler; istemci "paid" yazamaz.
+      paymentStatus: 'paid',
+      paymentProvider: 'revenuecat',
+      ...(transactionId !== undefined ? { transactionId } : {}),
       createdAt: todayTR(),
       createdAtTimestamp: FieldValue.serverTimestamp(),
       bitisTarihi: Timestamp.fromDate(endDate),

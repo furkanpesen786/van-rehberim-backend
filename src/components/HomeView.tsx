@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TaxiStand } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { HOSPITALS } from '../data/mockData';
@@ -90,6 +90,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   const [payModalError, setPayModalError] = useState<string | null>(null);
   const [isProcessingTaksi, setIsProcessingTaksi] = useState<boolean>(false);
   const [pendingTaxiData, setPendingTaxiData] = useState<TaxiStand | null>(null);
+  // M29 deseni (Aşama 4): ödeme TAMAMLANDI ama ilan yazılamadı durumu.
+  // true iken "Tekrar Dene" yeniden satın alma yapmaz — sunucunun 15 dk'lık
+  // satın alma tazelik penceresi içinde yalnızca ilan yazımı yeniden denenir
+  // (çift ücret engeli; JobsView/DealsView ile aynı desen).
+  const [purchaseCompletedTaksi, setPurchaseCompletedTaksi] = useState<boolean>(false);
+  // Aşama 4: RevenueCat işlem kimliği — ödeme onayından alınır, sunucuya
+  // yalnızca KAYIT amaçlı taşınır (gerçek doğrulama sunucuda bağımsız yapılır).
+  const taxiTransactionIdRef = useRef<string | undefined>(undefined);
 
   const [newTaxiDriverName, setNewTaxiDriverName] = useState<string>('');
   const [newTaxiPhone, setNewTaxiPhone] = useState<string>('');
@@ -135,6 +143,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
     };
 
     setPendingTaxiData(createdTaxi);
+    // Aşama 4: yeni yayınlama denemesi = yeni ödeme niyeti — önceki
+    // denemenin ödeme durumu/işlem kimliği sıfırlanır.
+    setPurchaseCompletedTaksi(false);
+    taxiTransactionIdRef.current = undefined;
     setIsAddTaxiModalOpen(false); // Close the form
     setShowPayModalTaksi(true); // Open the white transparent paywall drawer
   };
@@ -144,28 +156,37 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
     setIsProcessingTaksi(true);
     setPayModalError(null);
 
-    try {
-      const taxiPackage = await PurchaseService.getPackageByProductId(PACKAGE_IDS.TAKSI_ILAN_AYLIK);
-      if (!taxiPackage) {
-        throw new Error('Taksi ilan paketi RevenueCat üzerinde bulunamadı.');
-      }
-      const purchased = await PurchaseService.purchasePackage(taxiPackage);
-
-      if (!purchased) {
+    // M29 (Aşama 4): ödeme yalnızca bir kez alınır. Ödeme sonrası ilan
+    // yazımı başarısız olursa "Tekrar Dene" yalnızca yazımı yeniden dener.
+    if (!purchaseCompletedTaksi) {
+      try {
+        // Aşama 4: yeni satın alma sözleşmesi — iptal { success: false,
+        // cancelled: true } döner (hata FIRLATMAZ), kullanıcı modalda tutulur.
+        // Ürün kimliğiyle çağrı: paket bulunamazsa anlaşılır Türkçe hata verir.
+        const purchase = await PurchaseService.purchaseListingPackage(PACKAGE_IDS.TAKSI_ILAN_AYLIK);
+        if (!purchase.success) {
+          setIsProcessingTaksi(false);
+          return;
+        }
+        taxiTransactionIdRef.current = purchase.transactionId;
+        setPurchaseCompletedTaksi(true);
+      } catch (e) {
+        setPayModalError(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
         setIsProcessingTaksi(false);
         return;
       }
-    } catch (e) {
-      setPayModalError(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
-      setIsProcessingTaksi(false);
-      return;
     }
 
     try {
-      await submitPaidListing('taxi', PACKAGE_IDS.TAKSI_ILAN_AYLIK, pendingTaxiData as unknown as Record<string, unknown>);
+      await submitPaidListing('taxi', PACKAGE_IDS.TAKSI_ILAN_AYLIK, {
+        ...(pendingTaxiData as unknown as Record<string, unknown>),
+        // Aşama 4: ödeme işlem kimliği — sunucu kaydıyla ilişkilendirme için
+        transactionId: taxiTransactionIdRef.current,
+      });
       setIsProcessingTaksi(false);
       setShowPayModalTaksi(false);
       setPendingTaxiData(null);
+      setPurchaseCompletedTaksi(false);
 
       setAddTaxiSuccess('Taksi ilanınız başarıyla oluşturuldu! Aboneliğiniz başlatıldı.');
       // Keep modal open to show success or open it again
@@ -181,7 +202,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
       }, 3000);
     } catch (err) {
       setIsProcessingTaksi(false);
-      setPayModalError('İlan yayımlanırken bir hata oluştu: ' + getErrorMessage(err));
+      // M29: ödeme alındı — kullanıcıya net söylenir ve repurchase'sız
+      // retry yolu gösterilir (sunucu 15 dk tazelik penceresi tanır).
+      setPayModalError(
+        'Ödemeniz alındı ancak ilan yayımlanamadı: ' + getErrorMessage(err) +
+        ' Lütfen "TEKRAR DENE" düğmesine basın — yeniden ücret alınmaz.'
+      );
     }
   };
 
@@ -911,9 +937,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </div>
                 <span className="text-base font-black tracking-wide text-slate-800 dark:text-white uppercase drop-shadow-sm">GÜVENLİ ABONELİK</span>
               </div>
+              {/* M29 (JobsView deseni): ödeme sürerken kapatma engellenir —
+                  arka planda tamamlanan işlemin sonucu kullanıcıya kaybolmasın */}
               <button
                 onClick={() => setShowPayModalTaksi(false)}
-                className="w-8 h-8 rounded-full bg-slate-100/50 hover:bg-slate-200/80 dark:bg-slate-800/50 dark:hover:bg-slate-700/80 flex items-center justify-center text-slate-500 transition-colors backdrop-blur-sm shadow-inner"
+                disabled={isProcessingTaksi}
+                className="w-8 h-8 rounded-full bg-slate-100/50 hover:bg-slate-200/80 dark:bg-slate-800/50 dark:hover:bg-slate-700/80 flex items-center justify-center text-slate-500 transition-colors backdrop-blur-sm shadow-inner disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -965,6 +994,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
             >
               {isProcessingTaksi ? (
                 <span className="animate-pulse">İşlem Yapılıyor...</span>
+              ) : purchaseCompletedTaksi ? (
+                // M29: ödeme alındı, yalnızca yazım yeniden denenir
+                <span className="drop-shadow-sm">TEKRAR DENE (ÜCRET ALINMAZ)</span>
               ) : (
                 <>
                   <span className="drop-shadow-sm">İşlemi Tamamla & Yayınla</span>

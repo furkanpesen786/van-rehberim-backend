@@ -136,22 +136,22 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   useBackButtonClose(selectedDeal !== null, () => setSelectedDeal(null));
   useBackButtonClose(showPlayModal, () => setShowPlayModal(false));
   // M29: ödeme TAMAMLANDI ama ilan yazılamadı durumu. true iken "Tekrar Dene"
-  // yeniden purchasePackage çağırmaz — sunucunun 15 dk'lık satın alma tazelik
+  // yeniden satın alma yapmaz — sunucunun 15 dk'lık satın alma tazelik
   // penceresi içinde yalnızca ilan yazımı yeniden denenir (çift ücret engeli).
   const [purchaseCompleted, setPurchaseCompleted] = useState(false);
+  // Aşama 4: RevenueCat işlem kimliği — ödeme onayından alınır, sunucuya
+  // yalnızca KAYIT amaçlı taşınır (gerçek doğrulama sunucuda bağımsız yapılır).
+  const transactionIdRef = useRef<string | undefined>(undefined);
 
   const loadRevenueCatPackages = async () => {
     setPackagesLoading(true);
     setPackagesError(null);
     try {
-      const packages = await PurchaseService.getPackages();
-      // M29: yalnızca BU ilan tipi için geçerli ürünler sunulur. Eskiden
-      // filtre boş çıkarsa TÜM paketler (ör. taksi paketi) listeleniyordu;
-      // kullanıcı öder, sunucu 400 verir, para iadesiz kalırdı.
-      const dealPackages = packages.filter((pkg) =>
-        pkg.product.identifier === PACKAGE_IDS.ILAN_30_GUN ||
-        pkg.product.identifier === PACKAGE_IDS.ONE_CIKAN_30_GUN
-      );
+      // Aşama 4: kategori filtresi servis katmanına taşındı —
+      // getListingPackages('deal') yalnızca indirim ilanı ürünlerini döndürür
+      // (M29'daki "yanlış paket satın alınıp sunucunun 400 vermesi" riski
+      // artık tek yerde, test edilmiş biçimde uygulanır).
+      const dealPackages = await PurchaseService.getListingPackages('deal');
       setRcPackages(dealPackages);
 
       if (dealPackages.length === 0) {
@@ -244,11 +244,14 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
     // başarısız olursa "Tekrar Dene" yalnızca yazımı yeniden dener.
     if (!purchaseCompleted) {
       try {
-        const purchased = await PurchaseService.purchasePackage(selectedPackage);
-        if (!purchased) {
+        // Aşama 4: yeni satın alma sözleşmesi — iptal { success: false,
+        // cancelled: true } döner (hata FIRLATMAZ), form korunur.
+        const purchase = await PurchaseService.purchaseListingPackage(selectedPackage);
+        if (!purchase.success) {
           setIsProcessing(false);
           return;
         }
+        transactionIdRef.current = purchase.transactionId;
         setPurchaseCompleted(true);
       } catch (e) {
         setErrorToast(getErrorMessage(e) || 'Ödeme sırasında bir hata oluştu.');
@@ -300,6 +303,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
       pricePaid: Number(selectedPackage.product.price) || 0,
       userEmail: String(currentUser?.email || 'anonim@van.rehberim'),
       userId: String(currentUser?.uid || ''),
+      // Aşama 4: ödeme işlem kimliği — sunucu kaydıyla ilişkilendirme için
+      transactionId: transactionIdRef.current,
     };
 
     try {

@@ -4,7 +4,35 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 22.11.2026 (oturum #18) — **ÖLÇEK DÖNÜŞÜMÜ TAMAM:
+> **Son güncelleme:** 23.11.2026 (oturum #19) — **REVENUECAT TÜKETİLEBİLİR
+> İLAN SATIN ALMA ENTEGRASYONU: AŞAMA 1–4 KOD TAMAM** (Aşama 2+3 doğrulandı:
+> tsc ✅, 85/85 test ✅, lint 0/0 ✅, build ✅; Aşama 4 kod tamam —
+> tsc/vitest/lint/build doğrulaması Bash arızası nedeniyle BEKLİYOR, komut
+> kullanıcıya verildi). Kullanıcı 4 aşamalı talebi, mevcut mimariyle
+> çelişen noktaları görüşülerek uyarlandı: (1) "işletme kaydı" formu YOK
+> (Places mock — atlandı); (2) mevcut ürün kimlikleri korundu
+> (`ilan_30_gun`/`one_cikan_30_gun`/`taksi_ilan_aylik` — kullanıcının
+> önerdiği yeni kimlikler Play Console'da yok); (3) Firestore yazımı
+> SUNUCUDA kaldı (üretim kuralları create/update/delete kapalı; istemci
+> yazsaydı reddedilirdi + ödeme doğrulaması zayıflardı) — `paymentStatus:
+> 'paid'` + `paymentProvider: 'revenuecat'` SUNUCU tarafından sabitlenir,
+> istemciden yalnızca kayıt amaçlı `transactionId` (128 kr sınır) kabul
+> edilir. Aşama 2: `Capacitor.isNativePlatform()` guard (web'de sessiz
+> atlama) + yer tutucu anahtar algılama (`YOUR_`/`xxxxx`) + logIn UID
+> eşlemesi. Aşama 3: `getListingPackages(category)` + `purchaseListingPackage()`
+> → `{success, cancelled, transactionId?}` sözleşmesi (iptal hata FIRLATMAZ;
+> customerInfo gelmezse dürüst hata). Aşama 4: JobsView + DealsView +
+> HomeView(taksi) yeni API'ye geçti; deprecated `purchasePackage()` SİLİNDİ;
+> taksi akışına eksik olan M29 çift-ücret koruması EKLENDİ ("TEKRAR DENE
+> (ÜCRET ALINMAZ)" + ödeme sırasında ✕ kilitli). Testler: 85 → 82
+> (4 eski deprecated testi 1 yeni API karşılığıyla değiştirildi).
+> **Aşama 4 doğrulandı: tsc ✅, 82/82 test ✅, lint 0/0 ✅, build ✅
+> (23.11; server.cjs 156,1 kB). TÜM AŞAMALAR TAMAM.**
+> **BEKLİYOR (kullanıcı):** gerçek `goog_...` anahtarı .env'ye + Play
+> Console yayını (keystore.properties, ürünler Active). Önceki: oturum #18
+> — ölçek dönüşümü tamam (aşağıda).
+>
+> **Son güncelleme (önceki):** 22.11.2026 (oturum #18) — **ÖLÇEK DÖNÜŞÜMÜ TAMAM:
 > AŞAMA 1–4 BİTTİ, CI ✅ + RENDER CANLIDA ✅** (aşama commit'leri:
 > 2=`ea6f046`, 3=`050bf26`, 4=`cc6aa7f`; memory=`174bc87`).
 > **Aşama 4 istemci değişiklikleri + M38 otobüs düzeltmesi içeren YENİ
@@ -96,6 +124,73 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**23.11.2026 oturum #19 — REVENUECAT TÜKETİLEBİLİR İLAN SATIN ALMA
+ENTEGRASYONU (Aşama 1–4; kod tamam, Aşama 4 doğrulaması bekliyor):**
+
+Kullanıcı 4 aşamalı entegrasyon talebi verdi (senior React/TS/Capacitor/
+RevenueCat rolü; her aşama sonunda onay). Talepteki mimariyle mevcut kod
+çelişiyordu — kullanıcı onayıyla şu uyarlamalar yapıldı:
+- **"İşletme kaydı" formu yok** (Places = yerel mock, Firestore koleksiyonu
+  yok) → üç MEVCUT akışa (job/deal/taxi) entegrasyon yapıldı.
+- **Kullanıcının önerdiği ürün kimlikleri yok** (`isletme_kayit_paketi`
+  vb. Play Console'da tanımlı değil) → mevcutlar korundu:
+  `ilan_30_gun`, `one_cikan_30_gun`, `taksi_ilan_aylik`.
+- **Firestore'a istemci yazımı REDDEDİLDİ** → üretim `firestore.rules`
+  üç ilan koleksiyonunda create/update/delete tamamen kapalı (23.11
+  deploy); ayrıca M5 "pull" modeli ödemeyi sunucuda doğruluyor. Yazma
+  POST /api/listings'te kaldı; `paymentStatus`/`paymentProvider`/
+  `transactionId` sunucu tarafında eklendi.
+
+**Aşama 1 (analiz):** purchaseService (mevcut: setup/getPackages/
+getPackageByProductId/purchasePackage/deprecated sözleşme), App.tsx
+setup çağrısı (uid ile), üç görünümün form/payload yapısı raporlandı.
+
+**Aşama 2 — platform güvenliği (`src/services/purchaseService.ts`):**
+- `Capacitor.isNativePlatform()` guard: web derlemesinde configure
+  ÇAĞRILMAZ (eklenti implementation'u yok), sessiz atlama.
+- Yer tutucu anahtar algılama: `YOUR_`/`xxxxx` içeren anahtarla configure
+  çağrılmaz (sahte anahtarla runtime patlaması engellendi).
+- İkinci setup = `Purchases.logIn({appUserID: uid})` (Firebase UID
+  eşlemesi; sunucu subscriber sorgusu uid ile yapıyor — kritik eşleşme).
+- +5 test (`vi.stubEnv`, `@capacitor/core` mock'u eklendi).
+
+**Aşama 3 — kategorik satın alma API'si (aynı dosya):**
+- `ListingCategory = 'job'|'deal'|'taxi'` + `CATEGORY_PACKAGE_IDS`
+  haritası; `getListingPackages(category)` offerings'tan yalnızca o
+  kategorinin ürünlerini döndürür (M29 "yanlış paket" riski servis
+  katmanına taşındı).
+- `purchaseListingPackage(target: string | PurchasesPackage)` →
+  `{success, cancelled, transactionId?}`: iptal hata FIRLATMAZ (form
+  korunur), ağ hatası/düşük SDK yanıtı dürüst Türkçe Error. Eski
+  `purchasePackage`'ın sessiz-false hatası (customerInfo yokken
+  "satın alınmadı" demek) düzeltildi.
+- Doğrulandı: tsc ✅, 85/85 test ✅, lint 0/0 ✅, build ✅.
+
+**Aşama 4 — ödeme kapılı yazım akışı:**
+- `server/listings.ts`: docData'ya `paymentStatus: 'paid'` +
+  `paymentProvider: 'revenuecat'` SABİT (istemci yazamaz); istemciden
+  gelen `transactionId` varsa trim+128 karakter sınırıyla kayıt amaçlı
+  yazılır (gerçek doğrulama zaten adım 3'te sunucuda bağımsız).
+- `purchaseService.ts`: deprecated `purchasePackage()` SİLİNDİ.
+- `JobsView.tsx` + `DealsView.tsx`: `getListingPackages('job'/'deal')`;
+  `purchaseListingPackage(selectedPackage)`; `transactionIdRef` ile
+  işlem kimliği payload'a; M29 deseni korundu.
+- `HomeView.tsx` (taksi): önceden OLmayan M29 çift-ücret koruması
+  eklendi — `purchaseCompletedTaksi` guard (ödeme sonrası yazım hatası
+  → "TEKRAR DENE (ÜCRET ALINMAZ)" yalnızca yazımı yeniden dener);
+  `taxiTransactionIdRef`; ödeme sırasında ✕ düğmesi kilitli; form
+  yeniden gönderiminde durum sıfırlanır.
+- `purchaseService.test.ts`: 4 eski deprecated test 1 yeni API
+  karşılığıyla değiştirildi (85 → 82 test).
+- **DOĞRULAMA:** tsc ✅ + vitest 82/82 ✅ + lint 0/0 ✅ + build ✅
+  (server.cjs 156,1 kB) — Aşama 2/3'ün doğrulaması kullanıcı `!`
+  önekiyle, build Claude Bash ile çalıştı.
+
+**Bekleyen (kullanıcı tarafı):** gerçek `goog_...` RevenueCat public
+anahtarı yerel `.env`'ye; Play Console yayını (keystore.properties,
+üç ürün Active). Kod tarafında yapılabilecek bir şey YOK — anahtar
+yer tutucu kaldıkça configure bilinçli olarak atlanır.
 
 **21–22.11.2026 oturum #18 — ÖLÇEK DÖNÜŞÜMÜ: AŞAMA 1 + 2 TAMAM (Firestore
 okuma kotası koruması; Aşama 2 commit `ea6f046`, 6 dosya +430/−24):**
