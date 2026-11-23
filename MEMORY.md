@@ -31,7 +31,10 @@
 > pushlandı (8 dosya, +422/−58) + **CI ✅** (GitHub Actions `build`
 > success; Render otomatik deploy başlar).**
 > **BEKLİYOR (kullanıcı):** gerçek `goog_...` anahtarı .env'ye + Play
-> Console yayını (keystore.properties, ürünler Active). Önceki: oturum #18
+> Console yayını (keystore.properties, ürünler Active). **YENİ DEBUG APK
+> üretildi (23.11 19:29, 19 MB — Aşama 2-4 dahil)** ancak yer tutucu
+> anahtar nedeniyle içinde RevenueCat etkin DEĞİL; ödeme testi için anahtar
+> sonrası yeniden üretim gerek. Önceki: oturum #18
 > — ölçek dönüşümü tamam (aşağıda).
 >
 > **Son güncelleme (önceki):** 22.11.2026 (oturum #18) — **ÖLÇEK DÖNÜŞÜMÜ TAMAM:
@@ -1083,11 +1086,14 @@ kullanıcı `!` önekiyle çalıştırdı.
   değişince `npm run scrape:bus` + commit/push.
 
 APK: diskteki debug APK `android/app/build/outputs/apk/debug/app-debug.apk`
-(18 MB, 17.11 18:27 üretimi; M37 + M36 + M33-M35 dahil + versionCode 2/1.1) —
-**M38 İSTEMCİ DEĞİŞİKLİKLERİ İÇİNDE YOK: M38'in telefonda testi için yeni APK
-derlenmeli** (`npx cap sync android` + `gradlew assembleDebug`). 17.11 üretimi
-telefonda Apple girişi testinde kullanıldı → 2. katman hatası (bkz. oturum #17
-Apple kaydı; sorun donduruldu). M36 onboarding 17.11'de telefonda test edildi ✅.
+(19 MB, **23.11 19:29 üretimi — EN GÜNCEL: RevenueCat entegrasyonu Aşama 2-4
+(commit `d78927e`) dahil; versionCode 2/1.1**). Önceki 17.11 üretimi (18 MB)
+Apple girişi testinde kullanılmıştı → 2. katman hatası (bkz. oturum #17 Apple
+kaydı; sorun donduruldu). M36 onboarding 17.11'de telefonda test edildi ✅.
+**DİKKAT (23.11):** bu APK'da RevenueCat configure EDİLMEZ — `.env`'deki
+`VITE_REVENUECAT_API_KEY` hâlâ yer tutucu; gerçek anahtar girilip APK
+yeniden üretilmeden ödeme akışı telefonda test EDİLEMEZ (Aşama 2 güvenlik
+katmanı bilinçli olarak atlıyor).
 
 **13.11.2026 oturumu #11 — M28 ÇÖZÜLDÜ (state management; 17/17 — SON):**
 Favori ilan/yer state'i React Context'e taşındı (yeni bağımlılık YOK —
