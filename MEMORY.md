@@ -4,7 +4,27 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 23.11.2026 (oturum #19) — **REVENUECAT TÜKETİLEBİLİR
+> **Son güncelleme:** 23.11.2026 (oturum #20) — **DUYARLI (RESPONSIVE) UI
+> DÖNÜŞÜMÜ: AŞAMA 1–4 TAMAM, DOĞRULANDI** (tsc ✅, 82/82 test ✅, lint ✅,
+> build ✅ — Bash sınıflandırıcısı yine arızalıydı, doğrulama komutunu
+> kullanıcı `!` önekiyle çalıştırdı). Mobil öncelikli uygulama tablet
+> (md/lg) ve masaüstü web'e (xl/2xl) taşındı; mobil deneyim birebir
+> korundu. Aşama 2: kademeli kapsayıcılar (`max-w-md md:max-w-4xl
+> lg:max-w-7xl mx-auto px-4 md:px-6`), mobilde BottomNav (`md:hidden`),
+> md+ YENİ `TopNav.tsx` (sticky üst çubuk: sekmeler + tema + Giriş Yap),
+> görünüm içi sticky başlıklar `md:top-16`, `pb-28 md:pb-10`. Aşama 3:
+> liste grid'leri (`sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`),
+> kart görselleri `aspect-[4/3]` + object-cover + hover efektleri
+> (`hover:shadow-lg hover:-translate-y-1`, `group-hover:scale-105`), FAB
+> `md:bottom-6`. Aşama 4: detay sayfaları `lg:` 2 sütun (sol içerik,
+> sağ `lg:sticky` iletişim kartı — ARA/KONUMA GİT/Paylaş); formlar
+> `md:max-w-2xl` + iki sütunlu satırlar (taksi: şoför+telefon,
+> plaka+ilçe); App.tsx köküne `overflow-x-hidden` (375/768/1440 px taşma
+> koruması). HİÇBİR işlev değişmedi (Firebase sorguları, Express önbellek,
+> RevenueCat tetikleyicileri, tel:/harita/WhatsApp linkleri). Önceki:
+> oturum #19 — RevenueCat entegrasyonu (aşağıda).
+>
+> **Son güncelleme (önceki):** 23.11.2026 (oturum #19) — **REVENUECAT TÜKETİLEBİLİR
 > İLAN SATIN ALMA ENTEGRASYONU: AŞAMA 1–4 KOD TAMAM** (Aşama 2+3 doğrulandı:
 > tsc ✅, 85/85 test ✅, lint 0/0 ✅, build ✅; Aşama 4 kod tamam —
 > tsc/vitest/lint/build doğrulaması Bash arızası nedeniyle BEKLİYOR, komut
@@ -129,6 +149,74 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**23.11.2026 oturum #20 — DUYARLI (RESPONSIVE) UI DÖNÜŞÜMÜ (Aşama 1–4; tamam
+ve doğrulandı):**
+
+Kullanıcı 4 aşamalı responsive dönüşüm talebi verdi (senior UI/UX +
+Responsive Frontend mimarı rolü; tablet md/lg + masaüstü xl/2xl; mobil
+deneyim BOZULMAYACAK; her aşama sonunda onay — 4 onay da alındı).
+Kural: hiçbir mevcut fonksiyon (Firebase sorguları, Express önbellek
+katmanı, RevenueCat satın alma tetikleyicileri, harita/WhatsApp
+yönlendirmeleri) silinmeyecek/bozulmayacak; tsc + Vite build hatası
+kalmayacak.
+
+**Aşama 1 (analiz, kod değişikliği yok):** daraltma App.tsx kökünde değil
+GÖRÜNÜM bazlı (`max-w-md`/`max-w-lg`); BottomNav tek navigasyon (fixed
+pill, `max-w-lg`); JobsView'ta kısmi grid zaten vardı; modallar zaten
+max-w kısıtlı. Sticky başlık + yeni üst çubuk çakışma riski tespit
+edildi (çözüm: görünüm başlıkları z-30, TopNav z-40, `md:top-16`).
+
+**Aşama 2 — kademeli kapsayıcı + akıllı navigasyon:**
+- Tüm görünüm kapsayıcıları: `w-full max-w-md md:max-w-4xl lg:max-w-7xl
+  mx-auto px-4 md:px-6` (HomeView/PlacesView/DealsView/JobsView;
+  NewsView `max-w-xl md:max-w-3xl lg:max-w-5xl`; SettingsView
+  `max-w-md md:max-w-2xl lg:max-w-4xl`).
+- `src/components/TopNav.tsx` YENİ: `hidden md:block sticky top-0 z-40`
+  backdrop-blur üst çubuk — logo, 6 sekme (lg+ etiketli, aktif hap),
+  tema düğmesi (Sun/Moon), Giriş Yap gradyan düğmesi / kullanıcı çipi;
+  App.tsx `activeTab` state'ini paylaşır.
+- BottomNav `md:hidden`; görünüm içi sticky başlıklar `top-0 md:top-16`
+  (TopNav h-16 altına oturur); alt dolgu `pb-28 md:pb-10` (bottom-nav
+  telafisi yalnız mobilde).
+
+**Aşama 3 — duyarlı grid'ler + kartlar:**
+- Liste grid'leri: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+  xl:grid-cols-4 gap-4` (Deals/Places/Jobs); yükleme/hata/boş
+  durumları `col-span-full`.
+- Kart görselleri `w-full aspect-[4/3]` + `object-cover` (pikselleşme
+  önlenir); `hover:shadow-lg hover:-translate-y-1 transition-all`,
+  `group-hover:scale-105`, `cursor-pointer`; FAB `fixed bottom-20
+  md:bottom-6 right-6`.
+- DealsView ilan kartı yatay→dikey yeniden yapılandırıldı (tüm
+  onClick/href işleyicileri korunarak).
+
+**Aşama 4 — detay sayfaları 2 sütun + formlar + taşma koruması:**
+- JobsView iş detayı: modal `max-w-lg md:max-w-2xl lg:max-w-4xl`, foto
+  `h-48 lg:h-64`, içerik `lg:grid lg:grid-cols-[1fr_320px]` — sol:
+  sağlayıcı kartı + açıklama; sağ: `lg:sticky` Konum & Detaylar kartı
+  + ARA (tel:) + Paylaş. İş formu `md:max-w-2xl`.
+- DealsView ilan detayı: `lg:grid-cols-[1fr_360px]` — sol: `lg:h-96`
+  görsel + başlık/açıklama/M29 fotoğrafları; sağ: `lg:sticky lg:top-20`
+  İŞLETMEYİ ARA (tel:) + KONUMA GİT (harita).
+- PlacesView yer detay modalı `md:max-w-2xl`.
+- HomeView taksi formu: `md:max-w-2xl` + iki sütunlu satırlar
+  (şoför+telefon; plaka+ilçe seçimi yukarı taşındı; bölgeler
+  textarea'ısı tam genişlik).
+- App.tsx kök div `overflow-x-hidden` → 375/768/1440 px'de yatay
+  kaydırma oluşamaz.
+
+**Doğrulama:** tsc ✅ + vitest 82/82 ✅ + lint 0 hata ✅ + build ✅
+(23.11; komut Bash sınıflandırıcı arızası nedeniyle kullanıcı `!`
+önekiyle çalıştırdı). Taşma kontrolü: 375 px mobil birebir korundu,
+768 px 2 sütun + TopNav aktif, 1440 px 3-4 sütun + 2 sütunlu detay.
+
+**Bekleyen:** telefonda/geniş ekranda görsel test için yeni APK
+(`npm run build` → `npx cap sync android` → `gradlew assembleDebug`).
+Responsive değişiklikler web (Render) tarafında yeni deploy ile anında
+etkili.
+
+---
 
 **23.11.2026 oturum #19 — REVENUECAT TÜKETİLEBİLİR İLAN SATIN ALMA
 ENTEGRASYONU (Aşama 1–4; kod tamam, Aşama 4 doğrulaması bekliyor):**
