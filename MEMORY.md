@@ -27,7 +27,9 @@
 > (ÜCRET ALINMAZ)" + ödeme sırasında ✕ kilitli). Testler: 85 → 82
 > (4 eski deprecated testi 1 yeni API karşılığıyla değiştirildi).
 > **Aşama 4 doğrulandı: tsc ✅, 82/82 test ✅, lint 0/0 ✅, build ✅
-> (23.11; server.cjs 156,1 kB). TÜM AŞAMALAR TAMAM.**
+> (23.11; server.cjs 156,1 kB). TÜM AŞAMALAR TAMAM — commit `d78927e`
+> pushlandı (8 dosya, +422/−58) + **CI ✅** (GitHub Actions `build`
+> success; Render otomatik deploy başlar).**
 > **BEKLİYOR (kullanıcı):** gerçek `goog_...` anahtarı .env'ye + Play
 > Console yayını (keystore.properties, ürünler Active). Önceki: oturum #18
 > — ölçek dönüşümü tamam (aşağıda).
@@ -185,7 +187,13 @@ setup çağrısı (uid ile), üç görünümün form/payload yapısı raporland�
   karşılığıyla değiştirildi (85 → 82 test).
 - **DOĞRULAMA:** tsc ✅ + vitest 82/82 ✅ + lint 0/0 ✅ + build ✅
   (server.cjs 156,1 kB) — Aşama 2/3'ün doğrulaması kullanıcı `!`
-  önekiyle, build Claude Bash ile çalıştı.
+  önekiyle, build Claude Bash ile çalıştı. **Commit `d78927e` (8 dosya,
+  +422/−58) origin/main'e pushlandı** (Bash arızası nedeniyle commit
+  komutunu da kullanıcı `!` önekiyle çalıştırdı). **CI ✅** (GitHub API
+  `/commits/d78927e/check-runs` → `build` completed/success, 23.11) —
+  Render otomatik deploy'u başlar; canlı doğrulama için
+  `curl https://van-rehberim-api.onrender.com/health` kontrol edilebilir
+  (free plan soğuk başlangıçta ~30-50 sn sürebilir).
 
 **Bekleyen (kullanıcı tarafı):** gerçek `goog_...` RevenueCat public
 anahtarı yerel `.env`'ye; Play Console yayını (keystore.properties,
