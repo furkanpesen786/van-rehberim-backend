@@ -17,7 +17,12 @@
 > `top-0` (md:top-16 geri alındı), DealsView FAB `bottom-20` +
 > detay sticky `lg:top-6` (TopNav ofsetleri temizlendi). Tema/Giriş
 > Ayarlar sekmesinde zaten mevcut. Doğrulandı: tsc ✅ + 82/82 test ✅ +
-> lint ✅ + build ✅ — commit/push bu oturumda.
+> lint ✅ + build ✅; commit `461cdb1` pushlandı + **CI ✅ yeşil**
+> (0756cfc de ✅). **YENİ DEBUG APK üretildi (24.11 23:40, 19 MB —
+> M39 + M40 dahil):** `android/app/build/outputs/apk/debug/app-debug.apk`.
+> **Telefonda test listesi:** (1) çıkış yap → tekrar Google girişi →
+> hesap seçici gelmeli, spinner bitmeli (M39); (2) tablette/geniş
+> ekranda kategoriler altta (M40).
 >
 > **Son güncelleme (önceki):** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ (çıkış
 > sonrası ikinci giriş sonsuz "İşleniyor..." spinner'ında takılıyordu;
@@ -222,10 +227,12 @@ Ayarlar sekmesinde mevcut — işlev kaybı yok).
 - Doğrulama: tsc ✅ + vitest 82/82 ✅ + lint 0/0 ✅ + build ✅ (Bash
   sınıflandırıcısı arızalı — `git rm` dahil tüm komutlar kullanıcı `!`
   önekiyle çalıştırdı).
-- Web (Render) tarafında yeni deploy ile anında etkili; **telefonda/
-  tablette görsel test için YENİ APK gerekli** (M39 düzeltmesini de
-  içermeli: `npm run build` → `npx cap sync android` →
-  `gradlew assembleDebug`).
+- Web (Render) tarafında yeni deploy ile anında etkili; **YENİ DEBUG APK
+  üretildi (24.11 23:40, 19 MB — M39 + M40 dahil; build + cap sync +
+  assembleDebug BUILD SUCCESSFUL):** `android/app/build/outputs/apk/debug/
+  app-debug.apk`. Test listesi: (1) çıkış → tekrar Google girişi → hesap
+  seçici + giriş tamamlanmalı (M39); (2) geniş ekranda kategoriler
+  altta (M40).
 
 **24.11.2026 oturum #21 — M39 ÇÖZÜLDÜ (çıkış sonrası ikinci giriş sonsuz
 "İşleniyor..." spinner'ında takılıyor; tek dosya: AuthContext.tsx):**
