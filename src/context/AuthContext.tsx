@@ -10,6 +10,42 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
 import { getErrorMessage, getErrorCode } from '../utils/errors';
 
+// M39: Çıkış sonrası ikinci giriş takılması (sonsuz "İşleniyor...").
+// `skipNativeAuth: false` olduğundan native eklenti KENDİ oturumunu
+// tutar; normal çıkış yalnızca web SDK `signOut` yaptığı için native
+// oturum bayat şekilde açık kalıyordu ve ikinci `signInWithGoogle()`
+// çağrısı hiç sonuçlanmıyordu (hesap silme akışındaki desenle simetrik
+// hale getirildi). Ayrıca native sağlayıcı çağrıları 45 sn zaman
+// aşımıyla korunur — eklenti hata fırlatmadan asılı kalırsa kullanıcı
+// dürüst bir Türkçe hata alır, sonsuz spinner olmaz.
+
+/** Native eklentide bekleyen (bayat) oturum varsa kapatır. İdempotent. */
+const clearNativeSession = async (): Promise<void> => {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const current = await FirebaseAuthentication.getCurrentUser();
+    if (current?.user) {
+      await FirebaseAuthentication.signOut();
+    }
+  } catch {
+    // Teşhis amaçlı temizlik — başarısızsa girişin önünü kesmeyiz.
+  }
+};
+
+/** Native sağlayıcı çağrısını 45 sn zaman aşımıyla sarmalar. */
+const withNativeTimeout = <T,>(label: string, promise: Promise<T>): Promise<T> => {
+  const NATIVE_SIGNIN_TIMEOUT_MS = 45_000;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${label} işlemi zaman aşımına uğradı. Lütfen tekrar deneyiniz.`));
+    }, NATIVE_SIGNIN_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+};
+
 interface AuthContextType {
   currentUser: UserProfile | null;
   loading: boolean;
@@ -75,8 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let fbUser;
 
       if (Capacitor.isNativePlatform()) {
+        // M39: bayat native oturum eklentiyi kilitliyordu — önce temizle.
+        await clearNativeSession();
         // Use Capacitor Native @capacitor-firebase/authentication for Android/iOS
-        const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+        const nativeResult = await withNativeTimeout('Google girişi', FirebaseAuthentication.signInWithGoogle());
 
         if (nativeResult.credential?.idToken) {
           // Authenticate with Firebase JS SDK using the native credential
@@ -131,7 +169,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let fbUser;
 
       if (Capacitor.isNativePlatform()) {
-        const nativeResult = await FirebaseAuthentication.signInWithApple();
+        // M39: bayat native oturum eklentiyi kilitliyordu — önce temizle.
+        await clearNativeSession();
+        const nativeResult = await withNativeTimeout('Apple girişi', FirebaseAuthentication.signInWithApple());
 
         if (nativeResult.credential?.idToken) {
           const appleProvider = new OAuthProvider('apple.com');
@@ -190,6 +230,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await fbSignOut(auth);
     } catch { }
+    // M39: native eklenti oturumu da kapatılır — yoksa ikinci giriş
+    // signInWithGoogle'da sonsuza kadar takılıyordu. Ayarlar > hesap
+    // silme akışındaki desenle simetrik.
+    await clearNativeSession();
     // M14: hard reload (window.location.href = '/') kaldırıldı — React state
     // (currentUser = null) UI'ı günceller; SettingsView zaten null-güvenli.
     setCurrentUser(null);

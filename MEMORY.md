@@ -4,7 +4,33 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 23.11.2026 (oturum #20) — **DUYARLI (RESPONSIVE) UI
+> **Son güncelleme:** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ (çıkış
+> sonrası ikinci giriş sonsuz "İşleniyor..." spinner'ında takılıyordu;
+> kod doğrulandı, commit/push bu oturumda).** Kök neden:
+> `capacitor.config.ts`'te `skipNativeAuth: false` →
+> `@capacitor-firebase/authentication` native katman KENDİ oturumunu
+> tutuyor; normal çıkış yalnızca web SDK `signOut` yaptığı için bayat
+> native oturum açık kalıyor ve ikinci `signInWithGoogle()` çağrısı
+> hiç sonuçlanmıyordu (hesap silme akışı M35'te bu yüzden native
+> `signOut` kullanıyordu — normal çıkışta eksik kalmış). Düzeltme
+> (`src/context/AuthContext.tsx`, tek dosya): (1) `logout()` artık
+> native `FirebaseAuthentication.signOut()` da çağırıyor; (2)
+> Google/Apple native girişinden ÖNCE bayat oturum temizliği
+> (`getCurrentUser()` → varsa `signOut()`, idempotent, hata yutmaz);
+> (3) native sağlayıcı çağrıları 45 sn `withNativeTimeout` ile
+> sarmalı — eklenti asılı kalırsa kullanıcı Türkçe zaman aşımı hatası
+> alır, sonsuz spinner imkânsız. Doğrulama: tsc ✅ + 82/82 test ✅ +
+> lint ✅ + build ✅ (Bash sınıflandırıcısı arızalı — kullanıcı `!`
+> önekiyle çalıştırdı). **Telefonda test için YENİ APK gerekli:**
+> çıkış yap → tekrar Google girişi → hesap seçici gelmeli + giriş
+> bitmeli (eskiden sonsuz spinner). **Tablet testi (responsive,
+> oturum #20 APK'sı) KULLANICI TARAFINDAN SORUNSUZ GEÇTİ ✅.**
+> **SIRADA (M40):** kullanıcı tablette kategorilerin yukarıdaki
+> TopNav sekmelerinde değil, telefonda olduğu gibi ALTTA
+> (BottomNav'da) olmasını istiyor. Önceki: oturum #20 — responsive UI
+> (aşağıda).
+>
+> **Son güncelleme (önceki):** 23.11.2026 (oturum #20) — **DUYARLI (RESPONSIVE) UI
 > DÖNÜŞÜMÜ: AŞAMA 1–4 TAMAM, DOĞRULANDI** (tsc ✅, 82/82 test ✅, lint ✅,
 > build ✅ — Bash sınıflandırıcısı yine arızalıydı, doğrulama komutunu
 > kullanıcı `!` önekiyle çalıştırdı). Mobil öncelikli uygulama tablet
@@ -149,6 +175,45 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**24.11.2026 oturum #21 — M39 ÇÖZÜLDÜ (çıkış sonrası ikinci giriş sonsuz
+"İşleniyor..." spinner'ında takılıyor; tek dosya: AuthContext.tsx):**
+
+Kullanıcı bildirimi (telefon): hesaptan çıkış yaptıktan sonra tekrar giriş
+yapmaya çalışınca yükleme ekranı geliyor ve bir şey olmuyor. (Aynı oturumda:
+responsive APK tablette test edildi — sorun yok ✅; M40 talebi alındı:
+tablette kategoriler altta olsun.)
+
+- Kök neden: `capacitor.config.ts` → FirebaseAuthentication
+  `skipNativeAuth: false`. Native eklenti kendi Auth oturumunu tutar;
+  `AuthContext.logout()` yalnızca web SDK `fbSignOut(auth)` yapıyordu.
+  Çıkış sonrası native oturum bayat şekilde açık kalıyordu ve ikinci
+  `FirebaseAuthentication.signInWithGoogle()` çağrısı promise'i hiç
+  sonuçlandırmıyordu → LoginModal'daki "İşleniyor..." overlay'i sonsuza
+  kadar kalıyordu. (M35 hesap silme akışı bu yüzden zaten native
+  `FirebaseAuthentication.signOut()` kullanıyordu — normal çıkışta aynı
+  desen eksik kalmıştı.)
+- Düzeltmeler:
+  1. `logout()`: web SDK `signOut` sonrası `clearNativeSession()` —
+     native `getCurrentUser()` kullanıcı dönerse `signOut()` (idempotent;
+     try/catch — temizlik hatası çıkışı engellemez).
+  2. `loginWithGoogle`/`loginWithApple` (native dal): signIn çağrısından
+     ÖNCE `clearNativeSession()` — uygulama kill edilip oturumun yarım
+     kaldığı yollar için savunma (logout dışı bayat oturum senaryoları).
+  3. `withNativeTimeout(label, promise)`: 45 sn `Promise.race` zaman
+     aşımı — native eklenti hata fırlatmadan asılı kalırsa LoginModal
+     catch'ine Türkçe hata gider ("...işlemi zaman aşımına uğradı.
+     Lütfen tekrar deneyiniz."), sonsuz spinner artık imkânsız.
+  4. Web dalı (signInWithPopup) ve tüm işlev imzaları değişmedi;
+     LoginModal'a dokunulmadı.
+- Doğrulama: tsc ✅ + vitest 82/82 ✅ + lint 0/0 ✅ + build ✅
+  (dist 355,5 kB + vendor 798,9 kB; server.cjs 156,1 kB) — Bash
+  sınıflandırıcısı oturum boyunca aralıklı arızalıydı, doğrulama
+  komutunu kullanıcı `!` önekiyle çalıştırdı.
+- **Telefonda test için YENİ APK gerekli** (`npm run build` →
+  `npx cap sync android` → `gradlew assembleDebug`): çıkış yap → tekrar
+  Google girişi → hesap seçici açılmalı ve giriş tamamlanmalı.
+- Tam yedek alındı: `Desktop/van-rehberim-YEDEK-2026-11-24.tar.gz` (48 MB).
 
 **23.11.2026 oturum #20 — DUYARLI (RESPONSIVE) UI DÖNÜŞÜMÜ (Aşama 1–4; tamam
 ve doğrulandı):**
