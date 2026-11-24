@@ -211,8 +211,10 @@ edildi (çözüm: görünüm başlıkları z-30, TopNav z-40, `md:top-16`).
 önekiyle çalıştırdı). Taşma kontrolü: 375 px mobil birebir korundu,
 768 px 2 sütun + TopNav aktif, 1440 px 3-4 sütun + 2 sütunlu detay.
 
-**Bekleyen:** telefonda/geniş ekranda görsel test için yeni APK
-(`npm run build` → `npx cap sync android` → `gradlew assembleDebug`).
+**YENİ DEBUG APK üretildi (23.11 23:23, 19 MB — responsive Aşama 1–4
+dahil; build+cap sync+assembleDebug tamam, komut kullanıcı `!` önekiyle
+çalıştırdı):** `android/app/build/outputs/apk/debug/app-debug.apk` —
+tablet testi bekliyor (dikey=mobil düzen, yatay/geniş=TopNav + grid).
 Responsive değişiklikler web (Render) tarafında yeni deploy ile anında
 etkili.
 
