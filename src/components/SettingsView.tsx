@@ -168,10 +168,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
 
   return (
-    <div className={`min-h-screen pb-28 md:pb-10 font-sans transition-colors duration-200 ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-screen pb-28 font-sans transition-colors duration-200 ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
 
       {/* Header */}
-      <div className={`px-5 py-4 border-b sticky top-0 md:top-16 z-30 shadow-sm transition-colors duration-200 ${isDark ? 'bg-[#1b1c21]/95 border-slate-800' : 'bg-white border-slate-200'}`}>
+      <div className={`px-5 py-4 border-b sticky top-0 z-30 shadow-sm transition-colors duration-200 ${isDark ? 'bg-[#1b1c21]/95 border-slate-800' : 'bg-white border-slate-200'}`}>
         <h1 className="text-2xl font-black text-emerald-600 tracking-tight">
           Ayarlar
         </h1>

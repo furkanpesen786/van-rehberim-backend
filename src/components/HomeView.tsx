@@ -233,7 +233,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
   };
 
   return (
-    <div className={`relative min-h-screen pb-28 md:pb-10 font-sans selection:bg-cyan-500 selection:text-white ${isDark ? 'text-white' : 'text-slate-800'}`}>
+    <div className={`relative min-h-screen pb-28 font-sans selection:bg-cyan-500 selection:text-white ${isDark ? 'text-white' : 'text-slate-800'}`}>
       {/* Background Graphic matching screenshot */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-700"

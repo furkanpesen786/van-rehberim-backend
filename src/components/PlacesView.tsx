@@ -36,7 +36,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ theme = 'light' }) => {
   const displayedPlaces = searchQuery ? filteredPlaces : PLACES_TO_VISIT;
 
   return (
-    <div className={`relative min-h-screen pb-28 md:pb-10 font-sans ${isDark ? 'text-white' : 'text-slate-800'}`}>
+    <div className={`relative min-h-screen pb-28 font-sans ${isDark ? 'text-white' : 'text-slate-800'}`}>
       {/* Background Graphic matching Screenshot */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-700"

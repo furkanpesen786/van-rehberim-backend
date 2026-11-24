@@ -342,7 +342,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   };
 
   return (
-    <div className={`min-h-screen pb-28 md:pb-10 font-sans ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-screen pb-28 font-sans ${isDark ? 'bg-[#141518] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 font-bold text-xs animate-bounce">
           <CheckCircle2 className="w-5 h-5 shrink-0" />
@@ -360,8 +360,8 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
 
       {isPublishing ? (
         // Aşama 2: form dalı — mobil dar, tablet/masaüstü ortalanmış orta genişlik
-        <div className={`w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto min-h-screen pb-32 md:pb-10 ${isDark ? 'bg-[#121316] text-white' : 'bg-slate-50 text-slate-800'}`}>
-          <div className={`px-5 py-4 flex items-center gap-3 border-b sticky top-0 md:top-16 z-30 backdrop-blur-md ${isDark ? 'border-slate-800 bg-[#121316]/95' : 'border-slate-200 bg-white/95'}`}>
+        <div className={`w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto min-h-screen pb-32 ${isDark ? 'bg-[#121316] text-white' : 'bg-slate-50 text-slate-800'}`}>
+          <div className={`px-5 py-4 flex items-center gap-3 border-b sticky top-0 z-30 backdrop-blur-md ${isDark ? 'border-slate-800 bg-[#121316]/95' : 'border-slate-200 bg-white/95'}`}>
             <button
               onClick={() => {
                 // M29: geri dönünce eski form hatası, ödeme-durumu ve kalıcı
@@ -701,7 +701,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
               </div>
 
               {/* Sağ sütun: sticky iletişim kartı (lg+) */}
-              <div className="p-5 lg:p-0 lg:pt-4 lg:sticky lg:top-20 space-y-2">
+              <div className="p-5 lg:p-0 lg:pt-4 lg:sticky lg:top-6 space-y-2">
                 {selectedDeal.phone && (
                   <a href={`tel:${selectedDeal.phone.replace(/\s+/g, '')}`} className="w-full bg-slate-800 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
                     <PhoneCall className="w-5 h-5" /> İŞLETMEYİ ARA
@@ -804,7 +804,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
             )}
           </div>
 
-          <div className="fixed bottom-20 md:bottom-6 right-6 z-30">
+          <div className="fixed bottom-20 right-6 z-30">
             <button onClick={() => {
               if (currentUser) {
                 setIsPublishing(true);

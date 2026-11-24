@@ -361,7 +361,7 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const inputBg = isDark ? 'bg-[#22242b] border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400';
 
   return (
-    <div className={`min-h-screen pb-28 md:pb-10 pt-4 px-3 sm:px-6 max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-5 transition-colors duration-200`}>
+    <div className={`min-h-screen pb-28 pt-4 px-3 sm:px-6 max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-5 transition-colors duration-200`}>
 
       {/* Toast Notification */}
       {successToast && (

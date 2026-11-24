@@ -4,7 +4,22 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ (çıkış
+> **Son güncelleme:** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ + M40
+> KOD TAMAM (doğrulama/commit bekliyor).** M39: çıkış sonrası ikinci
+> giriş sonsuz "İşleniyor..." spinner'ında takılıyordu — `skipNativeAuth:
+> false` yüzünden native eklenti oturumu bayat kalıyordu; `logout()`
+> artık native `signOut` da yapıyor + girişlerden önce bayat oturum
+> temizliği + 45 sn timeout guard. Doğrulandı (tsc/82 test/lint/build
+> ✅), commit `0756cfc` pushlandı. M40 (kullanıcı talebi, tablet testi
+> sonrası): **kategoriler her ekranda ALTTA** — TopNav.tsx SİLİNDİ,
+> BottomNav `md:hidden` kaldırıldı (tüm boyutlarda görünür), görünüm
+> alt dolguları `pb-28` (md:pb-10 geri alındı), sticky başlıklar
+> `top-0` (md:top-16 geri alındı), DealsView FAB `bottom-20` +
+> detay sticky `lg:top-6` (TopNav ofsetleri temizlendi). Tema/Giriş
+> Ayarlar sekmesinde zaten mevcut. Doğrulandı: tsc ✅ + 82/82 test ✅ +
+> lint ✅ + build ✅ — commit/push bu oturumda.
+>
+> **Son güncelleme (önceki):** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ (çıkış
 > sonrası ikinci giriş sonsuz "İşleniyor..." spinner'ında takılıyordu;
 > kod doğrulandı, commit/push bu oturumda).** Kök neden:
 > `capacitor.config.ts`'te `skipNativeAuth: false` →
@@ -175,6 +190,42 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**24.11.2026 oturum #21 — M40 TAMAMLANDI (kategoriler her ekranda altta;
+kullanıcı talebi, tablet testi sonrası; 8 dosya):**
+
+Kullanıcı, responsive APK'yı tablette test etti — sorun yok ✅; ancak
+kategorilerin yukarıdaki TopNav sekmelerinde değil, telefonda olduğu
+gibi ALTTA olmasını istedi. Seçenek B onaylandı: TopNav tamamen
+kaldırılır, BottomNav tüm boyutlarda görünür (tema + Giriş Yap zaten
+Ayarlar sekmesinde mevcut — işlev kaybı yok).
+
+- `src/components/TopNav.tsx` SİLİNDİ (`git rm`); `App.tsx`'ten import +
+  render kaldırıldı.
+- `BottomNav.tsx`: `md:hidden` kaldırıldı — sabit hap navigasyon artık
+  mobil/tablet/masaüstü TÜM boyutlarda altta (`fixed bottom-3
+  max-w-lg`).
+- Tüm görünüm kökleri: `pb-28 md:pb-10` → `pb-28` (alt nav her yerde
+  olduğu için alt dolgu telafisi de her yerde; HomeView, PlacesView,
+  NewsView, DealsView, JobsView, SettingsView) + DealsView form dalı
+  `pb-32 md:pb-10` → `pb-32`.
+- Sticky başlıklar `top-0 md:top-16` → `top-0` (NewsView, SettingsView,
+  DealsView form başlığı — TopNav artık yok, ofset gereksiz).
+- DealsView: FAB `bottom-20 md:bottom-6` → `bottom-20` (alt nav'ın
+  üstünde kalır); detay sayfası sağ sticky kart `lg:top-20` → `lg:top-6`
+  (TopNav h-16 ofseti temizlendi).
+- Aşama 3–4 responsive kazanımları KORUNDU: kademeli kapsayıcılar
+  (`max-w-md md:max-w-4xl lg:max-w-7xl`), liste grid'leri
+  (`sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`), kart
+  hover/aspect-[4/3], lg 2 sütunlu detay sayfaları, formlar
+  `md:max-w-2xl`, `overflow-x-hidden`.
+- Doğrulama: tsc ✅ + vitest 82/82 ✅ + lint 0/0 ✅ + build ✅ (Bash
+  sınıflandırıcısı arızalı — `git rm` dahil tüm komutlar kullanıcı `!`
+  önekiyle çalıştırdı).
+- Web (Render) tarafında yeni deploy ile anında etkili; **telefonda/
+  tablette görsel test için YENİ APK gerekli** (M39 düzeltmesini de
+  içermeli: `npm run build` → `npx cap sync android` →
+  `gradlew assembleDebug`).
 
 **24.11.2026 oturum #21 — M39 ÇÖZÜLDÜ (çıkış sonrası ikinci giriş sonsuz
 "İşleniyor..." spinner'ında takılıyor; tek dosya: AuthContext.tsx):**
