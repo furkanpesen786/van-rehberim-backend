@@ -30,10 +30,9 @@
 > (build success). **YENİ DEBUG
 > APK ÜRETİLDİ (25.11 17:54, 19 MB — M39-v2 dahil; APK içinden
 > `skipNativeAuth: true` doğrulandı):** `android/app/build/outputs/apk/
-> debug/app-debug.apk`. **Telefonda test:**
-> çıkış yap → tekrar Google girişi → (hesap seçici ÇIKMAYABİLİR —
-> Credential Manager sessiz döndürebiliyor, normaldir) → giriş
-> tamamlanmalı, çıkış anında dönmeli.
+> debug/app-debug.apk`. **TELEFONDA TEST EDİLDİ — ÇIKIŞ ✅ VE TEKRAR
+> GİRİŞ ✅ SORUNSUZ (25.11, kullanıcı onayı) — M39 KAPANDI.**
+> Kalan test: M40 geniş ekran kontrolü (kategoriler altta).
 >
 > **Son güncelleme (önceki):** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ + M40
 > KOD TAMAM (doğrulama/commit bekliyor).** M39: çıkış sonrası ikinci
@@ -273,10 +272,9 @@ reproduce et → `adb logcat -d` ile canlı log alındı.
   kullanıcı `!` önekiyle çalıştırdı.
 - **YENİ DEBUG APK ÜRETİLDİ (25.11 17:54, 19 MB; BUILD SUCCESSFUL —
   APK içinden `skipNativeAuth: true` doğrulandı):** `android/app/build/
-  outputs/apk/debug/app-debug.apk`. Telefonda test: çıkış yap → tekrar
-  Google girişi → (seçici ÇIKMAYABİLİR — sessiz credential normaldir)
-  → giriş tamamlanmalı; çıkış anında dönmeli; M40 (kategoriler altta)
-  ayrıca kontrol edilmeli.
+  outputs/apk/debug/app-debug.apk`. **TELEFONDA TEST EDİLDİ ✅ (25.11,
+  kullanıcı onayı): çıkış anında çalışıyor + tekrar giriş sorunsuz —
+  M39 KAPANDI.** Kalan: M40 geniş ekran kontrolü (kategoriler altta).
 - Bash sınıflandırıcısı bu oturumda da aralıklı arızalıydı; adb/logcat
   komutlarını kullanıcı `!` önekiyle çalıştırdı; tsc/test/lint/build/
   cap sync ara ara Claude Bash ile çalıştı.
