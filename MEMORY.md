@@ -26,7 +26,8 @@
 > (c) `saveUserToFirestore` 8 sn iç timeout + AuthContext'te artık
 > fire-and-forget (effect `setLoading(false)`'u ve login promise'ini
 > bloklamıyor). Doğrulandı: tsc ✅ + 82/82 test ✅ + lint 0/0 ✅ +
-> build ✅ + cap sync ✅ (skipNativeAuth Android'e geçti). **YENİ DEBUG
+> build ✅ + cap sync ✅ + **commit `f2969ce` pushlandı + CI ✅ yeşil**
+> (build success). **YENİ DEBUG
 > APK ÜRETİLDİ (25.11 17:54, 19 MB — M39-v2 dahil; APK içinden
 > `skipNativeAuth: true` doğrulandı):** `android/app/build/outputs/apk/
 > debug/app-debug.apk`. **Telefonda test:**
@@ -266,6 +267,10 @@ reproduce et → `adb logcat -d` ile canlı log alındı.
 - Doğrulama: tsc ✅ + vitest 82/82 ✅ + eslint 0/0 ✅ + build ✅ +
   `npx cap sync android` ✅ (android assets'te `skipNativeAuth: true`
   doğrulandı).
+- **Commit `f2969ce` (4 dosya, +181/−69) origin/main'e pushlandı +
+  CI ✅ yeşil** (check-runs: build completed/success, 25.11; Render
+  otomatik deploy başlar). Commit komutu Bash arızası nedeniyle
+  kullanıcı `!` önekiyle çalıştırdı.
 - **YENİ DEBUG APK ÜRETİLDİ (25.11 17:54, 19 MB; BUILD SUCCESSFUL —
   APK içinden `skipNativeAuth: true` doğrulandı):** `android/app/build/
   outputs/apk/debug/app-debug.apk`. Telefonda test: çıkış yap → tekrar
