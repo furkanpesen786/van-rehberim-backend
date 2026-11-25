@@ -100,13 +100,23 @@ export interface UserProfile {
 }
 
 // Save or Update User in Firebase Firestore
+// M39 (2. tur, 25.11 logcat): CapacitorHttp altında Firestore WebChannel
+// yazmaları asılı kalabiliyordu (Write/channel 'transport errored' sonrası
+// promise hiç sonuçlanmıyor — M34 deseni). Profil kaydı best-effort'tir:
+// 8 sn sonra vazgeçilir, hata yutulur — kimlik akışı asla beklemesin.
 export async function saveUserToFirestore(profile: UserProfile) {
   try {
     const userRef = doc(db, 'users', profile.uid);
-    await setDoc(userRef, {
-      ...profile,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    const SAVE_USER_TIMEOUT_MS = 8_000;
+    await Promise.race([
+      setDoc(userRef, {
+        ...profile,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true }),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Firestore profil kaydı zaman aşımı (8 sn)')), SAVE_USER_TIMEOUT_MS);
+      }),
+    ]);
   } catch (err) {
     console.error('Error saving user to Firestore:', err);
   }

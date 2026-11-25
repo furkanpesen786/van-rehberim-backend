@@ -4,7 +4,37 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ + M40
+> **Son güncelleme:** 25.11.2026 (oturum #22) — **M39 GERİ DÖNDÜ →
+> GERÇEK KÖK NEDEN LOGCAT İLE BULUNDU VE ÇÖZÜLDÜ (3 dosya).** 24.11
+> APK'sında da ikinci giriş takılıyordu; telefon USB + `adb logcat`
+> ile canlı teşhis yapıldı. BULGULAR: (1) giriş aslında ÇALIŞIYORDU —
+> hesap seçici görünmüyordu çünkü Android Credential Manager önceki
+> izni SESSİZCE döndürüyor (normal davranış); (2) **logout asılı
+> kalıyordu:** eklentinin native `signOut()` çağrısı sırasında
+> `idTokenChange` dinleyicisi `No user is signed in` exception fırlatıp
+> `firebaseAuth.signOut()`'u yarıda kesiyor → JS callback HİÇ resolve
+> olmuyor → `clearNativeSession` sonsuz bekliyor (45 sn guard yalnızca
+> signInWithGoogle'u sarmalıyordu, işe yaramıyordu); (3) tekrar giriş
+> denemesinde `clearNativeSession` içinde takılma + `saveUserToFirestore`
+> CapacitorHttp altında Firestore Write kanalı kırıldığı için hiç
+> sonuçlanmıyor (M34 deseni) → loginWithGoogle promise'i asılı →
+> sonsuz "İşleniyor...". ÇÖZÜM: (a) `capacitor.config.ts`
+> `skipNativeAuth: true` — eklenti artık native Auth oturumu TUTMAZ,
+> sadece credential döndürür (JS SDK signInWithCredential zaten
+> mevcut desen; bayat oturum + signOut-hang sınıfı kökten kalktı);
+> (b) `clearNativeSession` içindeki TÜM native çağrılar 5 sn timeout'lu;
+> (c) `saveUserToFirestore` 8 sn iç timeout + AuthContext'te artık
+> fire-and-forget (effect `setLoading(false)`'u ve login promise'ini
+> bloklamıyor). Doğrulandı: tsc ✅ + 82/82 test ✅ + lint 0/0 ✅ +
+> build ✅ + cap sync ✅ (skipNativeAuth Android'e geçti). **YENİ DEBUG
+> APK ÜRETİLDİ (25.11 17:54, 19 MB — M39-v2 dahil; APK içinden
+> `skipNativeAuth: true` doğrulandı):** `android/app/build/outputs/apk/
+> debug/app-debug.apk`. **Telefonda test:**
+> çıkış yap → tekrar Google girişi → (hesap seçici ÇIKMAYABİLİR —
+> Credential Manager sessiz döndürebiliyor, normaldir) → giriş
+> tamamlanmalı, çıkış anında dönmeli.
+>
+> **Son güncelleme (önceki):** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ + M40
 > KOD TAMAM (doğrulama/commit bekliyor).** M39: çıkış sonrası ikinci
 > giriş sonsuz "İşleniyor..." spinner'ında takılıyordu — `skipNativeAuth:
 > false` yüzünden native eklenti oturumu bayat kalıyordu; `logout()`
@@ -23,32 +53,6 @@
 > **Telefonda test listesi:** (1) çıkış yap → tekrar Google girişi →
 > hesap seçici gelmeli, spinner bitmeli (M39); (2) tablette/geniş
 > ekranda kategoriler altta (M40).
->
-> **Son güncelleme (önceki):** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ (çıkış
-> sonrası ikinci giriş sonsuz "İşleniyor..." spinner'ında takılıyordu;
-> kod doğrulandı, commit/push bu oturumda).** Kök neden:
-> `capacitor.config.ts`'te `skipNativeAuth: false` →
-> `@capacitor-firebase/authentication` native katman KENDİ oturumunu
-> tutuyor; normal çıkış yalnızca web SDK `signOut` yaptığı için bayat
-> native oturum açık kalıyor ve ikinci `signInWithGoogle()` çağrısı
-> hiç sonuçlanmıyordu (hesap silme akışı M35'te bu yüzden native
-> `signOut` kullanıyordu — normal çıkışta eksik kalmış). Düzeltme
-> (`src/context/AuthContext.tsx`, tek dosya): (1) `logout()` artık
-> native `FirebaseAuthentication.signOut()` da çağırıyor; (2)
-> Google/Apple native girişinden ÖNCE bayat oturum temizliği
-> (`getCurrentUser()` → varsa `signOut()`, idempotent, hata yutmaz);
-> (3) native sağlayıcı çağrıları 45 sn `withNativeTimeout` ile
-> sarmalı — eklenti asılı kalırsa kullanıcı Türkçe zaman aşımı hatası
-> alır, sonsuz spinner imkânsız. Doğrulama: tsc ✅ + 82/82 test ✅ +
-> lint ✅ + build ✅ (Bash sınıflandırıcısı arızalı — kullanıcı `!`
-> önekiyle çalıştırdı). **Telefonda test için YENİ APK gerekli:**
-> çıkış yap → tekrar Google girişi → hesap seçici gelmeli + giriş
-> bitmeli (eskiden sonsuz spinner). **Tablet testi (responsive,
-> oturum #20 APK'sı) KULLANICI TARAFINDAN SORUNSUZ GEÇTİ ✅.**
-> **SIRADA (M40):** kullanıcı tablette kategorilerin yukarıdaki
-> TopNav sekmelerinde değil, telefonda olduğu gibi ALTTA
-> (BottomNav'da) olmasını istiyor. Önceki: oturum #20 — responsive UI
-> (aşağıda).
 >
 > **Son güncelleme (önceki):** 23.11.2026 (oturum #20) — **DUYARLI (RESPONSIVE) UI
 > DÖNÜŞÜMÜ: AŞAMA 1–4 TAMAM, DOĞRULANDI** (tsc ✅, 82/82 test ✅, lint ✅,
@@ -195,6 +199,82 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
 ---
 
 ## 2. GELİNEN AŞAMA
+
+**25.11.2026 oturum #22 — M39 GERİ DÖNDÜ → GERÇEK KÖK NEDEN LOGCAT
+TEŞHİSİYLE ÇÖZÜLDÜ (çıkış/tekrar giriş asılı kalması; 3 dosya):**
+
+24.11 APK'sı telefonda test edildi: ikinci giriş HÂLÂ takılıyordu
+(hesap seçici hiç gelmiyor, "İşleniyor..." spinner'ı 60 sn+ bitmiyor,
+45 sn timeout hatası da ÇIKMIYORDU — bu, takılmanın sarmalanan
+`signInWithGoogle` çağrısında OLMADIĞının ilk ipucuydu). Telefon USB
+ile bağlandı (adb: `C:\Users\FURKAN\Android\Sdk\platform-tools\adb.exe`,
+`ANDROID_HOME=C:\Users\FURKAN\Android\Sdk`), `adb logcat -c` → sorunu
+reproduce et → `adb logcat -d` ile canlı log alındı.
+
+**Logcat bulguları (m39-logcat.txt, 25.11 14:54-14:57):**
+1. **Giriş aslında ÇALIŞIYORDU:** getCurrentUser anında `{user:null}`
+   döndü → signInWithGoogle → Credential Manager hesap seçici
+   ETKİNLİĞİ açıldı (com.android.credentialmanager) → 1,8 sn'de
+   credential döndü (resultCode=-1) → native FirebaseAuth kullanıcayı
+   girdi → JS SDK signInWithIdp + accounts:lookup tamam → kullanıcı
+   GİRİŞ YAPMIŞTI. "Seçici hiç gelmedi" algısı: Credential Manager
+   önceki oturumda izin verilen hesabı SESSİZCE döndürüyor (ekran
+   kısa açılıp kapanıyor ya da hiç görünmüyor) — normal davranış.
+2. **Logout asılıydı (asıl yeni bulgu):** kullanıcı Çıkış Yap'a
+   basınca `fbSignOut` ✅ → eklentinin native `signOut()` çağrısı →
+   log: `firebaseAuth.signOut()` sırasında eklentinin idTokenChange
+   dinleyicisi `getIdToken` çağırdı → `java.lang.Exception: No user
+   is signed in` (FirebaseAuthentication.java:188, handleIdTokenChange)
+   → signOut YARIDA KALDI → PluginCall resolve EDİLMEDİ → JS tarafında
+   `await FirebaseAuthentication.signOut()` sonsuz bekledi →
+   `clearNativeSession` kilitlendi. (45 sn guard sadece
+   signInWithGoogle'u sarmalıyordu — bu yüzden hiç ateşlenmedi.)
+3. **saveUserToFirestore asılı:** giriş sonrası Firestore
+   Write/channel istekleri 4 kez `transport errored` ile sonuçlandı,
+   promise HİÇ settle olmadı (console.warn de çıkmadı — retry
+   limbo'sunda) → loginWithGoogle promise'i bitmedi → LoginModal
+   `finally` çalışmadı. M34'ün belgelediği CapacitorHttp-Firestore
+   yazma sorununun aynısı.
+4. Yan bulgu: aynı anda prayer/pharmacy/currency/bus servisleri de
+   timeout yedi — Render free plan uykuda soğuk başlangıç (M38 bilinen
+   durum, ayrı sorun değil).
+
+**Düzeltmeler (3 dosya):**
+1. `capacitor.config.ts`: `skipNativeAuth: false` → **`true`**. Eklenti
+   artık KENDİ native Firebase Auth oturumunu TUTMAZ; yalnızca
+   Google/Apple credential döndürür. Gerçek oturum JS SDK'da kurulur
+   (AuthContext'te `signInWithCredential` zaten mevcut — eklenti
+   dokümantasyonunun JS SDK ile birlikte kullanım için önerdiği desen).
+   Kökten kaldırdığı sorunlar: (a) çıkışta bayat native oturum, (b)
+   idTokenChange-listener exception'ının signOut'u kilitlemesi (native
+   oturum olmadığından dinleyici tetiklenmez), (c) çift oturum state'i.
+   `getCurrentUser()` artık her zaman null döner → clearNativeSession
+   fiilen no-op; native signOut yolu tamamen kapandı. M37 providers
+   listesi (`google.com`, `apple.com`) korundu.
+2. `src/context/AuthContext.tsx`: (a) `withNativeTimeout` artık
+   parametreli (varsayılan 45 sn); `clearNativeSession` içindeki
+   `getCurrentUser` + `signOut` DAHİL tüm native çağrılar 5 sn
+   timeout'lu — eklenti asılı kalsa bile giriş/çıkış ilerler;
+   (b) onAuthStateChanged effect'inde `setLoading(false)` artık
+   `saveUserToFirestore`'u BEKLEMİYOR (kayıt `void` ile fire-and-forget);
+   (c) loginWithGoogle/loginWithApple'daki `await saveUserToFirestore`
+   blokları kaldırıldı → giriş promise'i signInWithCredential bitince
+   ANINDA bitiyor, modal/spinner kapanıyor.
+3. `src/lib/firebase.ts`: `saveUserToFirestore` içine 8 sn
+   `Promise.race` timeout'u eklendi (M34 sınıfı asılı kalmaya karşı
+   son savunma; timeout'ta hata yutulur — profil kaydı best-effort).
+- Doğrulama: tsc ✅ + vitest 82/82 ✅ + eslint 0/0 ✅ + build ✅ +
+  `npx cap sync android` ✅ (android assets'te `skipNativeAuth: true`
+  doğrulandı).
+- **YENİ DEBUG APK ÜRETİLDİ (25.11 17:54, 19 MB; BUILD SUCCESSFUL —
+  APK içinden `skipNativeAuth: true` doğrulandı):** `android/app/build/
+  outputs/apk/debug/app-debug.apk`. Telefonda test: çıkış yap → tekrar
+  Google girişi → (seçici ÇIKMAYABİLİR — sessiz credential normaldir)
+  → giriş tamamlanmalı; çıkış anında dönmeli; M40 (kategoriler altta)
+  ayrıca kontrol edilmeli.
+- Bash sınıflandırıcısı bu oturumda da aralıklı arızalıydı; adb/logcat
+  komutlarını kullanıcı `!` önekiyle çalıştırdı; tsc/test/lint/build/
+  cap sync ara ara Claude Bash ile çalıştı.
 
 **24.11.2026 oturum #21 — M40 TAMAMLANDI (kategoriler her ekranda altta;
 kullanıcı talebi, tablet testi sonrası; 8 dosya):**

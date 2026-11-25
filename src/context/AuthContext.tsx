@@ -10,40 +10,52 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
 import { getErrorMessage, getErrorCode } from '../utils/errors';
 
-// M39: Çıkış sonrası ikinci giriş takılması (sonsuz "İşleniyor...").
-// `skipNativeAuth: false` olduğundan native eklenti KENDİ oturumunu
-// tutar; normal çıkış yalnızca web SDK `signOut` yaptığı için native
-// oturum bayat şekilde açık kalıyordu ve ikinci `signInWithGoogle()`
-// çağrısı hiç sonuçlanmıyordu (hesap silme akışındaki desenle simetrik
-// hale getirildi). Ayrıca native sağlayıcı çağrıları 45 sn zaman
-// aşımıyla korunur — eklenti hata fırlatmadan asılı kalırsa kullanıcı
-// dürüst bir Türkçe hata alır, sonsuz spinner olmaz.
+// M39 (2. tur, 25.11 logcat teşhisi): Çıkış sonrası ikinci girişin
+// takılmasının GERÇEK kök nedenleri:
+// 1. `skipNativeAuth: false` → native eklenti kendi Auth oturumunu tutar.
+//    Çıkışta eklentinin signOut'u, firebaseAuth.signOut() sırasında
+//    idTokenChange dinleyicisinin "No user is signed in" exception
+//    fırlatmasıyla yarıda kalıyor ve JS callback HİÇ resolve olmuyordu
+//    → logout + sonraki girişte clearNativeSession sonsuz asılı.
+//    Çözüm: capacitor.config.ts'te skipNativeAuth: true (native oturum
+//    artık hiç tutulmuyor; eklenti yalnızca credential döndürüyor).
+// 2. `saveUserToFirestore` CapacitorHttp altında asılı kalabiliyordu
+//    (Firestore Write kanalı 'transport errored' sonrası promise hiç
+//    sonuçlanmıyor — M34 deseni) → loginWithGoogle promise'i bitmiyor,
+//    LoginModal spinner'ı kapanmıyordu. Çözüm: profil kaydı artık
+//    giriş akışını BEKLETMEZ (fire-and-forget + firebase.ts'te 8 sn
+//    zaman aşımı).
+// Ek savunma: TÜM native eklenti çağrıları (getCurrentUser/signOut
+// dahil) kısa zaman aşımıyla sarmalanır — 45 sn guard yalnızca
+// signInWithGoogle' u sarmaladığı için önceki turda işe yaramamıştı.
 
-/** Native eklentide bekleyen (bayat) oturum varsa kapatır. İdempotent. */
-const clearNativeSession = async (): Promise<void> => {
-  if (!Capacitor.isNativePlatform()) return;
-  try {
-    const current = await FirebaseAuthentication.getCurrentUser();
-    if (current?.user) {
-      await FirebaseAuthentication.signOut();
-    }
-  } catch {
-    // Teşhis amaçlı temizlik — başarısızsa girişin önünü kesmeyiz.
-  }
-};
-
-/** Native sağlayıcı çağrısını 45 sn zaman aşımıyla sarmalar. */
-const withNativeTimeout = <T,>(label: string, promise: Promise<T>): Promise<T> => {
-  const NATIVE_SIGNIN_TIMEOUT_MS = 45_000;
+/** Native eklenti çağrısını zaman aşımıyla sarmalar. */
+const withNativeTimeout = <T,>(label: string, promise: Promise<T>, timeoutMs = 45_000): Promise<T> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       reject(new Error(`${label} işlemi zaman aşımına uğradı. Lütfen tekrar deneyiniz.`));
-    }, NATIVE_SIGNIN_TIMEOUT_MS);
+    }, timeoutMs);
   });
   return Promise.race([promise, timeout]).finally(() => {
     if (timer) clearTimeout(timer);
   });
+};
+
+/** Native eklentide bekleyen (bayat) oturum varsa kapatır. İdempotent.
+ *  skipNativeAuth: true ile normalde hep boştur; savunma amaçlı 5 sn
+ *  zaman aşımıyla sarmalanır — eklenti çağrısı asılı kalırsa girişi
+ *  veya çıkışı bloklamaz. */
+const clearNativeSession = async (): Promise<void> => {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const current = await withNativeTimeout('Oturum temizliği', FirebaseAuthentication.getCurrentUser(), 5_000);
+    if (current?.user) {
+      await withNativeTimeout('Oturum kapatma', FirebaseAuthentication.signOut(), 5_000);
+    }
+  } catch {
+    // Teşhis amaçlı temizlik — başarısızsa girişin önünü kesmeyiz.
+  }
 };
 
 interface AuthContextType {
@@ -89,7 +101,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastLoginAt: new Date().toISOString(),
         };
         setCurrentUser(profile);
-        await saveUserToFirestore(profile);
+        // M39 (2. tur): profil kaydı oturum kurulumunu BEKLETMEZ —
+        // CapacitorHttp altında Firestore yazması asılı kalabiliyordu
+        // (logcat 25.11) ve setLoading(false) hiç çalışmıyordu.
+        void saveUserToFirestore(profile);
       } else {
         // M14: Firebase oturumu yoksa kullanıcı da yok (eski: localStorage'dan
         // doğrulamasız restore). UI bu sürede `loading` ile korunur.
@@ -148,12 +163,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(profile);
         setShowAuthModal(false); // Close modal instantly before long network request
 
-        // Save to Firestore in the background
-        try {
-          await saveUserToFirestore(profile);
-        } catch {
-          console.warn("Firestore sync failed, but user is logged in locally.");
-        }
+        // M39 (2. tur): profil kaydı arka planda, bloklamadan —
+        // saveUserToFirestore asılı kalırsa bile loginWithGoogle
+        // promise'i biter ve spinner kapanır (firebase.ts'te 8 sn
+        // zaman aşımı da var).
+        void saveUserToFirestore(profile);
       }
     } catch (err) {
       console.error('Google Sign-In Error:', err);
@@ -211,11 +225,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(profile);
         setShowAuthModal(false);
 
-        try {
-          await saveUserToFirestore(profile);
-        } catch {
-          console.warn("Firestore sync failed, but user is logged in locally.");
-        }
+        // M39 (2. tur): Google akışıyla aynı — bloklamayan profil kaydı.
+        void saveUserToFirestore(profile);
       }
     } catch (err) {
       console.error('Apple Sign-In Error:', err);
