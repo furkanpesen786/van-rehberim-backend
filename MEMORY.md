@@ -73,7 +73,8 @@
 > `skipNativeAuth: true` doğrulandı):** `android/app/build/outputs/apk/
 > debug/app-debug.apk`. **TELEFONDA TEST EDİLDİ — ÇIKIŞ ✅ VE TEKRAR
 > GİRİŞ ✅ SORUNSUZ (25.11, kullanıcı onayı) — M39 KAPANDI.**
-> Kalan test: M40 geniş ekran kontrolü (kategoriler altta).
+> Kalan test: ~~M40 geniş ekran kontrolü~~ — **26.11'de telefonda
+> DOĞRULANDI (kategoriler altta, sorunsuz) — M40 KAPANDI.**
 >
 > **Son güncelleme (önceki):** 24.11.2026 (oturum #21) — **M39 ÇÖZÜLDÜ + M40
 > KOD TAMAM (doğrulama/commit bekliyor).** M39: çıkış sonrası ikinci
