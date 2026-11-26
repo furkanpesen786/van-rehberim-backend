@@ -29,7 +29,9 @@
 > dikkat: klasörü paylaşırken/zip'lerken .env ve upload.keystore dışarı
 > çıkmasın; şüphe olursa Firebase Console'dan anahtar iptal + yenile.
 > Doğrulandı: tsc ✅ + eslint ✅ + 82/82 test ✅ + build ✅ + manifest
-> JSON parse ✅.
+> JSON parse ✅. **Commit `62db2d0` pushlandı + CI ✅ yeşil — M42
+> KAPANDI.** Dikkat: express.json düzeltmesi Render'da bir sonraki
+> deploy'da canlıya gider — fotoğraflı ilan testi ancak o sonra yapılabilir.
 >
 > **Son güncelleme (önceki):** 26.11.2026 (oturum #23) — **M41: CLINE AI PROJE
 > DENETİMİ DOĞRULANDI + 9 GEÇERLİ BULGU DÜZELTİLDİ (kod tamam,
