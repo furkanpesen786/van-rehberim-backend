@@ -42,7 +42,8 @@
 > `dist-server/` build çıktılarını da (~387 kB) commit etti — takip
 > düzeltmesi: `.gitignore`'a `/dist-server/` eklendi + `git rm -r --cached
 > dist-server` ile repodan çıkarıldı** (Render zaten `npm run build`
-> çalıştırıyor; dist/ da hep ignore'dı).
+> çalıştırıyor; dist/ da hep ignore'dı). Takip commit'i `887479a`. **İKİ
+> COMMIT DE CI ✅ YEŞİL (build success) — M41 KAPANDI.**
 >
 > **Son güncelleme (önceki):** 25.11.2026 (oturum #22) — **M39 GERİ DÖNDÜ →
 > GERÇEK KÖK NEDEN LOGCAT İLE BULUNDU VE ÇÖZÜLDÜ (3 dosya).** 24.11
