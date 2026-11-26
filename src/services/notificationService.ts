@@ -175,7 +175,11 @@ export class NotificationService {
                         // uygulama her açılışta App.tsx üzerinden yeniden
                         // planlıyor (applySettings).
                         schedule: { at: ptime, allowWhileIdle: true },
-                        sound: 'beep.caf', // Default available sound behavior
+                        // M42: `sound: 'beep.caf'` KALDIRILDI — .caf iOS
+                        // formatıdır ve Android'de res/raw içinde dosya
+                        // yoktu; ses dosyası bulunamadığı için bildirim
+                        // sessiz kalıyordu. Kanal (importance: 4) varsayılan
+                        // sistem bildirim sesini çalar.
                     });
                 }
             }

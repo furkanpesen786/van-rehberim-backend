@@ -4,7 +4,34 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 26.11.2026 (oturum #23) — **M41: CLINE AI PROJE
+> **Son güncelleme:** 26.11.2026 (oturum #24) — **M42: CLINE DENETİMİ
+> 2. TUR — 6 DÜZELTME (kod tamam, commit bekliyor).** Yeni rapor bulgu
+> bulgu doğrulandı: 1 bulgu GEÇERSİZ (".gitignore commit edilmemiş" —
+> 887479a'da zaten commitliydi, denetim bayat durum okudu). DOĞRULANAN
+> VE DÜZELTİLEN: (1) **KRİTİK — express.json() gövde limiti:** varsayılan
+> 100 KB, fotoğraflı indirim ilanı 750 KB'a kadar gönderiyor (5 × 150k
+> base64) → istek rotaya ulaşmadan 413; akış ÖNCE ödeme SONRA ilan
+> olduğundan **para alınıp ilan yayımlanmıyordu** (M29 retry da aynı 413'ü
+> yiyordu). Çözüm: `express.json({ limit: '1mb' })` (Firestore 1 MiB
+> doküman sınırıyla uyumlu); (2) **bildirim sesi:** `sound: 'beep.caf'`
+> dosyası yoktu (.caf iOS formatı, res/raw klasörü hiç yok) → satır
+> kaldırıldı, kanal importance:4 varsayılan sistem sesini çalar;
+> (3) **AndroidManifest:** USE_EXACT_ALARM kaldırıldı (Play politikası
+> alarma/takvim uygulamalarına özgü — reddedilme riski; SCHEDULE_EXACT_ALARM
+> kalıyor); (4) **PWA manifest:** `"orientation": "portrait"` kaldırıldı
+> (M40 responsive sonrası tablet yatay kullanılabilmeli; JSON'a yorum
+> eklenmez — geçersiz kılınırdı); (5) weatherService `aqiColor` sabit
+> 'emerald' → AQI değerine göre (emerald/amber/slate; not: alan şu an hiç
+> bileşende kullanılmıyor); (6) server.ts news rotasında kullanılan `_req`
+> → `req` (isimlendirme). Bilgi amaçlı (kod değişikliği yok): **.env'de
+> gerçek Firebase Admin private key + RevenueCat secret var ve repo
+> PUBLIC** — şu an temiz (hiç commit edilmemiş, gitignore koruyor) ama
+> dikkat: klasörü paylaşırken/zip'lerken .env ve upload.keystore dışarı
+> çıkmasın; şüphe olursa Firebase Console'dan anahtar iptal + yenile.
+> Doğrulandı: tsc ✅ + eslint ✅ + 82/82 test ✅ + build ✅ + manifest
+> JSON parse ✅.
+>
+> **Son güncelleme (önceki):** 26.11.2026 (oturum #23) — **M41: CLINE AI PROJE
 > DENETİMİ DOĞRULANDI + 9 GEÇERLİ BULGU DÜZELTİLDİ (kod tamam,
 > doğrulama/commit bekliyor).** Kullanıcının yaptırdığı Cline denetim
 > raporu bulgu-bulgu incelendi: 2 bulgu GEÇERSİZ (HomeView activeModal

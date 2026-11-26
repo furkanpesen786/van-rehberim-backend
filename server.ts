@@ -50,7 +50,12 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
-app.use(express.json());
+// M42 (Cline denetimi 2. tur): gövde limiti 1 MB — varsayılan 100 KB,
+// fotoğraflı indirim ilanını (5 × 150k base64 ≈ 750 KB) rotaya ulaşmadan
+// 413 ile reddediyordu. Ödeme ÖNCE alınıp ilan SONRA gönderildiği için
+// kullanıcının parası alınıp ilan yayımlanmıyordu (DealsView M29 akışı).
+// 1 MB, Firestore doküman sınırıyla (1 MiB) da uyumlu.
+app.use(express.json({ limit: '1mb' }));
 // Aşama 2: yanıt gövdelerini gzip'le (ilan listelerinin JSON'u küçülür)
 app.use(compression());
 
@@ -694,7 +699,7 @@ interface NewsApiPayload {
 
 let newsCache: { payload: NewsApiPayload; fetchedAt: number } | null = null;
 
-app.get('/api/news', async (_req, res) => {
+app.get('/api/news', async (req, res) => {
   const rssChannels = [
     { name: 'Wan Haber', domain: 'wanhaber.com', baseUrl: 'https://www.wanhaber.com', rssUrl: 'https://www.wanhaber.com/rss' },
     { name: 'Van Olay', domain: 'vanolay.com', baseUrl: 'https://www.vanolay.com', rssUrl: 'https://www.vanolay.com/rss' },
@@ -793,7 +798,7 @@ app.get('/api/news', async (_req, res) => {
 
     // Respect limit
     let finalNews = fetchedNews;
-    const limitParam = Number(_req.query.limit);
+    const limitParam = Number(req.query.limit);
     if (!isNaN(limitParam) && limitParam > 0) {
       finalNews = finalNews.slice(0, limitParam);
     } else {

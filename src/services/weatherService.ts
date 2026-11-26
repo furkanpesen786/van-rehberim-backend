@@ -115,7 +115,9 @@ export async function fetchLiveVanWeather(): Promise<VanWeatherData> {
           : 'Güneş ışınlarının dik geldiği öğle saatlerinde koruyucu şapka kullanın.',
         aqi,
         aqiStatus: aqi == null ? 'Veri Yok' : aqi <= 50 ? 'İyi (Temiz Dağ Havası)' : 'Orta',
-        aqiColor: 'emerald',
+        // M42: renk artık AQI değerine bağlı — eskiden her zaman 'emerald'
+        // kalıyordu, "Orta" seviyede de yeşil görünüyordu.
+        aqiColor: aqi == null ? 'slate' : aqi <= 50 ? 'emerald' : 'amber',
         aqiAdvice: aqi == null
           ? 'Hava kalitesi verisi şu anda alınamadı.'
           : 'Van Gölü ve etrafında gökyüzü ve hava kalitesi açık hava etkinlikleri için idealdir.',
