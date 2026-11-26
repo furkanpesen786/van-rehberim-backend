@@ -32,12 +32,17 @@
 > düzeltildi (kullanıcı doğru yere koysa da okunmuyordu!); (8)
 > `android/keystore.properties.example` şablonu oluşturuldu (keytool
 > komutu + adımlar; gerçek dosya .gitignore'da zaten); (9) `akdamar
-> copy.jpg` yinelenen görsel — `git rm` (Bash arızası nedeniyle komut
+> copy.jpg` yinelenen görsel — kullanıcı `!` ile sildi.
 > kullanıcıya bırakıldı). Kalan (kod dışı, kullanıcı tarafı): gerçek
 > RevenueCat `goog_...` anahtarı hâlâ placeholder; Play Console yayınlama
 > (upload.keystore + keystore.properties gerçek şifrelerle); Apple sign-in
-> donuk. Doğrulama sırası: tsc + vitest + eslint + build + cap sync →
-> android assets'te server.cjs olmadığını kontrol → commit + push.
+> donuk. **Doğrulandı: tsc ✅ + eslint ✅ + 82/82 test ✅ + build ✅ + cap
+> sync ✅ — assets/public içinde server.cjs YOK (APK şişkinliği giderildi).
+> Commit `14d96ce` pushlandı; ancak `git add -A`, gitignore'da olmayan
+> `dist-server/` build çıktılarını da (~387 kB) commit etti — takip
+> düzeltmesi: `.gitignore`'a `/dist-server/` eklendi + `git rm -r --cached
+> dist-server` ile repodan çıkarıldı** (Render zaten `npm run build`
+> çalıştırıyor; dist/ da hep ignore'dı).
 >
 > **Son güncelleme (önceki):** 25.11.2026 (oturum #22) — **M39 GERİ DÖNDÜ →
 > GERÇEK KÖK NEDEN LOGCAT İLE BULUNDU VE ÇÖZÜLDÜ (3 dosya).** 24.11
