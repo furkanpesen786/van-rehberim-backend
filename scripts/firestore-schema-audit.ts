@@ -7,17 +7,27 @@
 // Çalıştırma:
 //   npx tsx scripts/firestore-schema-audit.ts
 //
-// Service account dosyası (varsayılan):
-//   C:\Users\FURKAN\Desktop\yeni klasör\vanrehberim-f181b-firebase-adminsdk-fbsvc-52bdf3b806.json
-//   (FIREBASE_SERVICE_ACCOUNT_FILE ortam değişkeniyle değiştirilebilir)
+// Service account dosyası: yalnızca FIREBASE_SERVICE_ACCOUNT_FILE ortam
+// değişkeniyle verilir (repo içine/varsayılana hardcode yol YOK):
+//   PowerShell: $env:FIREBASE_SERVICE_ACCOUNT_FILE="C:\yol\hesap.json"
+//   bash:       FIREBASE_SERVICE_ACCOUNT_FILE=/yol/hesap.json npx tsx scripts/firestore-schema-audit.ts
 
 import { readFileSync } from 'node:fs';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-const SERVICE_ACCOUNT_FILE =
-  process.env.FIREBASE_SERVICE_ACCOUNT_FILE ||
-  'C:/Users/FURKAN/Desktop/yeni klasör/vanrehberim-f181b-firebase-adminsdk-fbsvc-52bdf3b806.json';
+const SERVICE_ACCOUNT_FILE = process.env.FIREBASE_SERVICE_ACCOUNT_FILE;
+if (!SERVICE_ACCOUNT_FILE) {
+  console.error(
+    'HATA: FIREBASE_SERVICE_ACCOUNT_FILE ortam değişkeni ayarlı değil.\n' +
+    'Firebase service account JSON dosyasının tam yolunu bu değişkenle verin.\n' +
+    'Örnek (PowerShell): $env:FIREBASE_SERVICE_ACCOUNT_FILE="C:\\yol\\vanrehberim-....json"',
+  );
+  process.exit(1);
+}
+// Tür daraltma köprüsü: yukarıdaki guard'dan sonra string olduğu kesin,
+// ama modül seviyesindeki daraltma main() kapanışına taşınmaz.
+const serviceAccountPath: string = SERVICE_ACCOUNT_FILE;
 
 // Canonical alanlar — server/listings.ts'teki LISTING_TYPES + sunucunun kendi
 // hesapladığı alanlar. Bu listelerdeki adler "doğru" kabul edilir.
@@ -65,7 +75,7 @@ const CANONICAL: Record<string, { fields: string[]; serverFields: string[]; vari
 };
 
 async function main(): Promise<void> {
-  const serviceAccount = JSON.parse(readFileSync(SERVICE_ACCOUNT_FILE, 'utf-8'));
+  const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'));
   const app = initializeApp({ credential: cert(serviceAccount) }, 'schema-audit');
   const db = getFirestore(app);
 

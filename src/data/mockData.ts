@@ -519,12 +519,4 @@ export const JOB_CATEGORIES = [
   { id: 'cat-10', name: 'Sağlık & Bakım Hizmetleri', iconName: 'HeartHandshake', color: 'bg-teal-500' },
 ];
 
-export const JOB_DURATION_OPTIONS = [
-  { days: 1, price: 29, badge: 'Hızlı İlan', label: '1 Günlük İlan' },
-  { days: 3, price: 69, badge: 'Popüler', label: '3 Günlük İlan' },
-  { days: 7, price: 129, badge: 'Önerilen', label: '7 Günlük İlan' },
-  { days: 15, price: 229, badge: 'Ekonomik', label: '15 Günlük İlan' },
-  { days: 30, price: 399, badge: 'En Avantajlı', label: '30 Günlük İlan' },
-];
-
 export const JOB_LISTINGS: JobListing[] = [];

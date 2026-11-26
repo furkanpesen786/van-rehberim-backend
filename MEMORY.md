@@ -4,7 +4,42 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 25.11.2026 (oturum #22) — **M39 GERİ DÖNDÜ →
+> **Son güncelleme:** 26.11.2026 (oturum #23) — **M41: CLINE AI PROJE
+> DENETİMİ DOĞRULANDI + 9 GEÇERLİ BULGU DÜZELTİLDİ (kod tamam,
+> doğrulama/commit bekliyor).** Kullanıcının yaptırdığı Cline denetim
+> raporu bulgu-bulgu incelendi: 2 bulgu GEÇERSİZ (HomeView activeModal
+> değerleri set ediliyor; LoginModal'da e-posta UI yok — loginWithEmail
+> devre dışı bilinçli), 9 bulgu GEÇERLİ ve düzeltildi: (1) **PWA manifest
+> ölüydü** — ikonlar yanlış yerde + manifest bozuktu: `icons/ → public/icons/`
+> taşındı, `public/manifest.webmanifest` sıfırdan yazıldı (7 webp ikon,
+> relative yol, doğru type/purpose), `index.html`'e `<link rel="manifest">`
+> eklendi; (2) **firestore-schema-audit.ts'te hardcode makine yolu** —
+> kaldırıldı, yalnızca FIREBASE_SERVICE_ACCOUNT_FILE env'i (yoksa net
+> hata + exit 1); (3) **server.ts'te ölü /api/weather MGM bloğu** (~290
+> satır: parseMgmHadise/getWindDirectionName/getAqiDetails/weatherCache
+> vb.) — silindi (weatherService aylardır doğrudan Open-Meteo'ya gidiyor),
+> WeatherDayForecast import'u da temizlendi; (4) **JOB_DURATION_OPTIONS
+> ölü export** — mockData.ts'ten silindi (0 kullanım); (5) **server.cjs
+> APK'nın içine gömülüyordu** — esbuild outfile `dist/server.cjs` →
+> `dist-server/server.cjs`, npm start/clean + ci.yml + README güncellendi
+> (dist/ artık yalnızca web bundle → cap sync sonrası APK'dan server
+> çıkmaz; Render start komutu npm start olduğu için etkilenmez); (6)
+> **Unsplash stok foto fallback** — server.ts'te '' döner oldu +
+> NewsView.tsx kart ve detay modalında görselsiz habere nötr Newspaper
+> placeholder (koşullu render); (7) **build.gradle'de keystore yolu
+> HATALIYDİ** — `rootProject.file('android/keystore.properties')`
+> android/android/... arıyordu → `rootProject.file('keystore.properties')`
+> düzeltildi (kullanıcı doğru yere koysa da okunmuyordu!); (8)
+> `android/keystore.properties.example` şablonu oluşturuldu (keytool
+> komutu + adımlar; gerçek dosya .gitignore'da zaten); (9) `akdamar
+> copy.jpg` yinelenen görsel — `git rm` (Bash arızası nedeniyle komut
+> kullanıcıya bırakıldı). Kalan (kod dışı, kullanıcı tarafı): gerçek
+> RevenueCat `goog_...` anahtarı hâlâ placeholder; Play Console yayınlama
+> (upload.keystore + keystore.properties gerçek şifrelerle); Apple sign-in
+> donuk. Doğrulama sırası: tsc + vitest + eslint + build + cap sync →
+> android assets'te server.cjs olmadığını kontrol → commit + push.
+>
+> **Son güncelleme (önceki):** 25.11.2026 (oturum #22) — **M39 GERİ DÖNDÜ →
 > GERÇEK KÖK NEDEN LOGCAT İLE BULUNDU VE ÇÖZÜLDÜ (3 dosya).** 24.11
 > APK'sında da ikinci giriş takılıyordu; telefon USB + `adb logcat`
 > ile canlı teşhis yapıldı. BULGULAR: (1) giriş aslında ÇALIŞIYORDU —

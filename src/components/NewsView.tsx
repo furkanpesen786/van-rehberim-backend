@@ -197,12 +197,20 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
                 }`}
             >
               <div className="relative h-60 w-full overflow-hidden bg-slate-900">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                />
+                {/* M41: görseli olmayan haberlerde nötr placeholder — sunucu
+                    artık dış stok fotoğraf fallback'i döndürmüyor. */}
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                    <Newspaper className="w-12 h-12 text-slate-500" />
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
                 <span className="absolute top-3 left-3 bg-slate-950/90 backdrop-blur-md text-amber-400 font-black text-[11px] px-3 py-1 rounded-xl shadow-md border border-amber-400/30 flex items-center gap-1.5">
@@ -264,12 +272,18 @@ export const NewsView: React.FC<NewsViewProps> = ({ theme = 'light' }) => {
           <div className={`${isDark ? 'bg-[#18191e] text-white border-slate-800' : 'bg-white text-slate-800 border-slate-200'} w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col border shadow-2xl overflow-hidden animate-slideUp`}>
 
             <div className="relative h-64 shrink-0 bg-slate-950">
-              <img
-                src={selectedNews.image}
-                alt={selectedNews.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
+              {selectedNews.image ? (
+                <img
+                  src={selectedNews.image}
+                  alt={selectedNews.title}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                  <Newspaper className="w-14 h-14 text-slate-500" />
+                </div>
+              )}
               <button
                 onClick={() => setSelectedNews(null)}
                 className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-all shadow-md backdrop-blur-md"

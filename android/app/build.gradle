@@ -16,7 +16,9 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    def keystorePropertiesFile = rootProject.file('android/keystore.properties')
+    // M41: rootProject zaten android/ klasörüdür — eski 'android/keystore.properties'
+    // yolu android/android/... arıyordu ve dosya hiçbir zaman bulunamıyordu.
+    def keystorePropertiesFile = rootProject.file('keystore.properties')
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))

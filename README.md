@@ -29,8 +29,8 @@ Express olarak çalışır.
 npm install          # bağımlılıklar
 npm run dev          # dev sunucusu (tsx server.ts, port 3000)
 npm run lint         # tsc --noEmit + eslint
-npm run build        # vite build + esbuild (dist/server.cjs)
-npm start            # production: node dist/server.cjs
+npm run build        # vite build (dist/) + esbuild (dist-server/server.cjs)
+npm start            # production: node dist-server/server.cjs
 ```
 
 Ortam değişkenleri için `.env.example` dosyasına bakın (lokal `.env`).

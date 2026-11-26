@@ -38,7 +38,7 @@ jobs:
     # (başarı). Env değişkeni yokken de boot güvenlidir: listings.ts lazy
     # init kullanır, /api/listings istek anında 503 fail-closed döner.
     - name: Server boot smoke test
-      run: NODE_ENV=production PORT=3999 timeout 15 node dist/server.cjs || test $? -eq 124
+      run: NODE_ENV=production PORT=3999 timeout 15 node dist-server/server.cjs || test $? -eq 124
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
