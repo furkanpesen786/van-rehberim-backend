@@ -866,6 +866,14 @@ app.get('/api/news', async (req, res) => {
   });
 });
 
+// Tam tarama (27.11): bilinmeyen /api/ yolları üretimdeki SPA catch-all'ına
+// düşüyordu — istemciye 200 + index.html (HTML) dönerdi. API tüketicisine
+// dürüst JSON 404. Tüm gerçek /api rotaları yukarıda tanımlıdır; buraya
+// yalnızca hiçbiriyle eşleşmeyen istekler ulaşır.
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Bilinmeyen API yolu.' });
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

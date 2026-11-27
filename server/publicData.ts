@@ -27,6 +27,8 @@ import { Router, type Request, type Response } from 'express';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getAdminApp } from './adminApp.ts';
 import { publicDataCache, CACHE_KEYS } from './cacheService.ts';
+// Tam tarama (27.11): secret karşılaştırması timing-safe yapılır
+import { secretsMatch } from './secretCompare.ts';
 // M30 sıralama sözleşmesinin tek kaynağı — istemciyle aynı kod
 import { sortByNewestFirst } from '../src/utils/listingSort.ts';
 
@@ -132,8 +134,8 @@ publicDataRouter.post('/cache/clear', (req, res) => {
     });
     return;
   }
-  const provided = req.get('x-invalidation-secret');
-  if (!provided || provided !== CACHE_INVALIDATION_SECRET) {
+  const provided = req.get('x-invalidation-secret') || '';
+  if (!secretsMatch(provided, CACHE_INVALIDATION_SECRET)) {
     res.status(401).json({ error: 'Yetkisiz istek.' });
     return;
   }

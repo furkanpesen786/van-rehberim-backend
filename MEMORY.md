@@ -4,9 +4,55 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 27.11.2026 (oturum #25) — **M43: TÜRKİYE HUKUKİ
-> UYUM PAKETİ (denetim + 4 düzeltme grubu; kod tamam, doğrulandı,
-> commit bekliyor).** Kullanıcının getirdiği hukuk kontrol promptu
+> **Son güncelleme:** 27.11.2026 (oturum #25) — **M44: TAM PROJE
+> YENİDEN TARAMASI + 4 DÜZELTME (kod tamam, commit bekliyor).**
+> Kullanıcı "bütün projeyi tekrar tara, her şeyi hataları bul" dedi;
+> SALT-OKUNUR tarama yapıldı: server.ts (tamamı, 890 satır), 5 sunucu
+> modülü (listings/publicData/cacheService/adminApp/account), tüm istemci
+> servisleri (listing/publicListings/purchase/account/notification/bus/
+> weather/pharmacy/currency), bağlamlar (Auth/SavedItems), App.tsx,
+> OnboardingView, M43 görünüm değişiklikleri (JobsView/DealsView/
+> HomeView silme+bildirim akışları), firebase.ts, firestore.rules,
+> capacitor.config.ts, utils + genel hata sınıfları (interval cleanup'ları,
+> M30 toast desenleri). **SONUÇ: KRİTİK HATA YOK** — M29–M43 düzeltmeleri
+> sağlam. 7 bulgu raporlandı (hepsi düşük-orta risk); kullanıcı
+> 1+2+3+4'ü düzeltti, 5 ve 6 bilinçli ertelendi, 7 olduğu gibi bırakıldı:
+> **(1) subscriberCache bellek sızıntısı (DÜZELTİLDİ):** server/listings.ts
+> — M31'de rateLimiter'a eklenen prune deseni burada unutulmuştu; 60 sn
+> TTL'li girdiler Map'ten hiç silinmiyordu. Şimdi pruneSubscriberCache()
+> dakikada bir süpürüyor. **(2) Bilinmeyen /api yolları HTML döndürüyordu
+> (DÜZELTİLDİ):** üretimdeki SPA catch-all'ı /api/... altındaki olmayan
+> yolları da yakalıyordu (200 + index.html). server.ts'e app.use('/api',
+> JSON 404) eklendi — tüm gerçek /api rotalarından SONRA, catch-all'dan
+> önce. **(3) todayTR() saat dilimi (DÜZELTİLDİ):** Render UTC çalışır;
+> tr-TR biçimlendirmesine timeZone verilmediği için TR'nin gece
+> 00:00–03:00'unda createdAt/startDate/endDate bir gün geride yazılıyordu
+> (yalnızca görüntü; bitisTarihi epoch ms'den hesaplandığından zaten
+> doğruydu). todayTR + deal endDate'e timeZone: 'Europe/Istanbul'
+> eklendi. **(4) Secret karşılaştırmaları timing-safe değil (DÜZELTİLDİ):**
+> TAKEDOWN_SECRET ve CACHE_INVALIDATION_SECRET `provided !== SECRET`
+> düz string karşılaştırmasıydı. Yeni server/secretCompare.ts —
+> crypto.timingSafeEqual sarmalayan secretsMatch() (uzunluk ön kontrolü
+> dahil); her iki endpoint'te kullanıldı. **Hepsi SUNUCU tarafı — APK
+> etkilenmez, yalnızca Render deploy'la canlıya gider.** Doğrulandı:
+> tsc ✅ + eslint ✅ + 82/82 test ✅ + build ✅ (server.cjs 151,7 kB).
+> Not: sunucu endpoint'leri için test YOK (vitest yalnızca istemci
+> utils/servislerini kapsıyor). **ERTelenen bulgular (sonraki taramada
+> hatırlanmalı):** (5) OnboardingView onay kutusu "okudum, anladım"
+> diyor ama politika metinleri onboarding akışında AÇILAMIYOR (yalnızca
+> Ayarlar → Politikalar'da) — onay anında okunabilir olması hukuki olarak
+> daha güçlü olur; (6) App.tsx geri tuşu dinleyicisi her sekme
+> değişiminde yeniden kaydediliyor, eskisi async kaldırılıyor (ms'lik
+> yarış penceresi, insan tıklamasıyla pratikte yakalanmaz); **(7) bilinen
+> kabul edilmiş ödün (M31 kararı):** ezan bildirimleri tek atımlık `at:`
+> ile planlanıyor — uygulama gece yarısını AÇIK geçirirse ertesi gün
+> bildirim gelmez (kullanıcı değişiklik istemedi; her açılışta yeniden
+> planlanıyor zaten). Bash sınıflandırıcısı yine aralıklı arızalıydı;
+> doğrulama komutları kullanıcı `!` önekiyle çalıştırdı.
+>
+> **27.11.2026 (oturum #25, önceki bölüm) — M43: TÜRKİYE HUKUKİ
+> UYUM PAKETİ (denetim + 4 düzeltme grubu) — commit `456759a` pushlandı +
+> CI ✅ yeşil (build success).** Kullanıcının getirdiği hukuk kontrol promptu
 > (6502 ödeme ekranı, 6563 e-posta, 5846 telif, 5651 yer sağlayıcı,
 > KVKK m.10 aydınlatma, m.9 yurt dışı aktarım) önce SALT-OKUNUR
 > denetimle uygulandı (12 dosya okundu, rapor verildi, 4 grup düzeltme
@@ -49,12 +95,23 @@
 > siler; server.ts'te başlangıç +30 sn ve 24 saatte bir koşar; metindeki
 > "en geç 7 günde silinir" taahhüdünün karşılığı. .env.example'e
 > TAKEDOWN_SECRET bölümü eklendi. Doğrulandı: tsc ✅ + eslint ✅ +
-> 82/82 test ✅ + build ✅ (server.cjs 150,9 kB). **BEKLEYEN:** commit
-> + push + CI; Render'a TAKEDOWN_SECRET env'i eklenmezse takedown
-> endpoint'i fail-closed KAPALI kalır (kullanıcı kararı — eklemek
-> istiyorsa Render panelinden); cleanup + yeni metinler yeni deploy'la
-> canlıya gider; APK'da görünmesi için yeni APK gerekli. Not: bu bir
-> kontrol listesi düzeltmesidir, hukuki görüş değildir.
+> 82/82 test ✅ + build ✅ (server.cjs 150,9 kB). **Commit `456759a`
+> (13 dosya, +565/−32) pushlandı + CI ✅ yeşil — Render otomatik
+> deploy başlar.** BEKLEYEN: Render'a TAKEDOWN_SECRET env'i
+> eklenmezse takedown endpoint'i fail-closed KAPALI kalır (kullanıcı
+> kararı — eklemek istiyorsa Render panelinden); cleanup + yeni
+> metinler yeni deploy'la canlıya gider. **YENİ DEBUG APK ÜRETİLDİ
+> (27.11 20:02, 19 MB — M43 dahil; build + cap sync + assembleDebug
+> BUILD SUCCESSFUL; APK'ya paketlenen assets/public içinde M43
+> metinleri grep'le doğrulandı: "otomatik yenilenir" + "İLANI
+> BİLDİR"):** `android/app/build/outputs/apk/debug/app-debug.apk`.
+> TELEFONDA TEST LİSTESİ: (1) tanıtımı atla → onay slaytına
+> düşmeli, onaysız Başla kilitli (M43 onboarding); (2) Ayarlar →
+> Politikalar → yeni metinlerde yurt dışı işlemciler + yer sağlayıcı
+> bildirimi görünmeli; (3) kendi ilanının detayında SİL,
+> başkasınınkinde BİLDİR düğmesi; (4) taksi ödeme modalında otomatik
+> yenileme + iptal yolu metni. Not: bu bir kontrol listesi
+> düzeltmesidir, hukuki görüş değildir.
 >
 > **27.11.2026 (oturum #25, ilk bölüm) — M42 CANLI DOĞRULAMA TAMAM —
 > express.json 1 MB gövde limiti Render'da ÇALIŞIYOR.** Dün pushlanan

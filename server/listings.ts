@@ -19,6 +19,8 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 // M35: Admin init ortak modüle taşındı (server/account.ts de kullanıyor)
 import { getAdminApp } from './adminApp.ts';
+// Tam tarama (27.11): secret karşılaştırmaları timing-safe yapılır
+import { secretsMatch } from './secretCompare.ts';
 // Aşama 3 (ölçek): ilan yayımlandığında /api/v1 önbelleğini invalidasyon
 // yapar — yeni ilan, bir sonraki /api/v1 isteğinde anında görünür olur
 // (5 dk TTL beklenmez).
@@ -114,10 +116,26 @@ interface RcSubscriber {
 }
 
 const subscriberCache = new Map<string, { data: RcSubscriber; expiresAt: number }>();
+let subscriberCacheLastPrune = 0;
+
+// Tam tarama (27.11): M31'de rateLimiter'a eklenen prune deseni burada
+// unutulmuştu — süresi (60 sn) dolan girdiler Map'ten hiç silinmiyordu;
+// uzun ömürlü süreçte her benzersiz uid bir daha çıkmadan bellekte
+// kalıyordu. Dakikada bir süpürülür.
+function pruneSubscriberCache(now: number): void {
+  for (const [uid, entry] of subscriberCache) {
+    if (entry.expiresAt <= now) subscriberCache.delete(uid);
+  }
+}
 
 async function fetchRevenueCatSubscriber(uid: string): Promise<RcSubscriber | null> {
+  const now = Date.now();
+  if (now - subscriberCacheLastPrune > 60_000) {
+    subscriberCacheLastPrune = now;
+    pruneSubscriberCache(now);
+  }
   const cached = subscriberCache.get(uid);
-  if (cached && cached.expiresAt > Date.now()) return cached.data;
+  if (cached && cached.expiresAt > now) return cached.data;
 
   const response = await axios.get(
     `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}`,
@@ -135,7 +153,7 @@ async function fetchRevenueCatSubscriber(uid: string): Promise<RcSubscriber | nu
   if (response.status === 404) return null;
 
   const subscriber = (response.data?.subscriber ?? {}) as RcSubscriber;
-  subscriberCache.set(uid, { data: subscriber, expiresAt: Date.now() + SUBSCRIBER_CACHE_TTL_MS });
+  subscriberCache.set(uid, { data: subscriber, expiresAt: now + SUBSCRIBER_CACHE_TTL_MS });
   return subscriber;
 }
 
@@ -227,7 +245,14 @@ function pickFields(data: Record<string, unknown>, fields: string[]): Record<str
 }
 
 function todayTR(): string {
-  return new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  // Tam tarama (27.11): Render UTC çalışır; timeZone verilmezse TR'nin
+  // gece saatlerinde (00:00–03:00) tarih bir gün geride yazılıyordu.
+  return new Date().toLocaleDateString('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Europe/Istanbul',
+  });
 }
 
 // --- Endpoint -----------------------------------------------------------------
@@ -321,7 +346,7 @@ listingsRouter.post('/', async (req: Request, res: Response) => {
     };
     if (type === 'deal') {
       docData.startDate = todayTR();
-      docData.endDate = endDate.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      docData.endDate = endDate.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Istanbul' });
     }
 
     const docRef = await getFirestore(adminApp).collection(typeConfig.collection).add(docData);
@@ -422,7 +447,7 @@ listingsRouter.post('/takedown', async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'İçerik kaldırma işlevi yapılandırılmamış (TAKEDOWN_SECRET eksik).' });
     }
     const provided = String(req.headers['x-takedown-secret'] || '');
-    if (provided !== TAKEDOWN_SECRET) {
+    if (!secretsMatch(provided, TAKEDOWN_SECRET)) {
       return res.status(401).json({ error: 'Yetkisiz istek.' });
     }
     const adminApp = getAdminApp();
