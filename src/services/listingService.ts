@@ -70,3 +70,46 @@ export async function submitPaidListing(
     clearTimeout(timeoutId);
   }
 }
+
+/**
+ * M43 (5651/5846 uyumu): kullanıcının KENDİ ilanını sunucu üzerinden siler.
+ * Yetki sunucuda kontrol edilir (doküman userId'si token uid'siyle
+ * eşleşmeli). Başarıda istemci liste önbelleği de temizlenir.
+ */
+export async function deleteOwnListing(type: ListingType, docId: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('İlan silmek için giriş yapmalısınız.');
+  }
+
+  const idToken = await user.getIdToken();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/listings/${encodeURIComponent(type)}/${encodeURIComponent(docId)}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${idToken}` },
+        signal: controller.signal,
+      },
+    );
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = (body as { error?: string })?.error
+        || 'İlan silinemedi. Lütfen tekrar deneyiniz.';
+      throw new Error(message);
+    }
+    clearPublicListingsCache();
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Sunucuya ulaşılamadı (zaman aşımı). İnternet bağlantınızı kontrol edip tekrar deneyiniz.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}

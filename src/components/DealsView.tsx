@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { subscribeDeals } from '../lib/firebase';
 import type { Deal } from '../types';
-import { submitPaidListing } from '../services/listingService';
+import { submitPaidListing, deleteOwnListing } from '../services/listingService';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { getDealMetaFromPackage, computeEndDate } from '../utils/listingMeta';
@@ -27,7 +27,9 @@ import {
   CheckCircle2,
   Megaphone,
   ArrowRight,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Flag
 } from 'lucide-react';
 
 interface DealsViewProps {
@@ -76,6 +78,27 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
+  // M43 (5651/5846): kullanıcının kendi ilanını silme akışı
+  const [isDeletingDeal, setIsDeletingDeal] = useState(false);
+
+  // M43: kendi ilanını sunucu üzerinden siler (DELETE /api/listings/deal/:id).
+  const handleDeleteOwnDeal = async () => {
+    if (!selectedDeal || isDeletingDeal) return;
+    if (!window.confirm('İlanınız kalıcı olarak silinecek. Onaylıyor musunuz?')) return;
+    setIsDeletingDeal(true);
+    try {
+      await deleteOwnListing('deal', selectedDeal.id);
+      setDealsList((prev) => prev.filter((d) => d.id !== selectedDeal.id));
+      setSelectedDeal(null);
+      setToastMessage('İlanınız silindi.');
+      scheduleToastClear(setToastMessage, 3000);
+    } catch (err) {
+      setErrorToast(getErrorMessage(err));
+      scheduleToastClear(setErrorToast, 4000);
+    } finally {
+      setIsDeletingDeal(false);
+    }
+  };
   const [startDate, setStartDate] = useState(todayTR());
   const [endDate, setEndDate] = useState(computeEndDate(30));
   const [category, setCategory] = useState('Kafe & Restoran');
@@ -710,6 +733,26 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(selectedDeal.storeName || '') + ' Van')}`} target="_blank" rel="noreferrer" className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2">
                   <Navigation className="w-5 h-5" /> KONUMA GİT
                 </a>
+
+                {/* M43 (5651/5846): kendi ilanıysa silme, değilse bildirim
+                    kanalı (mailto) — ilan kimliği hazır gelir. */}
+                {selectedDeal.userId && selectedDeal.userId === currentUser?.uid ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteOwnDeal()}
+                    disabled={isDeletingDeal}
+                    className="w-full bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="w-4 h-4" /> {isDeletingDeal ? 'Siliniyor...' : 'İLANIMI SİL'}
+                  </button>
+                ) : (
+                  <a
+                    href={`mailto:furkanpesen786@gmail.com?subject=${encodeURIComponent('Van Rehberim - İlan Bildirimi')}&body=${encodeURIComponent(`İlan ID: ${selectedDeal.id}\nİşletme: ${selectedDeal.storeName}\nŞikayet nedeni: `)}`}
+                    className="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold py-3 rounded-2xl flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
+                  >
+                    <Flag className="w-4 h-4" /> İLANI BİLDİR
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -866,6 +909,7 @@ export const DealsView: React.FC<DealsViewProps> = ({ theme = 'light' }) => {
 
             <p className="text-[10px] text-center text-[#9c755c] pt-2 pb-2 leading-relaxed px-4">
               Google Play In-App Purchase aracılığıyla ödeme yapılmaktadır. İlanınız ödeme onayından hemen sonra yayınlanacaktır.
+              Tek seferlik ödemedir; otomatik yenileme yoktur. Ödemeyi onaylamanızla birlikte dijital içerik anında teslim edilir; 6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği uyarınca cayma hakkınızın kullanılmasından açıkça feragat etmiş sayılırsınız.
             </p>
 
             <button onClick={handleFinalPurchase} disabled={isProcessing} className="w-full bg-gradient-to-r from-[#D7A75C] to-[#C18C44] text-[#3F2B20] font-black tracking-wide py-4.5 rounded-[24px] flex justify-center items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 text-[15px] h-[60px]">

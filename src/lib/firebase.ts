@@ -34,6 +34,9 @@ import { fetchListings } from '../services/publicListingsService';
 // dönüşümü: utils/dealMapping.ts (deal) ve HomeView taksi eşlemesi.
 export interface RawDealDoc {
   id: string;
+  // M43 (5651 uyumu): sunucunun yazdığı sahiplik alanı — kullanıcı kendi
+  // ilanını silebilsin diye UI'a taşınır.
+  userId?: string;
   isletmeAdi?: string;
   kategori?: string;
   indirimKodu?: string;
@@ -51,6 +54,8 @@ export interface RawDealDoc {
 
 export interface RawTaxiDoc {
   id: string;
+  // M43 (5651 uyumu): sahiplik alanı — bkz. RawDealDoc.
+  userId?: string;
   name?: string;
   driverName?: string;
   phone?: string;

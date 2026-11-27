@@ -4,7 +4,71 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 26.11.2026 (oturum #24) — **M42: CLINE DENETİMİ
+> **Son güncelleme:** 27.11.2026 (oturum #25) — **M43: TÜRKİYE HUKUKİ
+> UYUM PAKETİ (denetim + 4 düzeltme grubu; kod tamam, doğrulandı,
+> commit bekliyor).** Kullanıcının getirdiği hukuk kontrol promptu
+> (6502 ödeme ekranı, 6563 e-posta, 5846 telif, 5651 yer sağlayıcı,
+> KVKK m.10 aydınlatma, m.9 yurt dışı aktarım) önce SALT-OKUNUR
+> denetimle uygulandı (12 dosya okundu, rapor verildi, 4 grup düzeltme
+> onayı alındı). Denetim sonucu: **madde 2 (ticari e-posta) TEMİZ** —
+> kodda hiç e-posta gönderimi yok (nodemailer/SMTP/sendEmail: 0 sonuç;
+> tek temas gelen yönlü mailto). Diğer 5 başlıkta 12 dosyada düzeltme:
+> (1) **Politika metinleri** (SettingsView: gizlilik + KVKK + koşullar)
+> gerçek veri envanterine göre yeniden yazıldı. KRİTİK bulgu: eski
+> metin "verileriniz yurt içinde güvenli sunucularda saklanır" ve
+> "yalnızca kamu kurumlarına aktarılır" diyordu — mimari Firebase
+> (Google) + RevenueCat (ABD) + Render (ABD); ayrıca toplanan veri
+> listesi eksikti (ad/fotoğraf/ilan telefonu/RevenueCat işlem kimliği
+> yazmıyordu). Yeni metinler: veri sorumlusu + iletişim, gerçek veri
+> envanteri (ilan verisinin HERKESE AÇIK yayınlandığı dahil), yurt
+> dışı işlemci listesi (m.9), saklama süresi (ilan: yayın sonu + en
+> geç 7 gün), tam m.11 hak listesi + 30 gün yanıt taahhüdü.
+> (2) **Kullanım Koşulları'na 5651 yer sağlayıcı bildirimi** (Van
+> Rehberim — furkanpesen786@gmail.com; şikayet inceleme + kaldırma
+> taahhüdü). (3) **Ödeme ekranları** (JobsView form + DealsView Play
+> modalı + HomeView taksi paywall/onay kutusu): dijital içerik cayma
+> hakkı feragati (6502/MSY), taksi aboneliğinde "otomatik yenilenir +
+> deneme sonu 1.000 TL otomatik tahsilat + iptal yolu (Google Play →
+> Profil → Ödemeler ve abonelikler → Abonelikler)". (4) **Onboarding
+> son slaytı** politika onay kutusu; "Başla" onaysız kilitli; "Atla" +
+> ilk slaytta geri artık ONAY SLAYTINA yönelenir (hiçbir yol KVKK m.10
+> onayını atlamaz). (5) **Kendi ilanını silme + bildirim kanalı**:
+> server/listings.ts'e DELETE /api/listings/:type/:docId (Bearer ID
+> token; sunucu doc.userId === uid yetki kontrolü; `delete:` ad
+> alanlı rate limit) + POST /api/listings/takedown (TAKEDOWN_SECRET
+> env — CACHE_INVALIDATION_SECRET'in fail-closed 503/401 deseni);
+> listingService'e deleteOwnListing(); userId alanı types.ts
+> (JobListing/Deal/TaxiStand) + firebase.ts (RawDealDoc/RawTaxiDoc) +
+> dealMapping passthrough ile UI'a taşındı; JobsView detay + DealsView
+> detay + HomeView taksi kartı: kendi ilanında SİL (confirm + yerel
+> state'ten çıkar), başkasınınkinde BİLDİR (mailto, ilan ID hazır);
+> HomeView'e taxiNotice geri bildirim şeridi. (M32'de no-op olduğu için
+> kaldırılan taksi silme düğmesi GERÇEK akımla geri geldi.)
+> (6) **KVKK saklama temizliği**: cleanupExpiredListings() —
+> bitisTarihi < now−7gün dokümanları (koleksiyon başına 400/batch)
+> siler; server.ts'te başlangıç +30 sn ve 24 saatte bir koşar; metindeki
+> "en geç 7 günde silinir" taahhüdünün karşılığı. .env.example'e
+> TAKEDOWN_SECRET bölümü eklendi. Doğrulandı: tsc ✅ + eslint ✅ +
+> 82/82 test ✅ + build ✅ (server.cjs 150,9 kB). **BEKLEYEN:** commit
+> + push + CI; Render'a TAKEDOWN_SECRET env'i eklenmezse takedown
+> endpoint'i fail-closed KAPALI kalır (kullanıcı kararı — eklemek
+> istiyorsa Render panelinden); cleanup + yeni metinler yeni deploy'la
+> canlıya gider; APK'da görünmesi için yeni APK gerekli. Not: bu bir
+> kontrol listesi düzeltmesidir, hukuki görüş değildir.
+>
+> **27.11.2026 (oturum #25, ilk bölüm) — M42 CANLI DOĞRULAMA TAMAM —
+> express.json 1 MB gövde limiti Render'da ÇALIŞIYOR.** Dün pushlanan
+> `62db2d0`'nin Render deploy'u canlıya çıkmış; zararsız dummy JSON
+> POST'larıyla doğrulandı: /api/listings'e 200 KB gövde → HTTP 400
+> "Geçersiz istek" (gövde rotaya ULAŞTI), 750 KB gövde (gerçek
+> fotoğraflı ilan boyutu) → HTTP 400. Önceden 100 KB üstü her istek
+> 413 PayloadTooLarge ile rotaya ulaşamıyordu (para alınıp ilan
+> yayımlanmıyordu). **M42 TAMAMEN KAPANDI.** Kalan uçtan uca gerçek
+> fotoğraflı ilan testi RevenueCat gerçek `goog_...` anahtarını
+> bekliyor. Bash sınıflandırıcısı bu oturumda da aralıklı arızalıydı;
+> doğrulama komutları kullanıcı `!` önekiyle çalıştırdı.
+>
+> **Son güncelleme (önceki):** 26.11.2026 (oturum #24) — **M42: CLINE DENETİMİ
 > 2. TUR — 6 DÜZELTME (kod tamam, commit bekliyor).** Yeni rapor bulgu
 > bulgu doğrulandı: 1 bulgu GEÇERSİZ (".gitignore commit edilmemiş" —
 > 887479a'da zaten commitliydi, denetim bayat durum okudu). DOĞRULANAN

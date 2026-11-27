@@ -19,6 +19,9 @@ export interface JobListing {
   createdAt: string;
   isFeatured?: boolean;
   experienceYears?: string;
+  // M43 (5651 uyumu): sunucu yazdığı sahiplik alanı — kullanıcının kendi
+  // ilanını silebilmesi için UI'da currentUser.uid ile karşılaştırılır.
+  userId?: string;
 }
 
 export interface JobCategory {
@@ -82,6 +85,8 @@ export interface TaxiStand {
   subscriptionPlan?: 'FIRST_MONTH_FREE' | 'PAID';
   monthlyFee?: string;
   createdAt?: string;
+  // M43 (5651 uyumu): sahiplik alanı — kendi ilanını silme UI'ı için.
+  userId?: string;
 }
 
 export interface PlaceToVisit {
@@ -130,6 +135,8 @@ export interface Deal {
   // İşletme telefonu. M29'dan beri Firestore canonical şemasında da yazılır
   // (server/listings.ts deal whitelist'indeki `phone`). "Ara" butonu için okunur.
   phone?: string;
+  // M43 (5651 uyumu): sahiplik alanı — kendi ilanını silme UI'ı için.
+  userId?: string;
 }
 
 export interface CurrencyRate {

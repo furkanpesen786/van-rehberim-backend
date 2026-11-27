@@ -107,11 +107,17 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
   theme,
 }) => {
   const [step, setStep] = useState(0);
+  // M43 (KVKK m.10): aydınlatma metni ilk kullanımdan önce kullanıcıya
+  // sunulur — son slaytta politikalar onay kutusu "Başla"yı açar.
+  const [policiesAccepted, setPoliciesAccepted] = useState(false);
   const isDark = theme === 'dark';
   const slide = SLIDES[step];
   const isFinalSlide = slide.isFinal === true;
 
   const finish = () => {
+    // Son slaytta onay zorunludur (KVKK m.10) — onaysız Başla düğmesi
+    // zaten devre dışıdır; buradaki koruma savunma amaçlıdır.
+    if (isFinalSlide && !policiesAccepted) return;
     completeOnboarding();
     onComplete();
   };
@@ -124,11 +130,17 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     }
   };
 
+  // M43: tanıtımı erken bırakma yolları ("Atla" + ilk slaytta geri) artık
+  // onay slaytına yönlendirir — hiçbir yol politika onayını atlamaz.
+  const skipToAcceptance = () => {
+    setStep(SLIDES.length - 1);
+  };
+
   const goPrev = () => {
     if (step > 0) {
       setStep((s) => s - 1);
     } else {
-      finish(); // ilk slaytta geri = tanıtımı kapat (atla)
+      skipToAcceptance(); // ilk slaytta geri = tanıtımı atla → onay slaytı
     }
   };
 
@@ -149,7 +161,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         {!isFinalSlide && (
           <button
             type="button"
-            onClick={finish}
+            onClick={skipToAcceptance}
             className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-colors ${
               isDark
                 ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -268,16 +280,44 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
           <button
             type="button"
             onClick={goNext}
+            disabled={isFinalSlide && !policiesAccepted}
             className={`flex-1 h-12 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-98 shadow-lg ${
               isFinalSlide
                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white'
                 : 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950'
-            }`}
+            } ${isFinalSlide && !policiesAccepted ? 'opacity-40 cursor-not-allowed active:scale-100' : ''}`}
           >
             {isFinalSlide ? 'Başla' : 'İleri'}
             {!isFinalSlide && <ChevronRight className="w-4 h-4" />}
           </button>
         </div>
+
+        {/* M43 (KVKK m.10): ilk kullanımda aydınlatma/Politika onayı —
+            "Başla" yalnızca bu kutu işaretliyken aktiftir. */}
+        {isFinalSlide && (
+          <label
+            className={`flex items-start gap-3 mt-5 text-left cursor-pointer rounded-2xl border p-3.5 transition-colors ${
+              isDark
+                ? 'border-slate-800 bg-[#18191e]'
+                : 'border-slate-200 bg-white shadow-sm'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={policiesAccepted}
+              onChange={(e) => setPoliciesAccepted(e.target.checked)}
+              className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 shrink-0"
+            />
+            <span className={`text-[11px] leading-relaxed font-semibold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <strong className={isDark ? 'text-white' : 'text-slate-900'}>Gizlilik Politikası</strong>'nı,{' '}
+              <strong className={isDark ? 'text-white' : 'text-slate-900'}>Kullanım Koşulları</strong>'nı ve{' '}
+              <strong className={isDark ? 'text-white' : 'text-slate-900'}>KVKK Aydınlatma Metni</strong>'ni okudum, anladım ve kabul ediyorum.
+              <span className={`block mt-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Bu belgelere daha sonra Ayarlar → Politikalar bölümünden her zaman erişebilirsin.
+              </span>
+            </span>
+          </label>
+        )}
       </div>
     </div>
   );

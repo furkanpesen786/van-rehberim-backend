@@ -339,3 +339,144 @@ listingsRouter.post('/', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'İlan yayımlanamadı. Lütfen tekrar deneyiniz.' });
   }
 });
+
+// --- M43 (hukuki uyum): ilan kaldırma + saklama temizliği ---------------------
+//
+// 5846 FSEK / 5651 yükümlülükleri: hak sahibi bildirimi geldiğinde içeriği
+// kaldırabilecek bir mekanizma + kullanıcının KENDİ ilanını silebilmesi.
+// Ayrıca KVKK saklama politikası: yayından düşmüş ilanlar sonsuza kadar
+// Firestore'da tutulmaz — grace süresi sonunda günlük işle silinir.
+
+// Ortak yardımcı: dokümanı sil + o koleksiyonun /api/v1 önbelleğini
+// geçersiz kıl (invalidasyon hatası silme başarısını ENGELLEMEZ).
+async function deleteListingAndInvalidate(
+  adminApp: NonNullable<ReturnType<typeof getAdminApp>>,
+  typeConfig: { collection: string },
+  docId: string,
+): Promise<void> {
+  await getFirestore(adminApp).collection(typeConfig.collection).doc(docId).delete();
+  try {
+    invalidatePublicDataCache(typeConfig.collection);
+  } catch {
+    console.warn('[listings] önbellek invalidasyonu yapılamadı (kritik değil)');
+  }
+}
+
+// (1) Kullanıcının KENDİ ilanını silmesi — DELETE /api/listings/:type/:docId
+// Kimlik: Firebase ID token; yetki: dokümanın userId'si token uid'siyle
+// eşleşmeli (başkasının ilanı silinemez).
+listingsRouter.delete('/:type/:docId', async (req: Request, res: Response) => {
+  try {
+    const adminApp = getAdminApp();
+    if (!adminApp) {
+      return res.status(503).json({ error: 'Sunucu veritabanı yönetim erişimi yapılandırılmamış (FIREBASE_SERVICE_ACCOUNT eksik).' });
+    }
+    const { type, docId } = req.params;
+    const typeConfig = LISTING_TYPES[type as ListingType];
+    if (!typeConfig || typeof docId !== 'string' || docId.length === 0 || docId.length > 128) {
+      return res.status(400).json({ error: 'Geçersiz istek.' });
+    }
+
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!token) {
+      return res.status(401).json({ error: 'Oturum doğrulanamadı. Lütfen giriş yapınız.' });
+    }
+    let decoded;
+    try {
+      decoded = await getAuth(adminApp).verifyIdToken(token, true);
+    } catch {
+      return res.status(401).json({ error: 'Oturum doğrulanamadı. Lütfen tekrar giriş yapınız.' });
+    }
+    // Silme de yayınlama gibi sınırlı: uid ad alanı ayrı tutulur.
+    if (isRateLimited(`delete:${decoded.uid}`)) {
+      return res.status(429).json({ error: 'Çok fazla istek gönderildi. Lütfen bir süre sonra tekrar deneyiniz.' });
+    }
+
+    const docRef = getFirestore(adminApp).collection(typeConfig.collection).doc(docId);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'İlan bulunamadı. Zaten silinmiş olabilir.' });
+    }
+    if (snap.data()?.userId !== decoded.uid) {
+      return res.status(403).json({ error: 'Bu ilanı silme yetkiniz bulunmuyor.' });
+    }
+    await deleteListingAndInvalidate(adminApp, typeConfig, docId);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[listings] silme hatası:', err);
+    return res.status(500).json({ error: 'İlan silinemedi. Lütfen tekrar deneyiniz.' });
+  }
+});
+
+// (2) Yer sağlayıcı/telif bildirimi üzerine içerik kaldırma —
+// POST /api/listings/takedown. CACHE_INVALIDATION_SECRET ile aynı
+// fail-closed desen: TAKEDOWN_SECRET tanımsızsa endpoint kapalıdır (503) —
+// kimse gizli anahtarsız içerik sildiremez; tanımlıysa başlık birebir
+// eşleşmeli, yoksa 401.
+const TAKEDOWN_SECRET = process.env.TAKEDOWN_SECRET || '';
+
+listingsRouter.post('/takedown', async (req: Request, res: Response) => {
+  try {
+    if (!TAKEDOWN_SECRET) {
+      return res.status(503).json({ error: 'İçerik kaldırma işlevi yapılandırılmamış (TAKEDOWN_SECRET eksik).' });
+    }
+    const provided = String(req.headers['x-takedown-secret'] || '');
+    if (provided !== TAKEDOWN_SECRET) {
+      return res.status(401).json({ error: 'Yetkisiz istek.' });
+    }
+    const adminApp = getAdminApp();
+    if (!adminApp) {
+      return res.status(503).json({ error: 'Sunucu veritabanı yönetim erişimi yapılandırılmamış (FIREBASE_SERVICE_ACCOUNT eksik).' });
+    }
+    const { type, docId } = req.body || {};
+    const typeConfig = LISTING_TYPES[type as ListingType];
+    if (!typeConfig || typeof docId !== 'string' || docId.length === 0 || docId.length > 128) {
+      return res.status(400).json({ error: 'Geçersiz istek.' });
+    }
+    const snap = await getFirestore(adminApp).collection(typeConfig.collection).doc(docId).get();
+    if (!snap.exists) {
+      return res.json({ ok: true, note: 'İlan zaten yok.' });
+    }
+    await deleteListingAndInvalidate(adminApp, typeConfig, docId);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[listings] takedown hatası:', err);
+    return res.status(500).json({ error: 'İçerik kaldırılamadı.' });
+  }
+});
+
+// (3) KVKK saklama temizliği — süresi bitmiş ilanları sil. Aydınlatma
+// metnindeki taahhüt: "yayın süresi biten ilanlar en geç 7 gün içinde
+// silinir". Grace, itiraz/gecikme payı bırakır. server.ts'te günlük
+// zamanlanır (Render free plan uyku düzeninde de her uyanışta koşar).
+const EXPIRED_LISTING_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+const CLEANUP_BATCH_LIMIT = 400;
+
+export async function cleanupExpiredListings(): Promise<number> {
+  const adminApp = getAdminApp();
+  if (!adminApp) return 0; // yapılandırma yok (dev) — sessiz atla
+  const db = getFirestore(adminApp);
+  const cutoff = Timestamp.fromDate(new Date(Date.now() - EXPIRED_LISTING_GRACE_MS));
+  let deleted = 0;
+  for (const cfg of Object.values(LISTING_TYPES)) {
+    const snap = await db
+      .collection(cfg.collection)
+      .where('bitisTarihi', '<', cutoff)
+      .limit(CLEANUP_BATCH_LIMIT)
+      .get();
+    if (snap.empty) continue;
+    await Promise.all(snap.docs.map((d) => d.ref.delete()));
+    deleted += snap.size;
+    try {
+      invalidatePublicDataCache(cfg.collection);
+    } catch {
+      // temizlik hatası loglanır ama akışı bozmaz
+      console.warn('[listings] temizlik sonrası önbellek invalidasyonu yapılamadı (kritik değil)');
+    }
+  }
+  if (deleted > 0) {
+    console.log(`[listings] KVKK saklama temizliği: ${deleted} süresi dolmuş ilan silindi.`);
+  }
+  return deleted;
+}

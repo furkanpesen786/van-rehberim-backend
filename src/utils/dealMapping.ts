@@ -30,5 +30,7 @@ export function mapDealDoc(doc: RawDealDoc): Deal {
     address: '',
     description: doc.description || '',
     isFeatured: doc.isFeatured,
+    // M43 (5651 uyumu): sahiplik alanı — kendi ilanını silme UI'ı için.
+    userId: doc.userId,
   };
 }

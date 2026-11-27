@@ -3,7 +3,7 @@ import { JOB_CATEGORIES } from '../data/mockData';
 import { JobListing } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { subscribeJobListings } from '../lib/firebase';
-import { submitPaidListing } from '../services/listingService';
+import { submitPaidListing, deleteOwnListing } from '../services/listingService';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { getErrorMessage } from '../utils/errors';
 import { getDealMetaFromPackage } from '../utils/listingMeta';
@@ -33,6 +33,7 @@ import {
   Briefcase,
   AlertCircle,
   Trash2,
+  Flag,
   Share2,
   ArrowRight,
   ChevronLeft,
@@ -128,6 +129,28 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const [showPlayModal, setShowPlayModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  // M43 (5651/5846): kullanıcının kendi ilanını silme akışı
+  const [isDeletingJob, setIsDeletingJob] = useState(false);
+
+  // M43: kendi ilanını sunucu üzerinden siler (DELETE /api/listings/job/:id).
+  // Yetki sunucuda doc.userId === uid ile kontrol edilir.
+  const handleDeleteOwnJob = async () => {
+    if (!selectedJob || isDeletingJob) return;
+    if (!window.confirm('İlanınız kalıcı olarak silinecek. Onaylıyor musunuz?')) return;
+    setIsDeletingJob(true);
+    try {
+      await deleteOwnListing('job', selectedJob.id);
+      setJobsList((prev) => prev.filter((j) => j.id !== selectedJob.id));
+      setSelectedJob(null);
+      setSuccessToast('İlanınız silindi.');
+      scheduleToastClear(setSuccessToast, 3000);
+    } catch (err) {
+      setErrorToast(getErrorMessage(err));
+      scheduleToastClear(setErrorToast, 4000);
+    } finally {
+      setIsDeletingJob(false);
+    }
+  };
 
   // M32: Android geri tuşu önce açık modali kapatır (LIFO): detay → ilan
   // formu → ödeme. Önceden hepsi açıkken geri tuşu sekmeyi değiştiriyordu.
@@ -997,6 +1020,12 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                     : 'Paket Seçiniz'}
                 </span>
               </button>
+
+              {/* M43 (6502/MSY): dijital içerik cayma hakkı feragati —
+                  ödeme adımından hemen önce görünür, gizli değildir. */}
+              <p className="text-[10px] text-slate-400 leading-relaxed text-center">
+                Ödemeyi onaylamanızla birlikte ilanınız dijital içerik olarak anında teslim edilir ve yayına alınır; 6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği uyarınca cayma hakkınızın kullanılmasından açıkça feragat etmiş sayılırsınız. Tek seferlik ödemedir; otomatik yenileme yoktur.
+              </p>
             </form>
 
           </div>
@@ -1127,6 +1156,28 @@ export const JobsView: React.FC<JobsViewProps> = ({ theme = 'light' }) => {
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
+
+                {/* M43 (5651/5846): şikayet/bildirim kanalı — mailto ile
+                    ilan kimliği hazır gelir; kendi ilanıysa silme düğmesi. */}
+                {selectedJob.userId && selectedJob.userId === currentUser?.uid ? (
+                  <button
+                    type="button"
+                    onClick={handleDeleteOwnJob}
+                    disabled={isDeletingJob}
+                    title="İlanımı Sil"
+                    className="p-3.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-500 font-bold text-xs flex items-center justify-center hover:bg-rose-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <a
+                    href={`mailto:furkanpesen786@gmail.com?subject=${encodeURIComponent('Van Rehberim - İlan Bildirimi')}&body=${encodeURIComponent(`İlan ID: ${selectedJob.id}\nBaşlık: ${selectedJob.title}\nŞikayet nedeni: `)}`}
+                    title="İlanı Bildir"
+                    className={`p-3.5 rounded-2xl border font-bold text-xs flex items-center justify-center ${isDark ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-slate-100 border-slate-200 text-amber-600'}`}
+                  >
+                    <Flag className="w-4 h-4" />
+                  </a>
+                )}
               </div>
 
                 </div>

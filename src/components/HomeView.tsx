@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   AlertCircle,
   CreditCard,
+  Trash2,
+  Flag,
 } from 'lucide-react';
 
 import { WeatherSection } from './home/WeatherSection';
@@ -35,7 +37,7 @@ interface HomeViewProps {
 
 import { subscribeTaxis } from '../lib/firebase';
 import { PurchaseService, PACKAGE_IDS } from '../services/purchaseService';
-import { submitPaidListing } from '../services/listingService';
+import { submitPaidListing, deleteOwnListing } from '../services/listingService';
 import { useBackButtonClose } from '../utils/backButtonStack';
 
 export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateToPlaces, onNavigateToJobs }) => {
@@ -69,6 +71,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
           subscriptionPlan: t.subscriptionPlan,
           monthlyFee: t.monthlyFee || '',
           createdAt: t.createdAt,
+          // M43 (5651 uyumu): sahiplik alanı — kendi ilanını silme UI'ı için.
+          userId: t.userId,
         }));
         setTaxis(mappedTaxis);
       }
@@ -83,6 +87,26 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
 
   const [isAddTaxiModalOpen, setIsAddTaxiModalOpen] = useState<boolean>(false);
   const [showPayModalTaksi, setShowPayModalTaksi] = useState<boolean>(false);
+  // M43 (5651/5846 uyumu): kullanıcının kendi taksi ilanını silme akışı
+  // (M32'de no-op olduğu için kaldırılan düğme, artık GERÇEK sunucu
+  // silme endpoint'iyle geri geldi) + silme/bildirim geri bildirimi.
+  const [isDeletingTaxi, setIsDeletingTaxi] = useState(false);
+  const [taxiNotice, setTaxiNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const handleDeleteOwnTaxi = async (taxiId: string) => {
+    if (isDeletingTaxi) return;
+    if (!window.confirm('Taksi ilanınız kalıcı olarak silinecek. Onaylıyor musunuz?')) return;
+    setIsDeletingTaxi(true);
+    setTaxiNotice(null);
+    try {
+      await deleteOwnListing('taxi', taxiId);
+      setTaxis((prev) => prev.filter((t) => t.id !== taxiId));
+      setTaxiNotice({ kind: 'ok', text: 'Taksi ilanınız silindi.' });
+    } catch (err) {
+      setTaxiNotice({ kind: 'err', text: getErrorMessage(err) });
+    } finally {
+      setIsDeletingTaxi(false);
+    }
+  };
   // M32: Android geri tuşu taksi ekleme/ödeme modallarını kapatır
   useBackButtonClose(isAddTaxiModalOpen, () => setIsAddTaxiModalOpen(false));
   useBackButtonClose(showPayModalTaksi, () => setShowPayModalTaksi(false));
@@ -598,6 +622,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
               </button>
             </div>
 
+            {/* M43: taksi silme/bildirim geri bildirimi */}
+            {taxiNotice && (
+              <div className={`px-4 pt-3`}>
+                <div className={`text-[11px] font-bold px-3 py-2 rounded-xl border flex items-center gap-2 ${taxiNotice.kind === 'ok'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+                  }`}>
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="flex-1">{taxiNotice.text}</span>
+                  <button type="button" onClick={() => setTaxiNotice(null)} className="shrink-0 opacity-60 hover:opacity-100">✕</button>
+                </div>
+              </div>
+            )}
+
             {/* Taxi List Body — Aşama 3: duyarlı grid (mobil 1, md+ 2 sütun) */}
             <div className="p-4 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
               {isLoadingTaxis ? (
@@ -726,10 +764,29 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                         <span>ARA ({taxi.phone})</span>
                       </a>
 
-                      {/* M32: "İlanı Sil" düğmesi kaldırıldı — boş bir no-op
-                          handler'a bağlıydı (hiçbir şey silmiyordu). Gerçek
-                          silme akışı istenirse ayrıca eklenmeli (deleteDoc +
-                          owner kural kontrolü). */}
+                      {/* M43 (5651/5846): M32'de no-op olduğu için kaldırılan
+                          silme düğmesi GERÇEK akımla geri geldi (sunucu
+                          endpoint'i userId doğrular); kendi ilanı değilse
+                          şikayet/bildirim kanalı (mailto) gösterilir. */}
+                      {taxi.userId && taxi.userId === currentUser?.uid ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteOwnTaxi(taxi.id)}
+                          disabled={isDeletingTaxi}
+                          title="İlanımı Sil"
+                          className="p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <a
+                          href={`mailto:furkanpesen786@gmail.com?subject=${encodeURIComponent('Van Rehberim - İlan Bildirimi')}&body=${encodeURIComponent(`İlan ID: ${taxi.id}\nPlaka: ${taxi.plate}\nŞikayet nedeni: `)}`}
+                          title="İlanı Bildir"
+                          className={`p-2.5 rounded-xl border transition-colors ${isDark ? 'border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700' : 'border-slate-200 bg-slate-100 text-amber-600 hover:bg-slate-200'}`}
+                        >
+                          <Flag className="w-4 h-4" />
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))
@@ -914,7 +971,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                   className="mt-0.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500 w-4 h-4"
                 />
                 <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'} font-medium leading-tight`}>
-                  <strong>1. Ay Ücretsiz Abonelik Koşulunu Kabul Ediyorum:</strong> İlanım ilk ay tamamen ücretsiz yayınlanacaktır. Sonraki aylar için 1.000 TL/Ay abonelik tarifesi geçerlidir.
+                  <strong>1. Ay Ücretsiz Abonelik Koşulunu Kabul Ediyorum:</strong> İlanım ilk ay tamamen ücretsiz yayınlanacaktır. Sonraki aylar için 1.000 TL/Ay abonelik tarifesi geçerlidir; abonelik otomatik yenilenir ve ücretsiz deneme sonunda aylık ücret Google Play hesabımdan otomatik tahsil edilir. Dilediğim zaman Google Play abonelikler bölümünden iptal edebilirim.
                 </span>
               </label>
 
@@ -1011,9 +1068,19 @@ export const HomeView: React.FC<HomeViewProps> = ({ theme = 'light', onNavigateT
                 </>
               )}
             </button>
-            <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 font-medium px-4 leading-relaxed tracking-wide">
-              Google Play In-App Purchase ile yönetilen abonelik sözleşmesi. Dilediğiniz zaman iptal edebilirsiniz.
-            </p>
+            {/* M43 (6502/MSY): abonelik ön bilgilendirmesi — otomatik yenileme,
+                deneme sonu ücret, iptal yolu ve dijital içerik cayma feragati. */}
+            <div className="text-[10px] text-center text-slate-400 dark:text-slate-500 font-medium px-2 leading-relaxed tracking-wide space-y-1">
+              <p>
+                Google Play In-App Purchase ile yönetilen abonelik sözleşmesi. Abonelik <strong>otomatik yenilenir</strong>; ücretsiz ilk ayın sonunda aylık ücret (1.000 TL/ay) Google Play hesabınızdan otomatik tahsil edilir.
+              </p>
+              <p>
+                İptal: <strong>Google Play → Profil → Ödemeler ve abonelikler → Abonelikler</strong> bölümünden dilediğiniz zaman yapabilirsiniz.
+              </p>
+              <p>
+                Ödemeyi onaylamanızla birlikte dijital içerik anında teslim edilir; 6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği uyarınca cayma hakkınızın kullanılmasından açıkça feragat etmiş sayılırsınız.
+              </p>
+            </div>
           </div>
         </div>
       )}

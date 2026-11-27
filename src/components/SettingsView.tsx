@@ -699,20 +699,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     Van Rehberim olarak gizliliğinize büyük önem veriyoruz. İşbu Gizlilik Politikası, uygulamamızı kullandığınızda verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklamaktadır.
                   </p>
                   <div>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>1. Toplanan Veriler</h4>
-                    <p>Uygulamamız, hizmetlerimizi sunabilmek, kullanıcı deneyimini iyileştirmek ve kişiselleştirilmiş içerik sağlamak amacıyla e-posta adresi, kullanıcı tercihleri (tema, bildirim izinleri) ve cihaz erişim kayıtları gibi temel verileri toplayabilir.</p>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>1. Veri Sorumlusu ve İletişim</h4>
+                    <p>Veri sorumlusu: Van Rehberim. İletişim: furkanpesen786@gmail.com</p>
                   </div>
                   <div>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>2. Verilerin Kullanımı</h4>
-                    <p>Toplanan veriler; uygulama içi ayarlarınızın saklanması, favorilerinizin senkronize edilmesi, duyuru, yerel haber ve indirimlerin tarafınıza bildirim olarak iletilmesi amacıyla işlenir.</p>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>2. Toplanan Veriler</h4>
+                    <p>
+                      (a) <strong>Hesap verileri:</strong> Google hesabınızdan alınan ad, e-posta adresi ve profil fotoğrafı.
+                      (b) <strong>İlan verileri:</strong> İlan formunda sizin tarafınızdan girilen isim/işletme adı, telefon numarası, konum, açıklama ve fotoğraflar. Bu bilgiler ilanınızla birlikte <strong>herkese açık olarak yayınlanır</strong>.
+                      (c) <strong>Ödeme verileri:</strong> Google Play üzerinden yapılan satın almalara ilişkin işlem kimlikleri (kart bilgileri tarafımıza hiçbir zaman ulaşmaz; ödeme tamamen Google Play altyapısında gerçekleşir).
+                      (d) <strong>Cihaz tercihleri:</strong> Tema, bildirim ayarları ve favoriler — bunlar yalnızca cihazınızın yerel depolamasında tutulur.
+                    </p>
                   </div>
                   <div>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>3. Veri Güvenliği ve Paylaşım</h4>
-                    <p>Verileriniz endüstri standardı güvenlik protokolleri ve şifreleme yöntemleri ile korunmaktadır. Üçüncü şahıslarla açık izniniz olmadan veya yasal yükümlülükler haricinde kesinlikle paylaşılmaz.</p>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>3. Verilerin Kullanımı</h4>
+                    <p>Toplanan veriler; üyelik işlemlerinin yürütülmesi, ilanlarınızın yayınlanması, yerel duyuru ve bildirimlerin iletilmesi, ödemelerin doğrulanması ve yasal yükümlülüklerin yerine getirilmesi amacıyla işlenir.</p>
                   </div>
                   <div>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>4. Çerezler ve Yerel Depolama</h4>
-                    <p>Uygulamamız tema tercihleriniz, oturum durumunuz ve favori içerikleriniz için cihazınızda güvenli yerel depolama (LocalStorage) teknolojilerini kullanır.</p>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>4. Verilerin Aktarımı (Yurt Dışı Dahil)</h4>
+                    <p>
+                      Kişisel verileriniz, hizmet altyapısı gereği aşağıdaki yurt dışı merkezli hizmet sağlayıcılara aktarılabilir (KVKK m.9):
+                      <strong> Google / Firebase</strong> (kimlik doğrulama ve veri saklama), <strong>RevenueCat</strong> (ABD — abonelik doğrulama), <strong>Google Play</strong> (ödeme altyapısı) ve <strong>Render</strong> (ABD — uygulama sunucusu).
+                      Bu aktarımlar hizmetin sunulabilmesi için zorunludur; veriler bu firmaların güvenlik standartlarıyla korunur.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>5. Saklama Süresi</h4>
+                    <p>Hesap verileriniz hesabınızı silene kadar saklanır. İlanlarınız yayında kaldığı süre boyunca saklanır; yayın süresi sona eren ilanlar en geç 7 gün içinde sistemden otomatik olarak silinir. Hesabınızı dilediğiniz zaman "Hesabı Sil" özelliğiyle (tüm verilerinizle birlikte) kaldırabilirsiniz.</p>
+                  </div>
+                  <div>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>6. Çerezler ve Yerel Depolama</h4>
+                    <p>Uygulamamız tema tercihleriniz, oturum durumunuz ve favori içerikleriniz için cihazınızda güvenli yerel depolama (LocalStorage) teknolojilerini kullanır; üçüncü taraf izleme/reklam çerezi kullanılmaz.</p>
                   </div>
                 </>
               )}
@@ -738,6 +755,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>4. Sorumluluk Sınırı</h4>
                     <p>Van Rehberim, dükkan ve işletmelerin sunduğu indirim oranlarında veya açılış-kapanış saatlerinde yapabileceği anlık değişikliklerden sorumlu tutulamaz.</p>
                   </div>
+                  <div>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>5. Kullanıcı İlanları ve İçerik Kaldırma (5651 sayılı Kanun)</h4>
+                    <p>
+                      İş, indirim ve taksi ilanları kullanıcılar tarafından oluşturulur ve Van Rehberim bu içeriklerde <strong>yer sağlayıcı</strong> sıfatıyla yer alır. Yer sağlayıcı bildirimi: Van Rehberim — furkanpesen786@gmail.com.
+                      Hukuka aykırı içerik, telif ihlali ve benzeri şikayetlerinizi bu e-posta adresine iletebilirsiniz; bildirimler en kısa sürede incelenir ve gerektiğinde ilgili içerik kaldırılır. İlanınızın içeriğinden ve yayınladığı verilerin doğruluğundan siz sorumlusunuz; ilanınızı dilediğiniz zaman uygulama içinden silebilirsiniz.
+                    </p>
+                  </div>
                 </>
               )}
 
@@ -748,19 +772,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </p>
                   <div>
                     <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>1. Veri Sorumlusu</h4>
-                    <p>Van Rehberim olarak kişisel verilerinizi 6698 sayılı KVKK ve ilgili mevzuata uygun olarak veri sorumlusu sıfatıyla işlemekteyiz.</p>
+                    <p>Van Rehberim olarak kişisel verilerinizi 6698 sayılı KVKK ve ilgili mevzuata uygun olarak veri sorumlusu sıfatıyla işlemekteyiz. İletişim: furkanpesen786@gmail.com</p>
                   </div>
                   <div>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>2. Kişisel Verilerin İşlenme Amaçları</h4>
-                    <p>Verileriniz; üyelik işlemlerinin gerçekleştirilmesi, kişiselleştirilmiş şehir rehberi sunulması, yerel duyuru ve bildirimlerin iletilmesi ve yasal yükümlülüklerin yerine getirilmesi amacıyla işlenir.</p>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>2. İşlenen Kişisel Veriler ve Amaçları</h4>
+                    <p>
+                      Kimlik bilgileriniz (Google hesabınızdan ad, e-posta, profil fotoğrafı) üyelik işlemlerinin yürütülmesi; ilan verileriniz (isim, telefon, konum, fotoğraflar — sizin tarafınızdan girilir ve herkese açık yayınlanır) ilan hizmetinin sunulması; işlem kimlikleriniz ödemelerin doğrulanması; cihaz tercihleriniz (yerel) uygulama deneyiminin kişiselleştirilmesi amacıyla işlenir.
+                    </p>
                   </div>
                   <div>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>3. Verilerin Aktarılması ve Saklanması</h4>
-                    <p>Kişisel verileriniz KVKK'nın 8. ve 9. maddelerine uygun olarak, yalnızca kanunen yetkili kamu kurumlarına yasal zorunluluk halinde aktarılabilir. Verileriniz yurt içinde güvenli sunucularda muhafaza edilmektedir.</p>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>3. Verilerin Aktarılması (KVKK m.8 ve m.9)</h4>
+                    <p>
+                      Kişisel verileriniz; Google/Firebase (kimlik doğrulama ve veri saklama), RevenueCat (abonelik doğrulama — ABD), Google Play (ödeme altyapısı) ve Render (uygulama sunucusu — ABD) şeklindeki hizmet sağlayıcılara, hizmetin sunulabilmesi amacıyla ve KVKK'nın 8. ve 9. maddelerine uygun olarak — yurt dışına da — aktarılabilir. Ayrıca kanunen yetkili kamu kurum ve kuruluşlarına yasal zorunluluk halinde aktarılabilir.
+                    </p>
                   </div>
                   <div>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>4. KVKK Madde 11 Kapsamındaki Haklarınız</h4>
-                    <p>KVKK Madde 11 uyarınca; verilerinizin işlenip işlenmediğini öğrenme, işlenmişse bilgi talep etme, verilerinizin düzeltilmesini veya silinmesini isteme hakkına sahipsiniz.</p>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>4. Saklama Süresi</h4>
+                    <p>Hesap verileriniz hesabınız silinene kadar; ilan verileriniz ilanınız yayında kaldığı süre boyunca saklanır ve yayın süresi sona eren ilanlar en geç 7 gün içinde otomatik olarak silinir.</p>
+                  </div>
+                  <div>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>5. KVKK Madde 11 Kapsamındaki Haklarınız</h4>
+                    <p>
+                      KVKK m.11 uyarınca; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse buna ilişkin bilgi talep etme, işlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme, yurt içinde/yurt dışında aktarıldığı üçüncü kişileri bilme, eksik/yanlış işlenmişse düzeltilmesini isteme, silinmesini veya yok edilmesini isteme, otomatik sistemlerle analiz sonuçlarına aleyhinize bir sonucun ortaya çıkmasına itiraz etme ve kanuna aykırı işleme nedeniyle zararın giderilmesini talep etme haklarına sahipsiniz.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className={`font-bold mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>6. Haklarınızı Kullanma Yolu</h4>
+                    <p>Başvurularınızı furkanpesen786@gmail.com adresine iletebilirsiniz; en geç 30 gün içinde yanıtlanır. Hesabınızı ve tüm verilerinizi anında silmek için Ayarlar bölümündeki "Hesabı Sil" özelliğini kullanabilirsiniz.</p>
                   </div>
                 </>
               )}

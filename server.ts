@@ -9,7 +9,8 @@ import rateLimit from 'express-rate-limit';
 // DİKKAT: Native ESM ("type": "module") uzantısız göreli import'u çözemez —
 // tam .ts uzantısı şart (ts-node, tsx, esbuild ve tsc/allowImportingTsExtensions
 // hepsi bu formu kabul eder).
-import { listingsRouter } from './server/listings.ts';
+// M43: ilan kaldırma (kendi ilanı + takedown) ve KVKK saklama temizliği
+import { listingsRouter, cleanupExpiredListings } from './server/listings.ts';
 // M35: KVKK hesap silme — Firestore + Auth kaydı Admin SDK ile sunucuda silinir
 import { accountRouter } from './server/account.ts';
 // Aşama 2 (ölçek): /api/v1 ortak veri okuma katmanı — Firestore okuma kotası
@@ -85,6 +86,23 @@ app.use('/api/listings', listingsRouter);
 
 // M35: KVKK hesap silme (ID token doğrulaması; Firestore + Auth Admin SDK ile).
 app.use('/api/account', accountRouter);
+
+// M43 (KVKK saklama): yayından düşmüş ilanlar için günlük temizlik işi.
+// Aydınlatma metnindeki taahhüt: "yayın süresi biten ilanlar en geç 7 gün
+// içinde silinir". İlk koşu 30 sn gecikmeli (soğuk başlangıcı yormasın);
+// Render free plan'da sunucu uykudan her uyanışta interval zamanı geçmişse
+// koşar — bu yüzden süre taşmalarında gecikme olur ama iş hiç atlanmaz.
+const LISTING_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+function scheduleListingCleanup(): void {
+  const run = () => {
+    cleanupExpiredListings().catch((err: unknown) => {
+      console.warn('[cleanup] ilan temizliği başarısız (kritik değil):', err);
+    });
+  };
+  setTimeout(run, 30_000);
+  setInterval(run, LISTING_CLEANUP_INTERVAL_MS);
+}
+scheduleListingCleanup();
 
 // M30: timeout'lu fetch yardımcısı. Node fetch'in varsayılan zaman aşımı
 // YOKTUR — kaynak asılı kalırsa (bağlantı açılır ama yanıt gelmez) await
