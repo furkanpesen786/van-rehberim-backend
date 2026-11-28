@@ -5,7 +5,11 @@
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
 > **Son güncelleme:** 28.11.2026 (oturum #25) — **M45: CLINE 3. TUR
-> DENETİMİ + 5 DÜZELTME (kod tamam, commit bekliyor).** Kullanıcı
+> DENETİMİ + 5 DÜZELTME — commit `4c9cddd` pushlandı + CI ✅ yeşil +
+> CANLIDA DOĞRULANDI (health 200 + favicon 200 + /api/v1/jobs 200) —
+> M45 KAPANDI.** favicon 200 aynı zamanda vite'ın dependencies'ten
+> kaldırılmasının Render build'ini KIRMADIĞINI kanıtladı (favicon
+> yalnızca yeni build'de var). Kullanıcı
 > projeyi Cline'a tekrar tarattı; bu kez rapordaki bulguların TÜMÜ
 > doğrulandı (M42 1. turundaki geçersiz bulgu çıkmadı). Kod tarafında
 > düzeltilenler: **(1) package.json'da vite ÇİFT tanımlıydı** (hem
@@ -34,6 +38,26 @@
 > app.get('*') kırılır, userFavorites kuralı ölü, service worker yok)
 > kayda alındı — düşük öncelik. Doğrulama: tsc/eslint/vitest/build
 > kullanıcı tarafından çalıştırılacak.
+>
+> **28.11.2026 (oturum #25, kapanış) — CLINE 4. TUR DOĞRULAMA + M43
+> TELEFON TESTİ KAPANDI.** Cline, M44+M45 commit'lerini satır satır
+> yeniden doğruladı: önceki raporun 7 kod/belge maddesinin TAMAMI doğru
+> uygulanmış; tsc/eslint/82 test yeşil; M44'ün 4 düzeltmesi de teknik
+> olarak sağlam (API 404 handler konumu, prune, saat dilimi,
+> timing-safe). **Kullanıcı yeni debug APK'yı telefonda test etti —
+> SORUN YOK → M43'ün 4 maddelik telefon test listesi (onboarding onay
+> kapısı, yeni politika metinleri, SİL/BİLDİR düğmeleri, taksi ödeme
+> modalı metni) KAPANDI.** Not: cap sync henüz yapılmadı — telefondaki
+> APK'da favicon/M45 istemci değişiklikleri yok (bir sonraki APK
+> üretiminde akış gereği otomatik girer; ayrıca APK üretmeye gerek yok).
+> **PROJEDE KOD TARAFINDA BEKLEYEN İŞ YOK.** Kalan ÜÇ kullanıcı işi
+> (yol haritası 27.11'de ayrıntılı verildi): (1) RevenueCat gerçek
+> `goog_` anahtarını .env'e gir + Play Console'da 3 ürün
+> (ilan_30_gun, one_cikan_30_gun, taksi_ilan_aylik) + RevenueCat
+> offering — ödeme akışı bunlar olmadan çalışmıyor; (2) Render'a
+> TAKEDOWN_SECRET (+ isteğe bağlı CACHE_INVALIDATION_SECRET) ekle;
+> (3) android/keystore.properties oluştur (release imza —
+> keystore.properties.example şablonu var).
 >
 > **27.11.2026 (oturum #25, önceki bölüm) — M44: TAM PROJE
 > YENİDEN TARAMASI + 4 DÜZELTME — commit `3bd9277` pushlandı + CI ✅
