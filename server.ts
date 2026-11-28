@@ -42,6 +42,11 @@ const allowedOrigins = [
   'http://localhost:5173',
   'capacitor://localhost',
   'http://localhost',
+  // Tam tarama 2 (28.11, Cline): Capacitor 8'in Android WebView varsayılan
+  // origin'i https://localhost'tur. Şu an CapacitorHttp açık olduğu için
+  // istekler native katmandan geçip CORS'e takılmıyor; ama CapacitorHttp
+  // kapatılırsa web istekleri bu origin'den gelir — bloklanmasın.
+  'https://localhost',
   process.env.VITE_API_URL || 'https://van-rehberim-api.onrender.com'
 ];
 

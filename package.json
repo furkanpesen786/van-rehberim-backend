@@ -1,7 +1,7 @@
 {
   "name": "van-rehberim",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Van Rehberim — Van ili için dijital şehir rehberi (React + Capacitor + Firebase + Express)",
   "type": "module",
   "scripts": {
@@ -35,8 +35,7 @@
     "lucide-react": "^0.546.0",
     "node-cache": "^5.1.2",
     "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "vite": "^6.2.3"
+    "react-dom": "^19.0.1"
   },
   "overrides": {
     "@grpc/grpc-js": "^1.14.7",

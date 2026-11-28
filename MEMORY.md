@@ -4,8 +4,40 @@
 > alınan mimari kararları ve sıradaki adımların kalıcı kaydını tutar. Yeni bir çalışma
 > oturumuna başlamadan önce bu dosya okunmalı, oturum sonunda güncellenmelidir.
 >
-> **Son güncelleme:** 27.11.2026 (oturum #25) — **M44: TAM PROJE
-> YENİDEN TARAMASI + 4 DÜZELTME (kod tamam, commit bekliyor).**
+> **Son güncelleme:** 28.11.2026 (oturum #25) — **M45: CLINE 3. TUR
+> DENETİMİ + 5 DÜZELTME (kod tamam, commit bekliyor).** Kullanıcı
+> projeyi Cline'a tekrar tarattı; bu kez rapordaki bulguların TÜMÜ
+> doğrulandı (M42 1. turundaki geçersiz bulgu çıkmadı). Kod tarafında
+> düzeltilenler: **(1) package.json'da vite ÇİFT tanımlıydı** (hem
+> dependencies hem devDependencies) — dependencies'ten kaldırıldı.
+> Güvenlik gerekçesi: Render'ın build'i zaten yalnızca devDependencies'te
+> olan esbuild'e bağımlı ve deploy'lar çalışıyordu → Render
+> devDependencies kuruyor demektir, kaldırma güvenli (yine de push
+> sonrası canlı deploy kontrol edilmeli). **(2) Sürüm eşitlemesi:**
+> package.json 1.0.0 ↔ build.gradle versionName 1.1 tutarsızdı →
+> package.json 1.1.0 yapıldı. **(3) CORS listesine https://localhost
+> eklendi** (server.ts) — Capacitor 8 Android WebView varsayılan
+> origin'i; şu an CapacitorHttp açık olduğundan etkisiz ama kapatılırsa
+> gerekecek. **(4) .gitignore'a .idea/, .vscode/, android/.idea/
+> eklendi** + git rm -r --cached ile takipten çıkarma (komut kullanıcıya
+> verildi — makineye özel IDE dosyaları repodaydı). **(5) index.html'e
+> favicon linki eklendi** (/favicon.png; dosya jimp ile assets/icon.png
+> 64×64'ten üretiliyor — üretim komutu kullanıcıya verildi; yeni APK'da
+> da yer alacak). **(6) MEMORY.md bayat kayıtlar düzeltildi:** "strict
+> KAPALI" → strict AÇIK (tsconfig'te `"strict": true`); upload.keystore
+> "git'te izleniyor!" uyarısı → 04.11'de çözülmüştü, gitignore koruyor.
+> Cline raporundaki KULLANICI TARAFI maddeleri (RevenueCat gerçek
+> anahtar, TAKEDOWN_SECRET/CACHE_INVALIDATION_SECRET env'ler,
+> keystore.properties) bilinen bekleyen işler — az önce kullanıcıya
+> ayrıntılı yol haritası verildi. Bilgi düzeyindeki notlar (scripts/
+> klasörü kalıntıları, logo.png 533 kB optimizasyonu, Express 5'te
+> app.get('*') kırılır, userFavorites kuralı ölü, service worker yok)
+> kayda alındı — düşük öncelik. Doğrulama: tsc/eslint/vitest/build
+> kullanıcı tarafından çalıştırılacak.
+>
+> **27.11.2026 (oturum #25, önceki bölüm) — M44: TAM PROJE
+> YENİDEN TARAMASI + 4 DÜZELTME — commit `3bd9277` pushlandı + CI ✅
+> yeşil (build success, 48 sn) — M44 KAPANDI.**
 > Kullanıcı "bütün projeyi tekrar tara, her şeyi hataları bul" dedi;
 > SALT-OKUNUR tarama yapıldı: server.ts (tamamı, 890 satır), 5 sunucu
 > modülü (listings/publicData/cacheService/adminApp/account), tüm istemci
@@ -369,7 +401,7 @@ backend Render.com üzerinde Express olarak çalışır.
 
 | Katman | Teknolojiler |
 |---|---|
-| Frontend | React 19, TypeScript 5.8 (strict KAPALI), Vite 6, Tailwind CSS 4, lucide-react |
+| Frontend | React 19, TypeScript 5.8 (strict AÇIK — tsconfig.json `"strict": true`), Vite 6, Tailwind CSS 4, lucide-react |
 | Mobil | Capacitor 8 (yalnızca Android; iOS projesi yok), Firebase Auth, RevenueCat, LocalNotifications |
 | Backend | Express 4 (`server.ts`, ~1.080 satır + `server/` modülleri) — scraping tabanlı veri toplama |
 | Veri | Firebase Firestore (`is_ilanlari`, `indirim_ilanlari`, `taksiler`, `users`, `userFavorites`) |
@@ -386,7 +418,9 @@ yerel bildirimler, açık/koyu tema, Google/Apple girişi (e-posta girişi devre
   ve 5 bölüm bileşeni (M25 bölünmesi)
 - `src/lib/firebase.ts` — Firestore erişim katmanı (config hardcoded: `vanrehberim-f181b`)
 - `firestore.rules` — güvenlik kuralları
-- `android/app/upload.keystore` — Play Store imza anahtarı (⚠️ git'te izleniyor!)
+- `android/app/upload.keystore` — Play Store imza anahtarı (gitignore'lu —
+  `*.keystore` kuralı koruyor; 04.11'de takipten çıkarıldı. Yerelde güvende
+  tutulmalı, repo dışında yedeklenmeli)
 
 ---
 

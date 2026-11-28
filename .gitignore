@@ -18,6 +18,10 @@ android/app/build/
 # System files
 .DS_Store
 Thumbs.db
+# IDE dosyaları (tam tarama 2, 28.11 — makineye özel, repoya ait değil)
+.idea/
+.vscode/
+android/.idea/
 # Environment files
 .env
 # Android signing keys (ASLA commit etme!)
